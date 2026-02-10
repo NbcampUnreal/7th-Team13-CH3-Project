@@ -10,6 +10,7 @@
 // 전방 선언
 class UWeaponAttributeSet;
 class UWeaponDataAsset;
+class USkeletalMeshComponent;
 
 UCLASS()
 class FINALMINUTES_API AWeaponBase : public AActor
@@ -31,6 +32,13 @@ public:
     void InitializeWeapon(UWeaponDataAsset* InDataAsset, UWeaponAttributeSet* InAttributes);
 	
 private:
+	/** 비동기 로드 완료 시 호출될 콜백 함수 */
+    void OnWeaponMeshLoaded() const;
+private:
+	/** 실제 무기 외형을 담당하는 컴포넌트 */
+    UPROPERTY(VisibleAnywhere, Category = "Weapon|Visual")
+    TObjectPtr<USkeletalMeshComponent> WeaponMesh;
+	
 	/** * 무기 고유 식별자
      * FString 대신 GameplayTag를 사용하여 조건 검사 속도와 확장성을 확보
      */
