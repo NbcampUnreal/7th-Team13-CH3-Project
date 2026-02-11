@@ -10,7 +10,15 @@ UCLASS()
 class FINALMINUTES_API AFinalMinutesGameState : public AGameStateBase
 {
 	GENERATED_BODY()
+
 public:
+	
 	void AddKill();
-	void ResetKillCount();
+	
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnKillCountChanged OnKillCountChanged;
+
+private:
+	int32 KillCount = 0;
 };

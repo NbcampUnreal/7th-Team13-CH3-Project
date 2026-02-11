@@ -23,4 +23,5 @@ public:
 	FWeaponData GetWeaponData(FGameplayTag Tag);
 	UFUNCTION(BlueprintCallable, Category = "MonsterData")
 	FMonsterData GetMonsterData(FGameplayTag Tag);
+	
 };

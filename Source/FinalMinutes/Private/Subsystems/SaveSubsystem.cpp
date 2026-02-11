@@ -1,4 +1,6 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+#include "FinalMinutes/Public/Subsystems/SaveSubsystem.h"
 
-
-#include "FinalMinutes/Public/Subsystem/SaveSubsystem.h"
+void USaveSubsystem::SaveGame()
+{
+	//게임저장?
+}
