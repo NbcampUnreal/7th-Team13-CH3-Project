@@ -50,15 +50,15 @@ class FINALMINUTES_API UWeaponDataAsset : public UPrimaryDataAsset
 #pragma region 소켓 및 투사체
     /** 캐릭터 손에 붙을 소켓 이름 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Socket")
-    FName HandSocketName = FName("WeaponSocket_R");
+    FName HandSocketName = FName("weapon_r");
 
     /** 총알이 나갈 총구 소켓 이름 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Socket")
-    FName MuzzleSocketName = FName("Muzzle");
+    FName MuzzleSocketName = FName("weapon_r_muzzle");
 
     /** 탄피가 배출될 소켓 이름 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Socket")
-    FName EjectSocketName = FName("Eject");
+    FName EjectSocketName = NAME_None;
 
     /** 생성할 투사체 클래스 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Projectile")
