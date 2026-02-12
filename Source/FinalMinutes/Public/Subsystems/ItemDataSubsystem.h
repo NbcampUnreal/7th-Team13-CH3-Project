@@ -14,9 +14,12 @@ class FINALMINUTES_API UItemDataSubsystem : public UGameInstanceSubsystem
 	GENERATED_BODY()
 	
 public:
-	UPROPERTY(EditAnywhere, Category = "ItemData")
+	
+	UItemDataSubsystem();
+	
+	UPROPERTY()
 	TObjectPtr<UDataTable> WeaponDataTable;
-	UPROPERTY(EditAnywhere, Category = "MonsterData")
+	UPROPERTY()
 	TObjectPtr<UDataTable> MonsterDataTable;
 	
 	UFUNCTION(BlueprintCallable, Category = "ItemData")
