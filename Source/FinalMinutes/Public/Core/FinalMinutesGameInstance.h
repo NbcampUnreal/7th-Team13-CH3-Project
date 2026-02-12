@@ -22,4 +22,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Subsystem")
 	USoundSubsystem* GetSoundSubsystem() const;
+	
+	UFUNCTION(BlueprintCallable, Category = "Subsystem")
+	USaveSubsystem* GetSaveSubsystem() const;
 };

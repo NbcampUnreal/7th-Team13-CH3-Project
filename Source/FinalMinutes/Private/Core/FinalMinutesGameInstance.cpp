@@ -19,3 +19,8 @@ USoundSubsystem* UFinalMinutesGameInstance::GetSoundSubsystem() const
 {
 	return GetSubsystem<USoundSubsystem>();
 }
+
+USaveSubsystem* UFinalMinutesGameInstance::GetSaveSubsystem() const
+{
+	return GetSubsystem<USaveSubsystem>();
+}
