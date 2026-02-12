@@ -4,11 +4,13 @@ UItemDataSubsystem::UItemDataSubsystem()
 {
 	static ConstructorHelpers::FObjectFinder<UDataTable> 
 	DT_WeaponDataTable
-	(TEXT("/Script/Engine.DataTable/Game/Data/DT_WeaponDataTable.DT_WeaponDataTable"));
+	(TEXT("/Game/Data/DT_WeaponDataTable.DT_WeaponDataTable"));
 	
 	if (DT_WeaponDataTable.Succeeded())
 	{
 		WeaponDataTable = DT_WeaponDataTable.Object;
+		//디버깅용
+		UE_LOG(LogTemp, Warning, TEXT("DT_WeaponDataTable을 찾았다."));
 	}
 	else
 	{

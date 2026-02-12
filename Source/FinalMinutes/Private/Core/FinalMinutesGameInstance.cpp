@@ -8,7 +8,7 @@ void UFinalMinutesGameInstance::Init()
 	Super::Init();
 	//디버깅용 
 	UE_LOG(LogTemp, Warning, TEXT("A DDA GOOD!"));
-}
+}	
 
 UItemDataSubsystem* UFinalMinutesGameInstance::GetItemSubsystem() const
 {
