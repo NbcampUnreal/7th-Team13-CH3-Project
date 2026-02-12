@@ -16,6 +16,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Sound")
 	void PlayBGM(FGameplayTag BGMTag);
+	//바꿔야함 브금은 2~3개니까 시간에 따라 바뀌니까
 
 private:
 	UPROPERTY()

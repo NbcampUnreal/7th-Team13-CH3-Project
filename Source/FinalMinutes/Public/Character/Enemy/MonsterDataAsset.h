@@ -8,6 +8,14 @@ USTRUCT(BlueprintType)
 struct FMonsterData : public FTableRowBase
 {
 	GENERATED_BODY()
-	UPROPERTY(EditAnywhere, BlueprintReadWrite) FGameplayTag MonsterTag;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster") 
+	FGameplayTag MonsterTag;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats") 
+	float MaxHp;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats") 
+	float AttackDamage;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	float Defence;
 	
 };

@@ -10,12 +10,13 @@ struct FWeaponData : public FTableRowBase
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	FGameplayTag WeaponTag;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	FString WeaponName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float BaseDamage;
+	//무기 데미지
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	float WeaponDamage;
 };
