@@ -22,16 +22,18 @@ public:
 	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	virtual void InitializeAbilitySystem();
 protected:
+	#pragma region GameplayAbility관련
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS|Abilities")
 	TArray<TSubclassOf<UGameplayAbility>> DefaultAbilities;
 
-	// Ability 부여 함수
-	void GiveDefaultAbilities();
-protected:
-	virtual void BeginPlay() override;
-	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
 	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+	
+	// Ability 부여 함수
+	void GiveDefaultAbilities();
+#pragma endregion
+protected:
+	virtual void BeginPlay() override;
 	
 	UPROPERTY()
 	TObjectPtr<UCharacterAttributeSet> CharacterAttributeSet;
@@ -52,10 +54,7 @@ protected:
 	void StartSprint(const FInputActionValue& value);
 	UFUNCTION()
 	void StopSprint(const FInputActionValue& value);
-	UFUNCTION()
-	void StartProne(const FInputActionValue& value);
-	UFUNCTION()
-	void StopProne(const FInputActionValue& value);
+
 	UFUNCTION()
 	void Roll(const FInputActionValue& value);
 	UFUNCTION()

@@ -99,20 +99,13 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
             
             if (IA_Prone)
             {
-                EnhancedInput->BindAction(IA_Crouch, ETriggerEvent::Triggered, this, &APlayerCharacter::OnProne);
-                EnhancedInput->BindAction(IA_Crouch, ETriggerEvent::Completed, this, &APlayerCharacter::OnProne);
+                EnhancedInput->BindAction(IA_Prone, ETriggerEvent::Started, this, &APlayerCharacter::OnProne);
             }
             
             if (PlayerController->SprintAction)
             {
                 EnhancedInput->BindAction(PlayerController->SprintAction, ETriggerEvent::Started, this, &APlayerCharacter::StartSprint);
                 EnhancedInput->BindAction(PlayerController->SprintAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopSprint);
-            }
-            
-            if (PlayerController->ProneAction)
-            {
-                EnhancedInput->BindAction(PlayerController->ProneAction, ETriggerEvent::Started, this, &APlayerCharacter::StartProne);
-                EnhancedInput->BindAction(PlayerController->ProneAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopProne);
             }
             
             if (PlayerController->RollAction)
@@ -190,22 +183,25 @@ void APlayerCharacter::OnCrouch(const FInputActionValue& Value)
 
 void APlayerCharacter::OnProne(const FInputActionValue& Value)
 {
-    bool bIsPressed = Value.Get<bool>();
     UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
     if (!ASC) return;
-    if (bIsPressed)
+
+    FGameplayTag ProneStateTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning"));
+
+    // 현재 엎드린 상태 태그가 있는지 확인
+    if (!ASC->HasMatchingGameplayTag(ProneStateTag))
     {
+        // 태그가 없다면 -> 엎드리기 실행
         FGameplayTagContainer AbilityTags;
         AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Prone")));
-        ASC->TryActivateAbilitiesByTag((AbilityTags));
+        ASC->TryActivateAbilitiesByTag(AbilityTags);
     }
     else
     {
-        // 이벤트와 함께 전달되는 Payload(정보)
-        // 이벤트 발생주체, 대상등이 들어있음
+        // 태그가 있다면 -> 일어나기 이벤트 전송
         FGameplayEventData Payload;
         ASC->HandleGameplayEvent(FGameplayTag::RequestGameplayTag(FName("State.Prone.End")), &Payload);
-    }    
+    }
 }
 
 
@@ -235,16 +231,6 @@ void APlayerCharacter::StartSprint(const FInputActionValue& Value)
 void APlayerCharacter::StopSprint(const FInputActionValue& Value)
 {
     UE_LOG(LogTemp, Warning, TEXT("Stop Sprint"));
-}
-
-void APlayerCharacter::StartProne(const FInputActionValue& Value)
-{
-    UE_LOG(LogTemp, Warning, TEXT("Start Prone"));
-}
-
-void APlayerCharacter::StopProne(const FInputActionValue& Value)
-{
-    UE_LOG(LogTemp, Warning, TEXT("Stop Prone"));
 }
 
 void APlayerCharacter::Roll(const FInputActionValue& Value)

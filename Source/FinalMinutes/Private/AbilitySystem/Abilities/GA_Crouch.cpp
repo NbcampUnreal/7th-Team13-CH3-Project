@@ -37,8 +37,6 @@ void UGA_Crouch::ActivateAbility(
 	APlayerCharacter* Character = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
 	if (Character)
 	{
-		// 1. 여기서 엔진의 Crouch를 호출합니다. 
-		// 설정을 켰다면 이제 정상 작동할 겁니다.
 		Character->Crouch(); 
 	}
 
@@ -120,7 +118,6 @@ void UGA_Crouch::OnCrouchGameplayEvent(FGameplayEventData EventData)
 void UGA_Crouch::OnInputReleased(FGameplayEventData EventData)
 {
 	// 버튼을 떼면 앉기 종료
-	UE_LOG(LogTemp, Warning, TEXT("Input Released!"));
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 }
 
@@ -146,10 +143,8 @@ void UGA_Crouch::EndAbility(
 	APlayerCharacter* Character = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
 	if (Character)
 	{
-		// 1. 물리적으로 일어서기
 		Character->UnCrouch(); 
-        
-		// 2. 만약 몽타주가 아직 재생 중이라면 즉시 중단 (일어나는 모션으로 튀지 않게)
+
 		if (Character->GetMesh() && Character->GetMesh()->GetAnimInstance())
 		{
 			Character->GetMesh()->GetAnimInstance()->Montage_Stop(0.2f, CrouchMontage);
