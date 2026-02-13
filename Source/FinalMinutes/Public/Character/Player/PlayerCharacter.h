@@ -8,6 +8,8 @@
 class UAbilitySystemComponent;
 class UCharacterAttributeSet;
 class USensorAttributeSet;
+class UGameplayAbility;
+class UInputAction;
 
 UCLASS()
 class FINALMINUTES_API APlayerCharacter : public ACharacter, public IAbilitySystemInterface
@@ -19,7 +21,12 @@ public:
 	
 	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	virtual void InitializeAbilitySystem();
-	
+protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS|Abilities")
+	TArray<TSubclassOf<UGameplayAbility>> DefaultAbilities;
+
+	// Ability 부여 함수
+	void GiveDefaultAbilities();
 protected:
 	virtual void BeginPlay() override;
 	
@@ -67,9 +74,10 @@ protected:
 	void Interact(const FInputActionValue& value);
 	
 	
-	// ACharacter가 이미 가지고 있음
-	// UFUNCTION()
-	// void Crouch(const FInputActionValue& value);
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
+	TObjectPtr<UInputAction> IA_Crouch;
+
+	void OnCrouch(const FInputActionValue& Value);
 	
 	void StartCrouch();
 	void StopCrouch();

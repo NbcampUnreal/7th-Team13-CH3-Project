@@ -26,7 +26,38 @@ void APlayerCharacter::BeginPlay()
 	
 	// ASC초기화
 	InitializeAbilitySystem();
+    
+    GiveDefaultAbilities();
 }
+
+void APlayerCharacter::GiveDefaultAbilities()
+{
+    // ASC 확인
+    if (!AbilitySystemComponent)
+    {
+        return;
+    }
+
+    // Authority 체크 (서버에서만 부여, 싱글플레이는 항상 true)
+    if (!HasAuthority())
+    {
+        return;
+    }
+
+    // DefaultAbilities 배열 순회하며 부여
+    for (TSubclassOf<UGameplayAbility>& AbilityClass : DefaultAbilities)
+    {
+        if (AbilityClass)
+        {
+            // Ability Spec 생성
+            FGameplayAbilitySpec AbilitySpec(AbilityClass, 1, INDEX_NONE, this);
+
+            // ASC에 Ability 부여
+            AbilitySystemComponent->GiveAbility(AbilitySpec);
+        }
+    }
+}
+
 
 void APlayerCharacter::InitializeAbilitySystem()
 {
@@ -60,10 +91,17 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
                 EnhancedInput->BindAction(PlayerController->JumpAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopJump);
             }
 
+            if (IA_Crouch)
+            {
+                EnhancedInput->BindAction(IA_Crouch, ETriggerEvent::Triggered, this, &APlayerCharacter::OnCrouch);
+                EnhancedInput->BindAction(IA_Crouch, ETriggerEvent::Completed, this, &APlayerCharacter::OnCrouch);
+            }
+            
             if (PlayerController->CrouchAction)
             {
-                EnhancedInput->BindAction(PlayerController->CrouchAction, ETriggerEvent::Started, this, &APlayerCharacter::StartCrouch);
-                EnhancedInput->BindAction(PlayerController->CrouchAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopCrouch);
+                
+                // EnhancedInput->BindAction(PlayerController->CrouchAction, ETriggerEvent::Started, this, &APlayerCharacter::StartCrouch);
+                // EnhancedInput->BindAction(PlayerController->CrouchAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopCrouch);
             }
             
             if (PlayerController->SprintAction)
@@ -130,6 +168,27 @@ void APlayerCharacter::Move(const FInputActionValue& value)
     AddMovementInput(ForwardDirection, MoveInput.X);
     AddMovementInput(RightDirection, MoveInput.Y);
 }
+
+void APlayerCharacter::OnCrouch(const FInputActionValue& Value)
+{
+    bool bIsPressed = Value.Get<bool>();
+    UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+    if (!ASC) return;
+    if (bIsPressed)
+    {
+        FGameplayTagContainer AbilityTags;
+        AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Crouch")));
+        ASC->TryActivateAbilitiesByTag((AbilityTags));
+    }
+    else
+    {
+        // 이벤트와 함께 전달되는 Payload(정보)
+        // 이벤트 발생주체, 대상등이 들어있음
+        FGameplayEventData Payload;
+        ASC->HandleGameplayEvent(FGameplayTag::RequestGameplayTag(FName("State.Crouch.End")), &Payload);
+    }    
+}
+
 
 void APlayerCharacter::StartJump(const FInputActionValue& value)
 {
