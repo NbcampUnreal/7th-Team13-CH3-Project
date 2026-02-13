@@ -73,14 +73,20 @@ protected:
 	UFUNCTION()
 	void Interact(const FInputActionValue& value);
 	
-	
+#pragma region 앉기
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
 	TObjectPtr<UInputAction> IA_Crouch;
-
-	void OnCrouch(const FInputActionValue& Value);
 	
-	void StartCrouch();
-	void StopCrouch();
+	// 앉기
+	void OnCrouch(const FInputActionValue& Value);
+#pragma endregion
+	
+#pragma region 엎드리기
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
+	TObjectPtr<UInputAction> IA_Prone;
+	// 엎드리기
+	void OnProne(const FInputActionValue& Value);
+#pragma endregion
 	
 	
 public:	

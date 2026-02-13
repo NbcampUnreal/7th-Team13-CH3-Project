@@ -97,11 +97,10 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
                 EnhancedInput->BindAction(IA_Crouch, ETriggerEvent::Completed, this, &APlayerCharacter::OnCrouch);
             }
             
-            if (PlayerController->CrouchAction)
+            if (IA_Prone)
             {
-                
-                // EnhancedInput->BindAction(PlayerController->CrouchAction, ETriggerEvent::Started, this, &APlayerCharacter::StartCrouch);
-                // EnhancedInput->BindAction(PlayerController->CrouchAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopCrouch);
+                EnhancedInput->BindAction(IA_Crouch, ETriggerEvent::Triggered, this, &APlayerCharacter::OnProne);
+                EnhancedInput->BindAction(IA_Crouch, ETriggerEvent::Completed, this, &APlayerCharacter::OnProne);
             }
             
             if (PlayerController->SprintAction)
@@ -189,6 +188,26 @@ void APlayerCharacter::OnCrouch(const FInputActionValue& Value)
     }    
 }
 
+void APlayerCharacter::OnProne(const FInputActionValue& Value)
+{
+    bool bIsPressed = Value.Get<bool>();
+    UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+    if (!ASC) return;
+    if (bIsPressed)
+    {
+        FGameplayTagContainer AbilityTags;
+        AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Prone")));
+        ASC->TryActivateAbilitiesByTag((AbilityTags));
+    }
+    else
+    {
+        // 이벤트와 함께 전달되는 Payload(정보)
+        // 이벤트 발생주체, 대상등이 들어있음
+        FGameplayEventData Payload;
+        ASC->HandleGameplayEvent(FGameplayTag::RequestGameplayTag(FName("State.Prone.End")), &Payload);
+    }    
+}
+
 
 void APlayerCharacter::StartJump(const FInputActionValue& value)
 {
@@ -206,17 +225,6 @@ void APlayerCharacter::Look(const FInputActionValue& value)
     AddControllerYawInput(LookInput.X);
     // 상하 회전
     AddControllerPitchInput(LookInput.Y);
-}
-
-void APlayerCharacter::StartCrouch()
-{
-	UE_LOG(LogTemp, Warning, TEXT("Starting Crouch"));
-	Crouch();
-}
-void APlayerCharacter::StopCrouch()
-{
-	UE_LOG(LogTemp, Warning, TEXT("Stop Crouch"));
-	UnCrouch();
 }
 
 void APlayerCharacter::StartSprint(const FInputActionValue& Value)
