@@ -4,6 +4,9 @@
 #include "GameFramework/Pawn.h"
 #include "AMonsterCharacter.generated.h"
 
+class UAbilitySystemComponent;
+class UAbilitySystemInterface;
+
 UCLASS()
 class FINALMINUTES_API AAMonsterCharacter : public APawn
 {
@@ -12,10 +15,21 @@ class FINALMINUTES_API AAMonsterCharacter : public APawn
 public:
 	AAMonsterCharacter();
 
-protected:
 	virtual void BeginPlay() override;
-
-public:
-	virtual void Tick(float DeltaTime) override;
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	
+protected:
+	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const;
+	
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "GAS")
+	TObjectPtr<class UAbilitySystemComponent> ASC;
+	
+private:
+	
+	bool bIsDead;
+	float MonsterHP;
+	float MonsterATK;
+	float MonsterSpeed;
+	float HeadDef;
+	float BodyDef;
 };

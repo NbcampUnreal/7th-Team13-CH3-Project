@@ -1,8 +1,18 @@
-﻿#include "FinalMinutes/Public/AMonsterCharacter.h"
+﻿#include "Monster/AMonsterCharacter.h"
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemInterface.h"
 
 AAMonsterCharacter::AAMonsterCharacter()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	// ASC
+	ASC = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("ASC"));
+	
+	//Rotation
+	
+	
+	//Movement
+	
+	
 }
 
 void AAMonsterCharacter::BeginPlay()
@@ -10,13 +20,8 @@ void AAMonsterCharacter::BeginPlay()
 	Super::BeginPlay();
 }
 
-void AAMonsterCharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
 
-void AAMonsterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+UAbilitySystemComponent* AAMonsterCharacter::GetAbilitySystemComponent() const
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	return ASC;
 }
-
