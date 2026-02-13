@@ -13,11 +13,18 @@ class FINALMINUTES_API AFinalMinutesGameState : public AGameStateBase
 
 public:
 	
+	AFinalMinutesGameState();
+	
+	virtual void BeginPlay() override;
+	
 	void AddKill();
 	
-
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnKillCountChanged OnKillCountChanged;
+	
+	// 킬 수 확인용
+	UFUNCTION(BlueprintCallable, Category = "Data")
+	int32 GetKillCount() const { return KillCount; }
 
 private:
 	int32 KillCount = 0;
