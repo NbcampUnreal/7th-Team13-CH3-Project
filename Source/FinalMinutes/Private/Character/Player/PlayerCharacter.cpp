@@ -93,8 +93,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
             if (IA_Crouch)
             {
-                EnhancedInput->BindAction(IA_Crouch, ETriggerEvent::Triggered, this, &APlayerCharacter::OnCrouch);
-                EnhancedInput->BindAction(IA_Crouch, ETriggerEvent::Completed, this, &APlayerCharacter::OnCrouch);
+                EnhancedInput->BindAction(IA_Crouch, ETriggerEvent::Started, this, &APlayerCharacter::OnCrouch);
             }
             
             if (IA_Prone)
@@ -163,22 +162,25 @@ void APlayerCharacter::Move(const FInputActionValue& value)
 
 void APlayerCharacter::OnCrouch(const FInputActionValue& Value)
 {
-    bool bIsPressed = Value.Get<bool>();
     UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
     if (!ASC) return;
-    if (bIsPressed)
+
+    FGameplayTag ProneStateTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsCrouching"));
+
+    // 현재 앉은 상태 태그가 있는지 확인
+    if (!ASC->HasMatchingGameplayTag(ProneStateTag))
     {
+        // 태그가 없다면 -> 앉기 실행
         FGameplayTagContainer AbilityTags;
         AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Crouch")));
-        ASC->TryActivateAbilitiesByTag((AbilityTags));
+        ASC->TryActivateAbilitiesByTag(AbilityTags);
     }
     else
     {
-        // 이벤트와 함께 전달되는 Payload(정보)
-        // 이벤트 발생주체, 대상등이 들어있음
+        // 태그가 있다면 -> 앉기 이벤트 전송
         FGameplayEventData Payload;
         ASC->HandleGameplayEvent(FGameplayTag::RequestGameplayTag(FName("State.Crouch.End")), &Payload);
-    }    
+    }
 }
 
 void APlayerCharacter::OnProne(const FInputActionValue& Value)
