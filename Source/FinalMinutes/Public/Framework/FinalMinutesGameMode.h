@@ -9,4 +9,6 @@ UCLASS()
 class FINALMINUTES_API AFinalMinutesGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
+public:
+	AFinalMinutesGameMode();
 };
