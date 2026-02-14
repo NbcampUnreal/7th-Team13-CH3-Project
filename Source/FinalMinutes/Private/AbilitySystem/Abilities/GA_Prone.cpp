@@ -1,11 +1,8 @@
 #include "AbilitySystem/Abilities/GA_Prone.h"
 #include "Character/Player/PlayerCharacter.h"
 #include "AbilitySystemComponent.h"
-#include "GameplayTagsModule.h"
-#include "SNegativeActionButton.h"
-#include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
-#include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
+#include "Components/CapsuleComponent.h"
 
 UGA_Prone::UGA_Prone()
 {
@@ -41,11 +38,20 @@ void UGA_Prone::ActivateAbility(
 	
 	UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
 	AActor* Avatar = GetAvatarActorFromActorInfo();
-
+	ACharacter* Character = Cast<ACharacter>(Avatar);
 	if (!MyASC || !ProneEffectClass) // 클래스 할당 여부 체크 필수
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;
+	}
+	
+	if (Character)
+	{
+		// 기존 높이 저장
+		Character->GetCapsuleComponent()->SetCapsuleHalfHeight(30.f);
+		Character->AddActorWorldOffset(FVector(0.f, 0.f, -60.f));
+
+		Character->GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -30.f));
 	}
 	
 	FGameplayEffectContextHandle EffectContext = MyASC->MakeEffectContext();
@@ -113,9 +119,12 @@ void UGA_Prone::EndAbility(
 	APlayerCharacter* Character = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
 	if (Character)
 	{
+		
 		if (Character->GetMesh() && Character->GetMesh()->GetAnimInstance())
 		{
 			Character->GetMesh()->GetAnimInstance()->Montage_Stop(0.2f, ProneMontage);
+			Character->GetCapsuleComponent()->SetCapsuleSize(34.f, 90.f);
+			Character->GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -90.f));
 		}
 	}
 	

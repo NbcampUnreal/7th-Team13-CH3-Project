@@ -1,10 +1,8 @@
 #include "AbilitySystem/Abilities/GA_Crouch.h"
 #include "Character/Player/PlayerCharacter.h"
 #include "AbilitySystemComponent.h"
-#include "GameplayTagsModule.h"
-#include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
-#include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
+#include "Components/CapsuleComponent.h"
 
 UGA_Crouch::UGA_Crouch()
 {
@@ -39,9 +37,11 @@ void UGA_Crouch::ActivateAbility(
 	}
 	APlayerCharacter* Character = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
 	UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
-
+	
 	if (!Character || !MyASC) return;
-    
+	
+	Character->GetCapsuleComponent()->SetCapsuleHalfHeight(60.f);
+	Character->GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -60.f));
 	FGameplayEffectContextHandle EffectContext = MyASC->MakeEffectContext();
 	EffectContext.AddSourceObject(Character);
 
