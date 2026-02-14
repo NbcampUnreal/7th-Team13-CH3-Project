@@ -135,18 +135,6 @@ void UGA_Crouch::OnCrouchExitRequested(FGameplayEventData EventData)
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 }
 
-void UGA_Crouch::OnMontageCompleted()
-{
-	// Ability 정상 종료, 앉기가 끝나면 안됨
-	// EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
-}
-
-void UGA_Crouch::OnMontageCancelled()
-{
-	// Ability 취소 종료
-	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
-}
-
 void UGA_Crouch::EndAbility(
 	const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActorInfo* ActorInfo,

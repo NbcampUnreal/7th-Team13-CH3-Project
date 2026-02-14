@@ -36,14 +36,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Crouch")
 	TSubclassOf<UGameplayEffect> CrouchEffectClass;
 	
-	// Montage 완료 콜백
-	UFUNCTION()
-	void OnMontageCompleted();
-
-	// Montage 취소 콜백
-	UFUNCTION()
-	void OnMontageCancelled();
-	
 	// 적용된 이펙트를 삭제하기 위한 핸들 변수
 	FActiveGameplayEffectHandle ActiveCrouchEffectHandle;
 	

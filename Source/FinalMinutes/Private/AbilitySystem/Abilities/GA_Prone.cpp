@@ -54,38 +54,6 @@ void UGA_Prone::ActivateAbility(
 		ActiveProneEffectHandle = MyASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 	}
 	
-	// 실제 Montage 재생,  이 애니메이션이 끝났는지/도중에 취소되었는지/중단되었는지를 감시하는 프록시(대리인)객체 생성
-	// UAbilityTask_PlayMontageAndWait* PlayMontageTask =
-	// 	UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
-	// 		this, // 어빌리티 자기 자신
-	// 		NAME_None, // Task 별명
-	// 		ProneMontage, // 실제 재생할 Montage
-	// 		1.0f // 재생 속도
-	// 	);
-	//
-	// if (PlayMontageTask)
-	// {
-	// 	// Montage 완료 콜백 연결
-	// 	PlayMontageTask->OnCompleted.AddDynamic(this, &UGA_Prone::OnMontageCompleted);
-	// 	PlayMontageTask->OnCancelled.AddDynamic(this, &UGA_Prone::OnMontageCancelled);
-	// 	PlayMontageTask->OnInterrupted.AddDynamic(this, &UGA_Prone::OnMontageCancelled);
-	// 	// Task 활성화
-	// 	PlayMontageTask->ReadyForActivation();
-	// }
-
-	// Gameplay Event 대기
-	// UAbilityTask_WaitGameplayEvent* WaitEventTask =
-	// 	UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
-	// 		this,
-	// 		FGameplayTag::RequestGameplayTag(FName("Event.Montage.Prone"))
-	// 	);
-	//
-	// if (WaitEventTask)
-	// {
-	// 	WaitEventTask->EventReceived.AddDynamic(this, &UGA_Prone::OnProneGameplayEvent);
-	// 	WaitEventTask->ReadyForActivation();
-	// }
-	//
 	// 입력 해제 대기
 	UAbilityTask_WaitGameplayEvent* WaitProneEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
 		this, 
@@ -130,18 +98,6 @@ void UGA_Prone::OnProneGameplayEvent(FGameplayEventData EventData)
 void UGA_Prone::OnProneExitRequested(FGameplayEventData EventData)
 {
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
-}
-
-void UGA_Prone::OnMontageCompleted()
-{
-	// Ability 정상 종료
-	// EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
-}
-
-void UGA_Prone::OnMontageCancelled()
-{
-	// Ability 취소 종료
-	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
 }
 
 void UGA_Prone::EndAbility(

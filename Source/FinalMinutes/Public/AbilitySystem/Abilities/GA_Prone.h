@@ -35,15 +35,7 @@ protected:
 	// 적용할 Effect
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prone")
 	TSubclassOf<UGameplayEffect> ProneEffectClass;
-	
-	// Montage 완료 콜백
-	UFUNCTION()
-	void OnMontageCompleted();
 
-	// Montage 취소 콜백
-	UFUNCTION()
-	void OnMontageCancelled();
-	
 	// 적용된 이펙트를 삭제하기 위한 핸들 변수
 	FActiveGameplayEffectHandle ActiveProneEffectHandle;
 	
