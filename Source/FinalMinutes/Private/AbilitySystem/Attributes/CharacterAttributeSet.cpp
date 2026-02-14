@@ -1,5 +1,7 @@
 #include "AbilitySystem/Attributes/CharacterAttributeSet.h"
 #include "GameplayEffectExtension.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 UCharacterAttributeSet::UCharacterAttributeSet()
 {
@@ -30,9 +32,37 @@ void UCharacterAttributeSet::PreAttributeChange(const FGameplayAttribute& Attrib
         // 이동속도 보정 (이동속도는 0보다 작을 수 없음)
         NewValue = FMath::Max(NewValue, 0.0f);
     }
+    else if (Attribute == GetMoveSpeedAttribute())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("PreAttributeChange: NewValue is %f"), NewValue);
+        
+        if (ACharacter* Character = Cast<ACharacter>(GetOwningActor()))
+        {
+            Character->GetCharacterMovement()->MaxWalkSpeed = NewValue;
+        }
+    }
 }
 
 // Attribute값이 바뀌고 나서 실행
+void UCharacterAttributeSet::PostAttributeChange(const FGameplayAttribute& Attribute, float OldValue, float NewValue)
+{
+    Super::PostAttributeChange(Attribute, OldValue, NewValue);
+
+    if (Attribute == GetMoveSpeedAttribute())
+    {
+        if (AActor* TargetActor = GetOwningAbilitySystemComponent()->GetAvatarActor())
+        {
+            if (ACharacter* Character = Cast<ACharacter>(TargetActor))
+            {
+                // 여기서 실제 속도를 변경해줘야 '지속형' GE가 적용될 때도 반응합니다.
+                Character->GetCharacterMovement()->MaxWalkSpeed = NewValue;
+            }
+        }
+    }
+}
+
+
+// GameplayEffect 실행 뒤에 실행
 void UCharacterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
 {
     Super::PostGameplayEffectExecute(Data);
@@ -48,6 +78,17 @@ void UCharacterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModC
     else if (Data.EvaluatedData.Attribute == GetStaminaAttribute())
     {
         SetStamina(FMath::Clamp(GetStamina(), 0.0f, GetMaxStamina()));
+    }
+    else if (Data.EvaluatedData.Attribute == GetMoveSpeedAttribute())
+    {
+        const float CurrentMoveSpeed = GetMoveSpeed();
+        if (AActor* TargetActor = Data.Target.GetAvatarActor())
+        {
+            if (ACharacter* Character = Cast<ACharacter>(TargetActor))
+            {
+                float FinalSpeed = Character->GetCharacterMovement()->MaxWalkSpeed = CurrentMoveSpeed;
+            }
+        }
     }
 }
 

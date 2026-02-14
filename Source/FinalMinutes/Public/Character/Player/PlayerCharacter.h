@@ -54,9 +54,6 @@ protected:
 	void StartSprint(const FInputActionValue& value);
 	UFUNCTION()
 	void StopSprint(const FInputActionValue& value);
-
-	UFUNCTION()
-	void Roll(const FInputActionValue& value);
 	UFUNCTION()
 	void Equip(const FInputActionValue& value);
 	UFUNCTION()
@@ -85,6 +82,13 @@ protected:
 	TObjectPtr<UInputAction> IA_Prone;
 	// 엎드리기
 	void OnProne(const FInputActionValue& Value);
+#pragma endregion
+	
+#pragma region 구르기
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
+	TObjectPtr<UInputAction> IA_Roll;
+	// 구르기
+	void OnRoll(const FInputActionValue& Value);
 #pragma endregion
 	
 	

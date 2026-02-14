@@ -101,16 +101,18 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
                 EnhancedInput->BindAction(IA_Prone, ETriggerEvent::Started, this, &APlayerCharacter::OnProne);
             }
             
+            if (IA_Roll)
+            {
+                EnhancedInput->BindAction(IA_Roll, ETriggerEvent::Started, this, &APlayerCharacter::OnRoll);
+            }
+            
             if (PlayerController->SprintAction)
             {
                 EnhancedInput->BindAction(PlayerController->SprintAction, ETriggerEvent::Started, this, &APlayerCharacter::StartSprint);
                 EnhancedInput->BindAction(PlayerController->SprintAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopSprint);
             }
             
-            if (PlayerController->RollAction)
-            {
-                EnhancedInput->BindAction(PlayerController->RollAction, ETriggerEvent::Started, this, &APlayerCharacter::Roll);
-            }
+            
             
             if (PlayerController->EquipAction)
             {
@@ -165,10 +167,10 @@ void APlayerCharacter::OnCrouch(const FInputActionValue& Value)
     UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
     if (!ASC) return;
 
-    FGameplayTag ProneStateTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsCrouching"));
+    FGameplayTag CrouchStateTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsCrouching"));
 
     // 현재 앉은 상태 태그가 있는지 확인
-    if (!ASC->HasMatchingGameplayTag(ProneStateTag))
+    if (!ASC->HasMatchingGameplayTag(CrouchStateTag))
     {
         // 태그가 없다면 -> 앉기 실행
         FGameplayTagContainer AbilityTags;
@@ -190,21 +192,38 @@ void APlayerCharacter::OnProne(const FInputActionValue& Value)
 
     FGameplayTag ProneStateTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning"));
 
-    // 현재 엎드린 상태 태그가 있는지 확인
     if (!ASC->HasMatchingGameplayTag(ProneStateTag))
     {
-        // 태그가 없다면 -> 엎드리기 실행
         FGameplayTagContainer AbilityTags;
         AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Prone")));
         ASC->TryActivateAbilitiesByTag(AbilityTags);
     }
     else
     {
-        // 태그가 있다면 -> 일어나기 이벤트 전송
         FGameplayEventData Payload;
         ASC->HandleGameplayEvent(FGameplayTag::RequestGameplayTag(FName("State.Prone.End")), &Payload);
     }
 }
+
+void APlayerCharacter::OnRoll(const FInputActionValue& Value)
+{
+    UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+    if (!ASC) return;
+
+    // 이미 구르는 중인지 확인
+    FGameplayTag RollingTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsRolling"));
+    
+    // 구르는 중이 아닐 때만 구를수 있게
+    if (!ASC->HasMatchingGameplayTag(RollingTag))
+    {
+        FGameplayTagContainer AbilityTags;
+        AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Roll")));
+        
+        // 상태 관리는 GA_Roll 내부의 PlayMontageAndWait에서
+        ASC->TryActivateAbilitiesByTag(AbilityTags);
+    }
+}
+
 
 
 void APlayerCharacter::StartJump(const FInputActionValue& value)
@@ -233,11 +252,6 @@ void APlayerCharacter::StartSprint(const FInputActionValue& Value)
 void APlayerCharacter::StopSprint(const FInputActionValue& Value)
 {
     UE_LOG(LogTemp, Warning, TEXT("Stop Sprint"));
-}
-
-void APlayerCharacter::Roll(const FInputActionValue& Value)
-{
-    UE_LOG(LogTemp, Warning, TEXT("Rolling!"));
 }
 
 void APlayerCharacter::Equip(const FInputActionValue& Value)
