@@ -35,42 +35,57 @@ void UGA_Crouch::ActivateAbility(
 		return;
 	}
 	APlayerCharacter* Character = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
-	if (Character)
+	UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
+
+	if (!Character || !MyASC) return;
+    
+	FGameplayEffectContextHandle EffectContext = MyASC->MakeEffectContext();
+	EffectContext.AddSourceObject(Character);
+
+	FGameplayEffectSpecHandle SpecHandle = MyASC->MakeOutgoingSpec(CrouchEffectClass, 1.0f, EffectContext);
+    
+	if (SpecHandle.IsValid())
 	{
-		Character->Crouch(); 
+		ActiveCrouchEffectHandle = MyASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 	}
+	
+	// APlayerCharacter* Character = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
+	// if (Character)
+	// {
+	// 	Character->Crouch(); 
+	// }
 
 	// 실제 Montage 재생,  이 애니메이션이 끝났는지/도중에 취소되었는지/중단되었는지를 감시하는 프록시(대리인)객체 생성
-	UAbilityTask_PlayMontageAndWait* PlayMontageTask =
-		UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
-			this, // 어빌리티 자기 자신
-			NAME_None, // Task 별명
-			CrouchMontage, // 실제 재생할 Montage
-			1.0f // 재생 속도
-		);
-
-	if (PlayMontageTask)
-	{
-		// Montage 완료 콜백 연결
-		PlayMontageTask->OnCompleted.AddDynamic(this, &UGA_Crouch::OnMontageCompleted);
-		PlayMontageTask->OnCancelled.AddDynamic(this, &UGA_Crouch::OnMontageCancelled);
-		PlayMontageTask->OnInterrupted.AddDynamic(this, &UGA_Crouch::OnMontageCancelled);
-		// Task 활성화
-		PlayMontageTask->ReadyForActivation();
-	}
+	// UAbilityTask_PlayMontageAndWait* PlayMontageTask =
+	// 	UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
+	// 		this, // 어빌리티 자기 자신
+	// 		NAME_None, // Task 별명
+	// 		CrouchMontage, // 실제 재생할 Montage
+	// 		1.0f // 재생 속도
+	// 	);
+	//
+	// if (PlayMontageTask)
+	// {
+	// 	// Montage 완료 콜백 연결
+	// 	PlayMontageTask->OnCompleted.AddDynamic(this, &UGA_Crouch::OnMontageCompleted);
+	// 	PlayMontageTask->OnCancelled.AddDynamic(this, &UGA_Crouch::OnMontageCancelled);
+	// 	PlayMontageTask->OnInterrupted.AddDynamic(this, &UGA_Crouch::OnMontageCancelled);
+	// 	// Task 활성화
+	// 	PlayMontageTask->ReadyForActivation();
+	// }
 
 	// Gameplay Event 대기
-	UAbilityTask_WaitGameplayEvent* WaitEventTask =
-		UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
-			this,
-			FGameplayTag::RequestGameplayTag(FName("Event.Montage.Crouch"))
-		);
-
-	if (WaitEventTask)
-	{
-		WaitEventTask->EventReceived.AddDynamic(this, &UGA_Crouch::OnCrouchGameplayEvent);
-		WaitEventTask->ReadyForActivation();
-	}
+	// UAbilityTask_WaitGameplayEvent* WaitEventTask =
+	// 	UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
+	// 		this,
+	// 		FGameplayTag::RequestGameplayTag(FName("Event.Montage.Crouch"))
+	// 	);
+	//
+	// if (WaitEventTask)
+	// {
+	// 	WaitEventTask->EventReceived.AddDynamic(this, &UGA_Crouch::OnCrouchGameplayEvent);
+	// 	WaitEventTask->ReadyForActivation();
+	// }
 	
 	// 입력 해제 대기
 	UAbilityTask_WaitGameplayEvent* WaitCrouchEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
@@ -79,8 +94,8 @@ void UGA_Crouch::ActivateAbility(
 	);
 	if (WaitCrouchEventTask)
 	{
-		// 이벤트 델리게이트, 버튼을 떼면 OnInputReleased를 실행해달라
-		WaitCrouchEventTask->EventReceived.AddDynamic(this, &UGA_Crouch::OnInputReleased);
+		// 이벤트 델리게이트, 앉기가 끝나면 OnCrouchExitRequested호출해달라
+		WaitCrouchEventTask->EventReceived.AddDynamic(this, &UGA_Crouch::OnCrouchExitRequested);
 		// Task 활성화 (감시자 작동)
 		WaitCrouchEventTask->ReadyForActivation();
 	}
@@ -115,9 +130,8 @@ void UGA_Crouch::OnCrouchGameplayEvent(FGameplayEventData EventData)
 	}
 }
 
-void UGA_Crouch::OnInputReleased(FGameplayEventData EventData)
+void UGA_Crouch::OnCrouchExitRequested(FGameplayEventData EventData)
 {
-	// 버튼을 떼면 앉기 종료
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 }
 

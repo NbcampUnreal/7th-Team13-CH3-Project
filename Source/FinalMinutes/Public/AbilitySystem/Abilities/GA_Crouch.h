@@ -49,7 +49,7 @@ protected:
 	
 	// 앉기 버튼을 뗄떼 호출
 	UFUNCTION()
-	void OnInputReleased(FGameplayEventData EventData);
+	void OnCrouchExitRequested(FGameplayEventData EventData);
 
 	// Gameplay Event 콜백 (AnimNotify 대신)
 	UFUNCTION()

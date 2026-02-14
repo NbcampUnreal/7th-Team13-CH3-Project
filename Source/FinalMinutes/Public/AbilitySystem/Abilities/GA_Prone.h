@@ -47,9 +47,9 @@ protected:
 	// 적용된 이펙트를 삭제하기 위한 핸들 변수
 	FActiveGameplayEffectHandle ActiveProneEffectHandle;
 	
-	// 앉기 버튼을 뗄떼 호출
+	// 토글로 일어날때
 	UFUNCTION()
-	void OnInputReleased(FGameplayEventData EventData);
+	void OnProneExitRequested(FGameplayEventData EventData);
 
 	// Gameplay Event 콜백 (AnimNotify 대신)
 	UFUNCTION()

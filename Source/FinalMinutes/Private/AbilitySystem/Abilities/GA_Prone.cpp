@@ -2,6 +2,7 @@
 #include "Character/Player/PlayerCharacter.h"
 #include "AbilitySystemComponent.h"
 #include "GameplayTagsModule.h"
+#include "SNegativeActionButton.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
@@ -27,7 +28,6 @@ void UGA_Prone::ActivateAbility(
 	const FGameplayAbilityActivationInfo ActivationInfo,
 	const FGameplayEventData* TriggerEventData)
 {
-	UE_LOG(LogTemp, Warning, TEXT("UGA_Prone::ActivateAbility()"));
 	// 스킬 사용을 위한 조건 체크 , 쿨타임, 코스트다 있는지
 	if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
 	{
@@ -35,48 +35,67 @@ void UGA_Prone::ActivateAbility(
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;
 	}
+	
+	UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
+	AActor* Avatar = GetAvatarActorFromActorInfo();
 
-	// 실제 Montage 재생,  이 애니메이션이 끝났는지/도중에 취소되었는지/중단되었는지를 감시하는 프록시(대리인)객체 생성
-	UAbilityTask_PlayMontageAndWait* PlayMontageTask =
-		UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
-			this, // 어빌리티 자기 자신
-			NAME_None, // Task 별명
-			ProneMontage, // 실제 재생할 Montage
-			1.0f // 재생 속도
-		);
-
-	if (PlayMontageTask)
+	if (!MyASC || !ProneEffectClass) // 클래스 할당 여부 체크 필수
 	{
-		// Montage 완료 콜백 연결
-		PlayMontageTask->OnCompleted.AddDynamic(this, &UGA_Prone::OnMontageCompleted);
-		PlayMontageTask->OnCancelled.AddDynamic(this, &UGA_Prone::OnMontageCancelled);
-		PlayMontageTask->OnInterrupted.AddDynamic(this, &UGA_Prone::OnMontageCancelled);
-		// Task 활성화
-		PlayMontageTask->ReadyForActivation();
-	}
-
-	// Gameplay Event 대기
-	UAbilityTask_WaitGameplayEvent* WaitEventTask =
-		UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
-			this,
-			FGameplayTag::RequestGameplayTag(FName("Event.Montage.Prone"))
-		);
-
-	if (WaitEventTask)
-	{
-		WaitEventTask->EventReceived.AddDynamic(this, &UGA_Prone::OnProneGameplayEvent);
-		WaitEventTask->ReadyForActivation();
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
 	}
 	
+	FGameplayEffectContextHandle EffectContext = MyASC->MakeEffectContext();
+	EffectContext.AddSourceObject(Avatar);
+	FGameplayEffectSpecHandle SpecHandle = MyASC->MakeOutgoingSpec(ProneEffectClass, 1.0f, EffectContext);
+    
+	if (SpecHandle.IsValid())
+	{
+		ActiveProneEffectHandle = MyASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+	}
+	
+	// 실제 Montage 재생,  이 애니메이션이 끝났는지/도중에 취소되었는지/중단되었는지를 감시하는 프록시(대리인)객체 생성
+	// UAbilityTask_PlayMontageAndWait* PlayMontageTask =
+	// 	UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
+	// 		this, // 어빌리티 자기 자신
+	// 		NAME_None, // Task 별명
+	// 		ProneMontage, // 실제 재생할 Montage
+	// 		1.0f // 재생 속도
+	// 	);
+	//
+	// if (PlayMontageTask)
+	// {
+	// 	// Montage 완료 콜백 연결
+	// 	PlayMontageTask->OnCompleted.AddDynamic(this, &UGA_Prone::OnMontageCompleted);
+	// 	PlayMontageTask->OnCancelled.AddDynamic(this, &UGA_Prone::OnMontageCancelled);
+	// 	PlayMontageTask->OnInterrupted.AddDynamic(this, &UGA_Prone::OnMontageCancelled);
+	// 	// Task 활성화
+	// 	PlayMontageTask->ReadyForActivation();
+	// }
+
+	// Gameplay Event 대기
+	// UAbilityTask_WaitGameplayEvent* WaitEventTask =
+	// 	UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
+	// 		this,
+	// 		FGameplayTag::RequestGameplayTag(FName("Event.Montage.Prone"))
+	// 	);
+	//
+	// if (WaitEventTask)
+	// {
+	// 	WaitEventTask->EventReceived.AddDynamic(this, &UGA_Prone::OnProneGameplayEvent);
+	// 	WaitEventTask->ReadyForActivation();
+	// }
+	//
 	// 입력 해제 대기
 	UAbilityTask_WaitGameplayEvent* WaitProneEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
 		this, 
 		FGameplayTag::RequestGameplayTag(FName("State.Prone.End"))
 	);
+	
 	if (WaitProneEventTask)
 	{
-		// 이벤트 델리게이트, 버튼을 떼면 OnInputReleased를 실행해달라
-		WaitProneEventTask->EventReceived.AddDynamic(this, &UGA_Prone::OnInputReleased);
+		// 이벤트 델리게이트
+		WaitProneEventTask->EventReceived.AddDynamic(this, &UGA_Prone::OnProneExitRequested);
 		// Task 활성화 (감시자 작동)
 		WaitProneEventTask->ReadyForActivation();
 	}
@@ -108,10 +127,8 @@ void UGA_Prone::OnProneGameplayEvent(FGameplayEventData EventData)
 	}
 }
 
-void UGA_Prone::OnInputReleased(FGameplayEventData EventData)
+void UGA_Prone::OnProneExitRequested(FGameplayEventData EventData)
 {
-	// 버튼을 떼면 종료
-	UE_LOG(LogTemp, Warning, TEXT("Input Released!"));
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 }
 
