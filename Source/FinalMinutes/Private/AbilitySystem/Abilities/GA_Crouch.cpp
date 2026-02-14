@@ -14,6 +14,9 @@ UGA_Crouch::UGA_Crouch()
 	// Ability Tags, 어빌리티 자체에 붙여주는 태그
 	AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Crouch")));
 	
+	// 앉기 어빌리티가 켜질때 엎드리기상태였다면 엎드리기 어빌리티가 실행중이라면 취소
+	CancelAbilitiesWithTag.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Prone")));
+	
 	// 이태그가 있으면 실행안함 (앉아있을때 또 앉을 수 없음)
 	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsCrouching")));
 
@@ -48,45 +51,7 @@ void UGA_Crouch::ActivateAbility(
 	{
 		ActiveCrouchEffectHandle = MyASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 	}
-	
-	// APlayerCharacter* Character = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
-	// if (Character)
-	// {
-	// 	Character->Crouch(); 
-	// }
 
-	// 실제 Montage 재생,  이 애니메이션이 끝났는지/도중에 취소되었는지/중단되었는지를 감시하는 프록시(대리인)객체 생성
-	// UAbilityTask_PlayMontageAndWait* PlayMontageTask =
-	// 	UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
-	// 		this, // 어빌리티 자기 자신
-	// 		NAME_None, // Task 별명
-	// 		CrouchMontage, // 실제 재생할 Montage
-	// 		1.0f // 재생 속도
-	// 	);
-	//
-	// if (PlayMontageTask)
-	// {
-	// 	// Montage 완료 콜백 연결
-	// 	PlayMontageTask->OnCompleted.AddDynamic(this, &UGA_Crouch::OnMontageCompleted);
-	// 	PlayMontageTask->OnCancelled.AddDynamic(this, &UGA_Crouch::OnMontageCancelled);
-	// 	PlayMontageTask->OnInterrupted.AddDynamic(this, &UGA_Crouch::OnMontageCancelled);
-	// 	// Task 활성화
-	// 	PlayMontageTask->ReadyForActivation();
-	// }
-
-	// Gameplay Event 대기
-	// UAbilityTask_WaitGameplayEvent* WaitEventTask =
-	// 	UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
-	// 		this,
-	// 		FGameplayTag::RequestGameplayTag(FName("Event.Montage.Crouch"))
-	// 	);
-	//
-	// if (WaitEventTask)
-	// {
-	// 	WaitEventTask->EventReceived.AddDynamic(this, &UGA_Crouch::OnCrouchGameplayEvent);
-	// 	WaitEventTask->ReadyForActivation();
-	// }
-	
 	// 입력 해제 대기
 	UAbilityTask_WaitGameplayEvent* WaitCrouchEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
 		this, 

@@ -15,7 +15,10 @@ UGA_Prone::UGA_Prone()
 	// Ability Tags, 어빌리티 자체에 붙여주는 태그
 	AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Prone")));
 	
-	// 이태그가 있으면 실행안함 
+	// 엎드리기가 켜질때 앉기상태였다면 앉기 어빌리티가 실행중이라면 취소
+	CancelAbilitiesWithTag.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Crouch")));
+	// 이태그가 있으면 실행안함, 현재는 OnProne에서 State.Prone.End을 호출해서 종료하는식이라서 필요없어 보이지만
+	// 이 Blcoked태그가 없으면 연타했을때 이상하게 작동함
 	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning")));
 
 	// 소유태그 / 실행중 어떤 태그를 가질지
