@@ -59,9 +59,6 @@ protected:
 	UFUNCTION()
 	void UnEquip(const FInputActionValue& value);
 	UFUNCTION()
-	void Reload(const FInputActionValue& value);
-	
-	UFUNCTION()
 	void StartFire(const FInputActionValue& value); // 발사
 	UFUNCTION()
 	void StopFire(const FInputActionValue& value); // 혹시 마우스 호버로 발사한다면
@@ -91,6 +88,12 @@ protected:
 	void OnRoll(const FInputActionValue& Value);
 #pragma endregion
 	
+#pragma endregion 장전
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
+	TObjectPtr<UInputAction> IA_Reload;
+	
+	void OnReload(const FInputActionValue& value);
+#pragma endregion
 	
 public:	
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;

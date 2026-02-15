@@ -112,8 +112,6 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
                 EnhancedInput->BindAction(PlayerController->SprintAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopSprint);
             }
             
-            
-            
             if (PlayerController->EquipAction)
             {
                 EnhancedInput->BindAction(PlayerController->EquipAction, ETriggerEvent::Started, this, &APlayerCharacter::Equip);
@@ -124,9 +122,9 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
                 EnhancedInput->BindAction(PlayerController->UnEquipAction, ETriggerEvent::Started, this, &APlayerCharacter::UnEquip);
             }
             
-            if (PlayerController->ReloadAction)
+            if (IA_Reload)
             {
-                EnhancedInput->BindAction(PlayerController->ReloadAction, ETriggerEvent::Started, this, &APlayerCharacter::Reload);
+                EnhancedInput->BindAction(IA_Reload, ETriggerEvent::Started, this, &APlayerCharacter::OnReload);
             }
             
             if (PlayerController->FireAction)
@@ -146,6 +144,12 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 void APlayerCharacter::Move(const FInputActionValue& value)
 {
     if (!Controller) return;
+    
+    // 장전 중 태그가 있으면 이동 로직을 아예 실행하지 않음
+    if (GetAbilitySystemComponent()->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsReloading"))))
+    {
+        return;
+    }
     
     const FVector2D MoveInput = value.Get<FVector2D>();
     
@@ -225,6 +229,23 @@ void APlayerCharacter::OnRoll(const FInputActionValue& Value)
 }
 
 
+void APlayerCharacter::OnReload(const FInputActionValue& Value)
+{
+    UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+    if (!ASC) return;
+
+    // 이미 장전 중인지 확인
+    FGameplayTag ReloadTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsReloading"));
+    
+    // 장전중이 아닐때만 장전 가능하게
+    if (!ASC->HasMatchingGameplayTag(ReloadTag))
+    {
+        FGameplayTagContainer AbilityTags;
+        AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Reload")));
+        ASC->TryActivateAbilitiesByTag(AbilityTags);
+    }
+}
+
 
 void APlayerCharacter::StartJump(const FInputActionValue& value)
 {
@@ -262,11 +283,6 @@ void APlayerCharacter::Equip(const FInputActionValue& Value)
 void APlayerCharacter::UnEquip(const FInputActionValue& Value)
 {
     UE_LOG(LogTemp, Warning, TEXT("UnEquip Weapon"));
-}
-
-void APlayerCharacter::Reload(const FInputActionValue& Value)
-{
-    UE_LOG(LogTemp, Warning, TEXT("Reloading..."));
 }
 
 void APlayerCharacter::StartFire(const FInputActionValue& Value)
