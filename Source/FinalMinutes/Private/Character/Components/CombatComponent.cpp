@@ -3,6 +3,8 @@
 
 #include "Character/Components/CombatComponent.h"
 
+#include "GameplayTagContainer.h"
+
 
 // Sets default values for this component's properties
 UCombatComponent::UCombatComponent()
@@ -32,5 +34,29 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// ...
+}
+
+void UCombatComponent::Fire()
+{
+}
+
+void UCombatComponent::Reload()
+{
+}
+
+void UCombatComponent::EquipWeapon(FGameplayTag Tag)
+{
+}
+
+void UCombatComponent::SwapWeapon()
+{
+}
+
+void UCombatComponent::ToggleZoom()
+{
+}
+
+void UCombatComponent::PerformTrace()
+{
 }
 

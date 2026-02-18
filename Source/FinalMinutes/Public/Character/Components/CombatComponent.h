@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "CombatComponent.generated.h"
 
+struct FGameplayTag;
 class APlayerCharacter;
 class AWeaponBase;
 
