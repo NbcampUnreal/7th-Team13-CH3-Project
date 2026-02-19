@@ -84,12 +84,31 @@ void AProjectileBullet::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherAc
 void AProjectileBullet::BeginPlay()
 {
 	Super::BeginPlay();
+    
+    // 시작 위치 초기화
+    LastLocation = GetActorLocation();
 	
 }
 
-// Called every frame
 void AProjectileBullet::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
+    Super::Tick(DeltaTime);
+    
+    FVector CurrentLocation = GetActorLocation();
+    
+    // 이전 위치에서 현재 위치까지 빨간색 선을 그림
+    DrawDebugLine(
+        GetWorld(),
+        LastLocation,
+        CurrentLocation,
+        FColor::Red,         // 색상
+        false,               // 지속성 여부
+        DebugLineDuration,   // 지속 시간
+        0,                   // 우선 순위
+        1.0f                 // 두께
+    );
+
+    // 다음 프레임을 위해 위치 갱신
+    LastLocation = CurrentLocation;
 }
 

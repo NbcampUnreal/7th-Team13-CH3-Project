@@ -26,6 +26,12 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 	
+	// 이전 프레임의 위치를 저장
+    FVector LastLocation;
+
+    // 디버그 라인 지속 시간
+    UPROPERTY(EditDefaultsOnly, Category = "Debug")
+    float DebugLineDuration = 10.0f;
 	
 	/** 실제 충돌 처리 */
     UFUNCTION()
