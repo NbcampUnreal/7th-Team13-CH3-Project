@@ -4,6 +4,8 @@
 #include "Controller/PlayerCharacterController.h"
 #include "AbilitySystem/Attributes/CharacterAttributeSet.h"
 #include "AbilitySystem/Attributes/SensorAttributeSet.h"
+#include "AbilitySystemBlueprintLibrary.h"
+
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -127,10 +129,10 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
                 EnhancedInput->BindAction(IA_Reload, ETriggerEvent::Started, this, &APlayerCharacter::OnReload);
             }
             
-            if (PlayerController->FireAction)
+            if (IA_Attack)
             {
-                EnhancedInput->BindAction(PlayerController->FireAction, ETriggerEvent::Started, this, &APlayerCharacter::StartFire);
-                EnhancedInput->BindAction(PlayerController->FireAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopFire);
+                EnhancedInput->BindAction(IA_Attack, ETriggerEvent::Started, this, &APlayerCharacter::OnAttackStarted);
+                EnhancedInput->BindAction(IA_Attack, ETriggerEvent::Completed, this, &APlayerCharacter::OnAttackEnded);
             }
             
             if (PlayerController->InteractAction)
@@ -143,10 +145,20 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 void APlayerCharacter::Move(const FInputActionValue& value)
 {
+    UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+    if (!ASC) return;
     if (!Controller) return;
     
-    // 장전 중 태그가 있으면 이동 로직을 아예 실행하지 않음
-    if (GetAbilitySystemComponent()->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsReloading"))))
+    // 장전 중, 엎드린상태에서 공격중에는 움직일 수 없음
+    FGameplayTag ReloadingTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsReloading"));
+    FGameplayTag AttackingTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsAttacking"));
+    FGameplayTag ProneTag      = FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning"));
+
+    const bool bIsReloading = ASC->HasMatchingGameplayTag(ReloadingTag);
+    const bool bIsAttacking = ASC->HasMatchingGameplayTag(AttackingTag);
+    const bool bIsProning   = ASC->HasMatchingGameplayTag(ProneTag);
+    
+    if (bIsReloading || (bIsAttacking && bIsProning))
     {
         return;
     }
@@ -246,6 +258,19 @@ void APlayerCharacter::OnReload(const FInputActionValue& Value)
     }
 }
 
+void APlayerCharacter::OnAttackStarted(const FInputActionValue& Value)
+{
+    FGameplayTagContainer AbilityTags;
+    AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Attack")));
+    GetAbilitySystemComponent()->TryActivateAbilitiesByTag(AbilityTags);
+}
+
+void APlayerCharacter::OnAttackEnded(const FInputActionValue& Value)
+{
+    FGameplayEventData Payload;
+    Payload.EventTag = FGameplayTag::RequestGameplayTag(FName("State.Attack.End"));
+    UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, Payload.EventTag, Payload);
+}
 
 void APlayerCharacter::StartJump(const FInputActionValue& value)
 {
@@ -283,16 +308,6 @@ void APlayerCharacter::Equip(const FInputActionValue& Value)
 void APlayerCharacter::UnEquip(const FInputActionValue& Value)
 {
     UE_LOG(LogTemp, Warning, TEXT("UnEquip Weapon"));
-}
-
-void APlayerCharacter::StartFire(const FInputActionValue& Value)
-{
-    UE_LOG(LogTemp, Warning, TEXT("Firing Started"));
-}
-
-void APlayerCharacter::StopFire(const FInputActionValue& Value)
-{
-    UE_LOG(LogTemp, Warning, TEXT("Firing Stopped"));
 }
 
 void APlayerCharacter::Interact(const FInputActionValue& Value)

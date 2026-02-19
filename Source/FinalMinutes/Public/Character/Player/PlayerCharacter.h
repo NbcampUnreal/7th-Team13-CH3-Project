@@ -58,10 +58,6 @@ protected:
 	void Equip(const FInputActionValue& value);
 	UFUNCTION()
 	void UnEquip(const FInputActionValue& value);
-	UFUNCTION()
-	void StartFire(const FInputActionValue& value); // 발사
-	UFUNCTION()
-	void StopFire(const FInputActionValue& value); // 혹시 마우스 호버로 발사한다면
 	
 	UFUNCTION()
 	void Interact(const FInputActionValue& value);
@@ -88,13 +84,21 @@ protected:
 	void OnRoll(const FInputActionValue& Value);
 #pragma endregion
 	
-#pragma endregion 장전
+#pragma region 장전
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
 	TObjectPtr<UInputAction> IA_Reload;
 	
 	void OnReload(const FInputActionValue& value);
 #pragma endregion
 	
+// 혹시 무기를 안들고 있을때 공격 로직이 필요할 것 같아서 Fire가 아닌 Attack으로 이름 지음
+#pragma region 공격
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
+	TObjectPtr<UInputAction> IA_Attack;
+	
+	void OnAttackStarted(const FInputActionValue& value);
+	void OnAttackEnded(const FInputActionValue& value);
+#pragma endregion
 public:	
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 };
