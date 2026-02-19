@@ -11,7 +11,7 @@ void AFinalMinutesHUD::BeginPlay()
 	{
 		GS->OnKillCountChanged.AddDynamic(this, &AFinalMinutesHUD::OnKillCountUpdated);
 		//디버깅
-		UE_LOG(LogTemp, Warning, TEXT("끼얏호우 HUD 킬카운트"))
+		UE_LOG(LogTemp, Warning, TEXT("끼얏호우 HUD 킬카운트"));
 	}
 }
 
