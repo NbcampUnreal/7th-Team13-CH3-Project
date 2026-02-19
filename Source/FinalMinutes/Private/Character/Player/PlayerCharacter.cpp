@@ -4,6 +4,7 @@
 #include "Controller/PlayerCharacterController.h"
 #include "AbilitySystem/Attributes/CharacterAttributeSet.h"
 #include "AbilitySystem/Attributes/SensorAttributeSet.h"
+#include "Character/Components/CombatComponent.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -13,6 +14,8 @@ APlayerCharacter::APlayerCharacter()
 	// 사용할 AttributeSet 설정
 	CharacterAttributeSet = CreateDefaultSubobject<UCharacterAttributeSet>(TEXT("CharacterAttributeSet"));
 	SensorAttributeSet = CreateDefaultSubobject<USensorAttributeSet>(TEXT("SensorAttributeSet"));
+    
+    CombatComponent = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
 }
 
 UAbilitySystemComponent* APlayerCharacter::GetAbilitySystemComponent() const
@@ -26,6 +29,17 @@ void APlayerCharacter::BeginPlay()
 	
 	// ASC초기화
 	InitializeAbilitySystem();
+    UE_LOG(LogTemp, Warning, TEXT("BeginPlay 로그"));
+    if (CombatComponent)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("CombatComponent 부착 확인용 로그"));
+    }
+    
+    if (CombatComponent && DefaultWeaponTag.IsValid())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("논리적인 무기 장착 확인 로그"));
+        CombatComponent->EquipWeapon(DefaultWeaponTag);
+    }
 }
 
 void APlayerCharacter::InitializeAbilitySystem()
@@ -160,6 +174,10 @@ void APlayerCharacter::StopCrouch()
 	UnCrouch();
 }
 
+void APlayerCharacter::GrantFireAbility()
+{
+}
+
 void APlayerCharacter::StartSprint(const FInputActionValue& Value)
 {
     UE_LOG(LogTemp, Warning, TEXT("Start Sprint"));
@@ -188,6 +206,11 @@ void APlayerCharacter::Roll(const FInputActionValue& Value)
 void APlayerCharacter::Equip(const FInputActionValue& Value)
 {
     UE_LOG(LogTemp, Warning, TEXT("Equip Weapon"));
+    
+    if (CombatComponent)
+    {
+        CombatComponent->EquipWeapon(DefaultWeaponTag);
+    }
 }
 
 void APlayerCharacter::UnEquip(const FInputActionValue& Value)
@@ -202,7 +225,11 @@ void APlayerCharacter::Reload(const FInputActionValue& Value)
 
 void APlayerCharacter::StartFire(const FInputActionValue& Value)
 {
-    UE_LOG(LogTemp, Warning, TEXT("Firing Started"));
+    if (CombatComponent)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Firing Started..."));
+        CombatComponent->Fire();
+    }
 }
 
 void APlayerCharacter::StopFire(const FInputActionValue& Value)

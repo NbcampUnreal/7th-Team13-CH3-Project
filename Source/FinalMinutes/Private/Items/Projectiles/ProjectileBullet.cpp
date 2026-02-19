@@ -3,6 +3,8 @@
 
 #include "Items/Projectiles/ProjectileBullet.h"
 
+#include "AbilitySystemInterface.h"
+#include "AbilitySystemComponent.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 
@@ -10,50 +12,72 @@
 // Sets default values
 AProjectileBullet::AProjectileBullet()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-	
-	// 1. 충돌체 등록하기
-	collisionComp = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComp"));
-	
-	// 2. 충돌 프로파일 설정
-	collisionComp->SetCollisionProfileName(TEXT("BlockAll"));
-	
-	// 3. 충돌체 크기 설정
-	collisionComp->SetSphereRadius(13);
-	
-	// 4. 루트로 등록
-	RootComponent = collisionComp;
-	
-	// 5. 외관 컴포넌트 등록하기
-	bodyMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyMeshComp"));
-	
-	// 6. 부모 컴포넌트 지정
-	bodyMeshComp->SetupAttachment(collisionComp);
-	
-	// 7. 충돌 비활성화
-	bodyMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	
-	// 8. 외관 크기 설정
-	bodyMeshComp->SetRelativeScale3D(FVector(0.05f));
-	
-	// 발사체 컴포넌트
-	movementComp = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("MovementComp"));
-	
-	// movement 컴포넌트가 갱신시킬 컴포넌트 지정
-	movementComp->SetUpdatedComponent(collisionComp);
-	
-	// 초기 속도
-	movementComp->InitialSpeed = 5000.0f;
-	
-	// 최대 속도
-	movementComp->MaxSpeed = 5000.0f;
-	
-	// 반동 여부
-	movementComp->bShouldBounce = true;
-	
-	// 반동 값
-	movementComp->Bounciness = 0.3f;
+    PrimaryActorTick.bCanEverTick = true;
+    
+	// 1. 물리 충돌체 설정
+    CollisionComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
+    CollisionComp->InitSphereRadius(5.0f);
+    CollisionComp->SetCollisionProfileName(TEXT("Projectile"));
+    CollisionComp->OnComponentHit.AddDynamic(this, &AProjectileBullet::OnHit);
+    CollisionComp->SetNotifyRigidBodyCollision(true);
+    CollisionComp->BodyInstance.bUseCCD = true;
+    RootComponent = CollisionComp;
+
+    // 2. 비주얼 설정
+    BulletMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BulletMesh"));
+    BulletMesh->SetupAttachment(RootComponent);
+    BulletMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    // 3. 발사체 이동 컴포넌트 (초기 속도는 0, Initialize에서 설정)
+    ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileComp"));
+    ProjectileMovement->UpdatedComponent = CollisionComp;
+    ProjectileMovement->ProjectileGravityScale = 1.0f;
+    ProjectileMovement->bRotationFollowsVelocity = true;
+    ProjectileMovement->bShouldBounce = false;
+
+    InitialLifeSpan = 10.0f; // 3초 뒤 자동 소멸
+}
+
+void AProjectileBullet::InitializeProjectile(const FGameplayEffectSpecHandle& InSpecHandle, float InSpeed)
+{
+	DamageEffectSpecHandle = InSpecHandle;
+    
+    if (ProjectileMovement)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Projectile Speed: %f"), InSpeed);
+        ProjectileMovement->InitialSpeed = InSpeed;
+        ProjectileMovement->MaxSpeed = InSpeed;
+        
+        ProjectileMovement->Velocity = GetActorForwardVector() * InSpeed;
+    }
+    
+    if (AActor* MyInstigator = GetInstigator())
+    {
+        // CollisionComponent가 MyInstigator(캐릭터)를 무시하도록 설정
+        CollisionComp->IgnoreActorWhenMoving(MyInstigator, true);
+    }
+}
+
+void AProjectileBullet::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp,
+	FVector NormalImpulse, const FHitResult& Hit)
+{
+	if (OtherActor && OtherActor != GetInstigator())
+    {
+        // 4. 타겟의 ASC를 찾아 미리 보관해둔 데미지 효과 적용
+        if (IAbilitySystemInterface* ASCOwner = Cast<IAbilitySystemInterface>(OtherActor))
+        {
+            UAbilitySystemComponent* TargetASC = ASCOwner->GetAbilitySystemComponent();
+            if (TargetASC && DamageEffectSpecHandle.IsValid())
+            {
+                // 발사자(Instigator)의 ASC를 통해 타겟에게 효과 적용
+                TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
+            }
+        }
+        
+        // 피격 이펙트 재생 로직이 들어갈 자리 (VFX/SFX)
+    }
+
+    // Destroy(); // 충돌 후 소멸
 }
 
 // Called when the game starts or when spawned

@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
+#include "GameplayTagContainer.h"
 #include "PlayerCharacter.generated.h"
 
 class UAbilitySystemComponent;
@@ -20,6 +21,8 @@ public:
 	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	virtual void InitializeAbilitySystem();
 	
+	FORCEINLINE class UCombatComponent* GetCombatComponent() const { return CombatComponent; }
+	
 protected:
 	virtual void BeginPlay() override;
 	
@@ -31,6 +34,12 @@ protected:
     
 	UPROPERTY()
 	TObjectPtr<USensorAttributeSet> SensorAttributeSet;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    TObjectPtr<class UCombatComponent> CombatComponent;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+    FGameplayTag DefaultWeaponTag;
 	
 protected:
 	UFUNCTION()
@@ -74,6 +83,7 @@ protected:
 	void StartCrouch();
 	void StopCrouch();
 	
+	void GrantFireAbility();
 	
 public:	
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;

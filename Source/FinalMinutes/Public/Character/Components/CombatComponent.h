@@ -29,6 +29,12 @@ public:
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 	
 public:
+	FORCEINLINE class AWeaponBase* GetCurrentWeapon() const { return CurrentWeapon; }
+	
+	// 무기 장착
+	UFUNCTION(BlueprintCallable)
+	void EquipWeapon(FGameplayTag Tag);
+	
 	// 사격
 	UFUNCTION(BlueprintCallable)
 	void Fire();
@@ -36,10 +42,6 @@ public:
 	// 재장전
 	UFUNCTION(BlueprintCallable)
 	void Reload();
-	
-	// 무기 장착
-	UFUNCTION(BlueprintCallable)
-	void EquipWeapon(FGameplayTag Tag);
 	
 	// 무기 교체
 	UFUNCTION(BlueprintCallable)
@@ -52,6 +54,9 @@ public:
 private:
 	/** 레이캐스트 수행 및 충돌 처리 */
     void PerformTrace();
+	
+	/** 소유자 ASC를 안전하게 가져오는 헬퍼 함수 */
+    class UAbilitySystemComponent* GetOwnerASC() const;
 	
 	/** 소유 캐릭터 참조 캐싱 */
     UPROPERTY()

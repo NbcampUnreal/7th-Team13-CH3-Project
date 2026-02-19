@@ -31,6 +31,14 @@ public:
     void InitializeWeapon(FGameplayTag InWeaponTag, AActor* InOwner);
     
     void InitializeAttributes();
+    
+    /** 현재 무기에 로드된 정적 데이터 에셋을 반환합니다. */
+    FORCEINLINE UWeaponDataAsset* GetCurrentDataAsset() const { return CurrentDataAsset; }
+
+    /** 무기 비주얼을 담당하는 SkeletalMesh 컴포넌트를 반환합니다. */
+    FORCEINLINE USkeletalMeshComponent* GetWeaponMesh() const { return WeaponMesh; }
+    
+
 
 protected:
     /** 메시 로딩 완료 후 호출될 콜백 */

@@ -9,6 +9,7 @@
 #include "Engine/StreamableManager.h"
 #include "Engine/AssetManager.h"
 #include "AbilitySystem/Attributes/WeaponAttributeSet.h"
+#include "Items/Projectiles/ProjectileBullet.h"
 #include "Subsystems/WeaponRegistrySubsystem.h"
 
 
@@ -68,9 +69,6 @@ void AWeaponBase::OnWeaponMeshLoaded(FGameplayTag InWeaponTag)
         
         // 4. 소켓 부착 로직 실행
         AttachToCharacter();
-        
-        // 5. GAS Attribute 초기화 로직
-        // InitializeWeapon(CurrentDataAsset, WeaponAttributeSet); // 기존 코드 호출
     }
 }
 

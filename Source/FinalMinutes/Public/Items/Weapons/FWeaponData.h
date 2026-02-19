@@ -58,7 +58,7 @@ public:
 
     /** 총알이 나갈 총구 소켓 이름 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Socket")
-    FName MuzzleSocketName = FName("weapon_r_muzzle");
+    FName MuzzleSocketName = FName("Muzzle");
 
     /** 탄피가 배출될 소켓 이름 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Socket")
@@ -102,4 +102,8 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")
     float MaxSpreadAngle = 5.0f;
 #pragma endregion
+	
+	// 사격 어빌리티 설정
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Data")
+	TSubclassOf<class UGameplayAbility> FireAbilityClass;
 };
