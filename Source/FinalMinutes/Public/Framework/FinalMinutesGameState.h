@@ -17,6 +17,7 @@ public:
 	
 	virtual void BeginPlay() override;
 	
+	UFUNCTION(BlueprintCallable, Category="GameState")
 	void AddKill();
 	
 	UPROPERTY(BlueprintAssignable, Category = "Events")
