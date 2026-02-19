@@ -76,7 +76,6 @@ void UGA_Roll::ActivateAbility(
 // 공격들이 회피가 된다
 void UGA_Roll::OnRollGameplayEvent(FGameplayEventData EventData)
 {
-	UE_LOG(LogTemp, Warning, TEXT("하이"));
 	APlayerCharacter* Character = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
 	UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
 

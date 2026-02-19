@@ -274,11 +274,21 @@ void APlayerCharacter::OnAttackEnded(const FInputActionValue& Value)
 
 void APlayerCharacter::StartJump(const FInputActionValue& value)
 {
+    if (GetAbilitySystemComponent()->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsRolling"))))
+    {
+        return;
+    }
+    
     Jump();
 }
 
 void APlayerCharacter::StopJump(const FInputActionValue& value)
 {
+    if (GetAbilitySystemComponent()->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsRolling"))))
+    {
+        return;
+    }
+    
     StopJumping();
 }
 
