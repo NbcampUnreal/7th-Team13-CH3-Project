@@ -1,11 +1,11 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "FWeaponData.h"
 #include "Engine/DataAsset.h"
 #include "GameplayTagContainer.h"
+#include "NiagaraSystem.h"
+#include "NiagaraComponent.h"
 #include "WeaponDataAsset.generated.h"
 
 

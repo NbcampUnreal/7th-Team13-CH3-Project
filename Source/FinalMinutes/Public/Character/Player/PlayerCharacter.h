@@ -10,6 +10,8 @@ class UWeaponAttributeSet;
 class UAbilitySystemComponent;
 class UCharacterAttributeSet;
 class USensorAttributeSet;
+class UGameplayAbility;
+class UInputAction;
 
 UCLASS()
 class FINALMINUTES_API APlayerCharacter : public ACharacter, public IAbilitySystemInterface
@@ -25,10 +27,18 @@ public:
 	FORCEINLINE class UCombatComponent* GetCombatComponent() const { return CombatComponent; }
 	
 protected:
-	virtual void BeginPlay() override;
-	
+	#pragma region GameplayAbility관련
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS|Abilities")
+	TArray<TSubclassOf<UGameplayAbility>> DefaultAbilities;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
 	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+	
+	// Ability 부여 함수
+	void GiveDefaultAbilities();
+#pragma endregion
+protected:
+	virtual void BeginPlay() override;
 	
 	UPROPERTY()
 	TObjectPtr<UCharacterAttributeSet> CharacterAttributeSet;
@@ -55,40 +65,61 @@ protected:
 	UFUNCTION()
 	void Look(const FInputActionValue& value);
 	UFUNCTION()
-	void StartSprint(const FInputActionValue& value);
-	UFUNCTION()
-	void StopSprint(const FInputActionValue& value);
-	UFUNCTION()
-	void StartProne(const FInputActionValue& value);
-	UFUNCTION()
-	void StopProne(const FInputActionValue& value);
-	UFUNCTION()
-	void Roll(const FInputActionValue& value);
-	UFUNCTION()
 	void Equip(const FInputActionValue& value);
 	UFUNCTION()
 	void UnEquip(const FInputActionValue& value);
-	UFUNCTION()
-	void Reload(const FInputActionValue& value);
-	
-	UFUNCTION()
-	void StartFire(const FInputActionValue& value); // 발사
-	UFUNCTION()
-	void StopFire(const FInputActionValue& value); // 혹시 마우스 호버로 발사한다면
 	
 	UFUNCTION()
 	void Interact(const FInputActionValue& value);
 	
+#pragma region 앉기
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
+	TObjectPtr<UInputAction> IA_Crouch;
 	
-	// ACharacter가 이미 가지고 있음
-	// UFUNCTION()
-	// void Crouch(const FInputActionValue& value);
+	// 앉기
+	void OnCrouch(const FInputActionValue& Value);
+#pragma endregion
 	
-	void StartCrouch();
-	void StopCrouch();
+#pragma region 엎드리기
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
+	TObjectPtr<UInputAction> IA_Prone;
+	// 엎드리기
+	void OnProne(const FInputActionValue& Value);
+#pragma endregion
+	
+#pragma region 구르기
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
+	TObjectPtr<UInputAction> IA_Roll;
+	// 구르기
+	void OnRoll(const FInputActionValue& Value);
+#pragma endregion
+	
+#pragma region 장전
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
+	TObjectPtr<UInputAction> IA_Reload;
+	
+	void OnReload(const FInputActionValue& value);
+#pragma endregion
 	
 	void GrantFireAbility();
+// 혹시 무기를 안들고 있을때 공격 로직이 필요할 것 같아서 Fire가 아닌 Attack으로 이름 지음
+#pragma region 공격
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
+	TObjectPtr<UInputAction> IA_Attack;
 	
+	void OnAttackStarted(const FInputActionValue& value);
+	void OnAttackEnded(const FInputActionValue& value);
+#pragma endregion
+	
+#pragma region 전력질주
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
+	TObjectPtr<UInputAction> IA_Sprint;
+	
+	UFUNCTION()
+	void StartSprint(const FInputActionValue& value);
+	UFUNCTION()
+	void StopSprint(const FInputActionValue& value);
+#pragma endregion
 public:	
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 };
