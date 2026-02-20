@@ -56,10 +56,5 @@ struct FWeaponData : public FTableRowBase
 	//이펙트
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Effect")
 	TSoftObjectPtr<class UNiagaraSystem> FireEffect;
-	
-	// 머즐 위치
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Effect")
-	FName MuzzleName = FName("MuzzleFlash");
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Effect")
-	FTransform MuzzleTransform;
+		
 };
