@@ -42,7 +42,6 @@ void UGA_Fire::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FG
         return;
     }
 */
-    UE_LOG(LogTemp, Warning, TEXT("투사체 생성 로직 실행 여부"));
     // 3. 투사체 생성 로직 실행
     SpawnProjectile();
 
@@ -51,7 +50,6 @@ void UGA_Fire::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FG
 
 void UGA_Fire::SpawnProjectile()
 {
-    UE_LOG(LogTemp, Warning, TEXT("SpawnProjectile 실행 여부"));
 	AActor* Avatar = GetAvatarActorFromActorInfo();
     
     // 1. 캐릭터로 캐스팅
@@ -59,14 +57,12 @@ void UGA_Fire::SpawnProjectile()
     if (!PlayerChar) return;
 
     // 2. CombatComponent를 통해 현재 무기 획득
-    // (PlayerCharacter에 GetCombatComponent() 게터가 있다고 가정합니다)
     UCombatComponent* CombatComp = PlayerChar->GetCombatComponent();
     if (!CombatComp) return;
     // 현재 캐릭터가 들고 있는 무기 액터 획득
-    AWeaponBase* CurrentWeapon = CombatComp->GetCurrentWeapon(); // 실제 구현 시 캐릭터에서 가져오는 로직 필요
+    AWeaponBase* CurrentWeapon = CombatComp->GetCurrentWeapon();
     
     if (!CurrentWeapon || !CurrentWeapon->GetCurrentDataAsset()) return;
-    UE_LOG(LogTemp, Warning, TEXT("CurrentWeapon 현재 무기 있음 실행 여부"));
     
     const FWeaponData& WeaponData = CurrentWeapon->GetCurrentDataAsset()->WeaponData;
 
@@ -94,7 +90,6 @@ void UGA_Fire::SpawnProjectile()
     AProjectileBullet* Bullet = GetWorld()->SpawnActor<AProjectileBullet>(WeaponData.ProjectileClass, MuzzleLocation, MuzzleRotation, SpawnParams);
     if (Bullet)
     {
-        UE_LOG(LogTemp, Warning, TEXT("Bullet 현재 총알 있음"));
         Bullet->InitializeProjectile(DamageSpecHandle, WeaponData.DefaultBulletSpeed);
     }
 }

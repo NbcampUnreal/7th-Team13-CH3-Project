@@ -44,7 +44,6 @@ void AProjectileBullet::InitializeProjectile(const FGameplayEffectSpecHandle& In
     
     if (ProjectileMovement)
     {
-        UE_LOG(LogTemp, Warning, TEXT("Projectile Speed: %f"), InSpeed);
         ProjectileMovement->InitialSpeed = InSpeed;
         ProjectileMovement->MaxSpeed = InSpeed;
         

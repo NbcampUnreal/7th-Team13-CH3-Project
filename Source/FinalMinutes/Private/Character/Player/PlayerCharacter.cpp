@@ -29,15 +29,9 @@ void APlayerCharacter::BeginPlay()
 	
 	// ASC초기화
 	InitializeAbilitySystem();
-    UE_LOG(LogTemp, Warning, TEXT("BeginPlay 로그"));
-    if (CombatComponent)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("CombatComponent 부착 확인용 로그"));
-    }
-    
+
     if (CombatComponent && DefaultWeaponTag.IsValid())
     {
-        UE_LOG(LogTemp, Warning, TEXT("논리적인 무기 장착 확인 로그"));
         CombatComponent->EquipWeapon(DefaultWeaponTag);
     }
 }
