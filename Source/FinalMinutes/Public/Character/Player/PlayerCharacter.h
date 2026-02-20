@@ -51,10 +51,6 @@ protected:
 	UFUNCTION()
 	void Look(const FInputActionValue& value);
 	UFUNCTION()
-	void StartSprint(const FInputActionValue& value);
-	UFUNCTION()
-	void StopSprint(const FInputActionValue& value);
-	UFUNCTION()
 	void Equip(const FInputActionValue& value);
 	UFUNCTION()
 	void UnEquip(const FInputActionValue& value);
@@ -98,6 +94,16 @@ protected:
 	
 	void OnAttackStarted(const FInputActionValue& value);
 	void OnAttackEnded(const FInputActionValue& value);
+#pragma endregion
+	
+#pragma region 전력질주
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
+	TObjectPtr<UInputAction> IA_Sprint;
+	
+	UFUNCTION()
+	void StartSprint(const FInputActionValue& value);
+	UFUNCTION()
+	void StopSprint(const FInputActionValue& value);
 #pragma endregion
 public:	
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;

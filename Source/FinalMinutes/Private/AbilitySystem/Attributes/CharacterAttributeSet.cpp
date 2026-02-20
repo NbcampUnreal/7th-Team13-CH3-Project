@@ -14,7 +14,7 @@ UCharacterAttributeSet::UCharacterAttributeSet()
     
     InitAttackDamage(10.0f);
     InitDefence(0.0f);
-    InitMoveSpeed(600.0f);
+    InitMoveSpeed(300.0f);
 }
 
 // Attribute값이 변하기 전에 실행

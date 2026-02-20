@@ -6,7 +6,6 @@
 #include "AbilitySystem/Attributes/SensorAttributeSet.h"
 #include "AbilitySystemBlueprintLibrary.h"
 
-
 APlayerCharacter::APlayerCharacter()
 {
 	// ASC 달아주기
@@ -60,7 +59,6 @@ void APlayerCharacter::GiveDefaultAbilities()
     }
 }
 
-
 void APlayerCharacter::InitializeAbilitySystem()
 {
 	if (AbilitySystemComponent)
@@ -108,10 +106,10 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
                 EnhancedInput->BindAction(IA_Roll, ETriggerEvent::Started, this, &APlayerCharacter::OnRoll);
             }
             
-            if (PlayerController->SprintAction)
+            if (IA_Sprint)
             {
-                EnhancedInput->BindAction(PlayerController->SprintAction, ETriggerEvent::Started, this, &APlayerCharacter::StartSprint);
-                EnhancedInput->BindAction(PlayerController->SprintAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopSprint);
+                EnhancedInput->BindAction(IA_Sprint, ETriggerEvent::Started, this, &APlayerCharacter::StartSprint);
+                EnhancedInput->BindAction(IA_Sprint, ETriggerEvent::Completed, this, &APlayerCharacter::StopSprint);
             }
             
             if (PlayerController->EquipAction)
@@ -302,12 +300,17 @@ void APlayerCharacter::Look(const FInputActionValue& value)
 
 void APlayerCharacter::StartSprint(const FInputActionValue& Value)
 {
-    UE_LOG(LogTemp, Warning, TEXT("Start Sprint"));
+    FGameplayTagContainer AbilityTags;
+    AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Sprint")));
+    GetAbilitySystemComponent()->TryActivateAbilitiesByTag(AbilityTags);
 }
 
 void APlayerCharacter::StopSprint(const FInputActionValue& Value)
 {
-    UE_LOG(LogTemp, Warning, TEXT("Stop Sprint"));
+    UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+    FGameplayEventData Payload;
+    FGameplayTag StopTag = FGameplayTag::RequestGameplayTag(FName("Event.Montage.Sprint"));
+    ASC->HandleGameplayEvent(StopTag, &Payload);
 }
 
 void APlayerCharacter::Equip(const FInputActionValue& Value)
