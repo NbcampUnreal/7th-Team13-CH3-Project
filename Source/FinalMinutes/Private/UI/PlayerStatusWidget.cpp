@@ -1,6 +1,7 @@
 #include "UI/PlayerStatusWidget.h"
 #include "AbilitySystemComponent.h"
 #include "Components/ProgressBar.h"
+#include "Components/TextBlock.h"
 #include "AbilitySystem/Attributes/CharacterAttributeSet.h"
 
 void UPlayerStatusWidget::InitWithASC(UAbilitySystemComponent* InASC)
@@ -72,6 +73,12 @@ void UPlayerStatusWidget::UpdateHealth(float Current)
 {
 	const float Percent = (MaxHealth > 0.f) ? FMath::Clamp(Current / MaxHealth, 0.f, 1.f) : 0.f;
 	if (PB_Health) PB_Health->SetPercent(Percent);
+	
+	if (TXT_Health)
+	{
+		const int32 CurInt = FMath::RoundToInt(Current); // 정수로 반올림
+		TXT_Health->SetText(FText::AsNumber(CurInt)); // Text로 변환
+	}
 }
 
 void UPlayerStatusWidget::UpdateStamina(float Current)

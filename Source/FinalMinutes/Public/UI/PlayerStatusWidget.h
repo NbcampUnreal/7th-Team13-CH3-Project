@@ -43,6 +43,9 @@ protected:
     // UMG 디자이너에서 ProgressBar 이름을 정확히 맞추고 "Is Variable" 체크
     UPROPERTY(meta=(BindWidget))
     TObjectPtr<UProgressBar> PB_Health;
+	
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<class UTextBlock> TXT_Health;
 
     UPROPERTY(meta=(BindWidget))
     TObjectPtr<UProgressBar> PB_Stamina;
