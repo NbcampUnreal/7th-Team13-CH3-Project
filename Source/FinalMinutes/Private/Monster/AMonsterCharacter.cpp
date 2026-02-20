@@ -1,25 +1,15 @@
 ﻿#include "Monster/AMonsterCharacter.h"
 #include "AbilitySystemComponent.h"
+#include "Attribute Set/MonsterAttributeSet.h"
 #include "AbilitySystemInterface.h"
+#include "GameplayTagContainer.h"
 
 AAMonsterCharacter::AAMonsterCharacter()
 {
 	// ASC
 	ASC = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("ASC"));
-	
-	//Rotation
-	
-	
-	//Movement
-	
-	
+	AttributeSet = CreateDefaultSubobject<UMonsterAttributeSet>(TEXT("MonsterAttributeSet"));
 }
-
-void AAMonsterCharacter::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
 
 UAbilitySystemComponent* AAMonsterCharacter::GetAbilitySystemComponent() const
 {

@@ -6,6 +6,7 @@
 
 class UAbilitySystemComponent;
 class UAbilitySystemInterface;
+class UMonsterAttributeSet;
 
 UCLASS()
 class FINALMINUTES_API AAMonsterCharacter : public APawn
@@ -14,22 +15,16 @@ class FINALMINUTES_API AAMonsterCharacter : public APawn
 
 public:
 	AAMonsterCharacter();
-
-	virtual void BeginPlay() override;
 	
-protected:
 	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const;
 	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "GAS")
 	TObjectPtr<class UAbilitySystemComponent> ASC;
 	
-private:
+	UPROPERTY()
+	TObjectPtr<class UMonsterAttributeSet> AttributeSet;
 	
-	bool bIsDead;
-	float MonsterHP;
-	float MonsterATK;
-	float MonsterSpeed;
-	float HeadDef;
-	float BodyDef;
+	UPROPERTY()
+	class UAbilitySystemComponent* AbilitySystemComponent;
 };
