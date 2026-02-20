@@ -3,8 +3,10 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
+#include "GameplayTagContainer.h"
 #include "PlayerCharacter.generated.h"
 
+class UWeaponAttributeSet;
 class UAbilitySystemComponent;
 class UCharacterAttributeSet;
 class USensorAttributeSet;
@@ -21,6 +23,9 @@ public:
 	
 	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	virtual void InitializeAbilitySystem();
+	
+	FORCEINLINE class UCombatComponent* GetCombatComponent() const { return CombatComponent; }
+	
 protected:
 	#pragma region GameplayAbility관련
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS|Abilities")
@@ -40,6 +45,15 @@ protected:
     
 	UPROPERTY()
 	TObjectPtr<USensorAttributeSet> SensorAttributeSet;
+	
+	UPROPERTY()
+	TObjectPtr<UWeaponAttributeSet> WeaponAttributeSet;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    TObjectPtr<class UCombatComponent> CombatComponent;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+    FGameplayTag DefaultWeaponTag;
 	
 protected:
 	UFUNCTION()
@@ -87,6 +101,7 @@ protected:
 	void OnReload(const FInputActionValue& value);
 #pragma endregion
 	
+	void GrantFireAbility();
 // 혹시 무기를 안들고 있을때 공격 로직이 필요할 것 같아서 Fire가 아닌 Attack으로 이름 지음
 #pragma region 공격
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")

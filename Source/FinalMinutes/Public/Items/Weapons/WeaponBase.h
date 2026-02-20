@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ActiveGameplayEffectHandle.h"
 #include "GameplayTagContainer.h" // GameplayTag
 #include "GameFramework/Actor.h"
 #include "WeaponBase.generated.h"
@@ -11,6 +12,7 @@
 class UWeaponAttributeSet;
 class UWeaponDataAsset;
 class USkeletalMeshComponent;
+class UGameplayEffect;
 
 UCLASS()
 class FINALMINUTES_API AWeaponBase : public AActor
@@ -24,39 +26,41 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	/** 무기 장착/해제 함수 */
-	void ActivateWeapon();
-	void DeactivateWeapon();
-	
-	/** 데이터 에셋을 통한 초기화 함수 */
-    void InitializeWeapon(UWeaponDataAsset* InDataAsset, UWeaponAttributeSet* InAttributes);
-	
-private:
-	/** 비동기 로드 완료 시 호출될 콜백 함수 */
-    void OnWeaponMeshLoaded() const;
-private:
-	/** 실제 무기 외형을 담당하는 컴포넌트 */
-    UPROPERTY(VisibleAnywhere, Category = "Weapon|Visual")
+    /** 외부(Pawn 등)에서 무기 생성을 요청할 때 호출하는 진입점 */
+    UFUNCTION(BlueprintCallable)
+    void InitializeWeapon(FGameplayTag InWeaponTag, AActor* InOwner);
+    
+    void InitializeAttributes();
+    
+    /** 현재 무기에 로드된 정적 데이터 에셋을 반환합니다. */
+    FORCEINLINE UWeaponDataAsset* GetCurrentDataAsset() const { return CurrentDataAsset; }
+
+    /** 무기 비주얼을 담당하는 SkeletalMesh 컴포넌트를 반환합니다. */
+    FORCEINLINE USkeletalMeshComponent* GetWeaponMesh() const { return WeaponMesh; }
+    
+
+
+protected:
+    /** 메시 로딩 완료 후 호출될 콜백 */
+    virtual void OnWeaponMeshLoaded(FGameplayTag InWeaponTag);
+
+    /** 실제 캐릭터 소켓에 부착하는 로직 */
+    void AttachToCharacter();
+
+protected:
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     TObjectPtr<USkeletalMeshComponent> WeaponMesh;
-	
-	/** * 무기 고유 식별자
-     * FString 대신 GameplayTag를 사용하여 조건 검사 속도와 확장성을 확보
-     */
-    UPROPERTY(EditDefaultsOnly, Category = "Weapon|Core")
-    FGameplayTag WeaponTag;
-	
-	/** * 무기의 설계도 참조
-     * 기본 정보: 무기 이름, 무기 태그
-     * 에셋 참조: 스켈레탈 메시, 사운드 큐(발사/장전), 투사체 클래스, 애니메이션 몽타주
-     * 수치 데이터: 기본 탄창 크기, 기본 공격력, 기본 연사 속도, 소음 크기, 기본 반동 값, 최대 탄퍼짐 범위
-     * 무기 소켓 정보: 무기 ↔ 캐릭터 소켓, 총알 ↔ 총구 소켓, 탄피 ↔ 배출구 소켓
-     */
-    UPROPERTY(VisibleAnywhere, Category = "Weapon|Data")
-    TObjectPtr<const UWeaponDataAsset> WeaponData;
-	
-	/** 무기 실시간 속성
-	 * 수치 데이터: 현재/최대 탄창 수, 현재 공격력, 현재 연사 속도, 현재 재장전 속도, 현재 총알 속도, 소음 배율, 유효 사거리, 조준 속도, 현재 탄퍼짐 계수
-	 */
-    UPROPERTY(VisibleAnywhere, Category = "Weapon|GAS")
-    TObjectPtr<UWeaponAttributeSet> WeaponAttributes;
+
+    UPROPERTY(Transient)
+    TObjectPtr<UWeaponDataAsset> CurrentDataAsset;
+
+    UPROPERTY(Transient)
+    TWeakObjectPtr<AActor> WeaponOwner;
+    
+    UPROPERTY(EditDefaultsOnly, Category = "GAS")
+    TSubclassOf<UGameplayEffect> InitStatEffectClass; // 무기 스탯 초기화용 GE 클래스
+
+    FActiveGameplayEffectHandle WeaponStatEffectHandle; // 나중에 무기 해제 시 제거하기 위해 보관
 };
+
+

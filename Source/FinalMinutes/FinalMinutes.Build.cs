@@ -19,7 +19,9 @@ public class FinalMinutes : ModuleRules
 			"Niagara",
 			"EnhancedInput",
 			"GameplayTasks",
-      "UMG"
+      "UMG",
+      "GameplayAbilities",
+      "GameplayTags"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "GameplayAbilities", "GameplayTags", "GameplayTasks"});

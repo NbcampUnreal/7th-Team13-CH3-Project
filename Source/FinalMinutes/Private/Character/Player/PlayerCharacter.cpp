@@ -4,6 +4,8 @@
 #include "Controller/PlayerCharacterController.h"
 #include "AbilitySystem/Attributes/CharacterAttributeSet.h"
 #include "AbilitySystem/Attributes/SensorAttributeSet.h"
+#include "AbilitySystem/Attributes/WeaponAttributeSet.h"
+#include "Character/Components/CombatComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 
 APlayerCharacter::APlayerCharacter()
@@ -14,6 +16,9 @@ APlayerCharacter::APlayerCharacter()
 	// 사용할 AttributeSet 설정
 	CharacterAttributeSet = CreateDefaultSubobject<UCharacterAttributeSet>(TEXT("CharacterAttributeSet"));
 	SensorAttributeSet = CreateDefaultSubobject<USensorAttributeSet>(TEXT("SensorAttributeSet"));
+  WeaponAttributeSet = CreateDefaultSubobject<UWeaponAttributeSet>(TEXT("WeaponAttributeSet"));
+    
+  CombatComponent = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
 }
 
 UAbilitySystemComponent* APlayerCharacter::GetAbilitySystemComponent() const
@@ -27,6 +32,11 @@ void APlayerCharacter::BeginPlay()
 	
 	// ASC초기화
 	InitializeAbilitySystem();
+  
+  if (CombatComponent && DefaultWeaponTag.IsValid())
+  {
+     CombatComponent->EquipWeapon(DefaultWeaponTag);
+  }
     
     GiveDefaultAbilities();
 }
@@ -238,6 +248,9 @@ void APlayerCharacter::OnRoll(const FInputActionValue& Value)
     }
 }
 
+void APlayerCharacter::GrantFireAbility()
+{
+}
 
 void APlayerCharacter::OnReload(const FInputActionValue& Value)
 {
@@ -316,6 +329,11 @@ void APlayerCharacter::StopSprint(const FInputActionValue& Value)
 void APlayerCharacter::Equip(const FInputActionValue& Value)
 {
     UE_LOG(LogTemp, Warning, TEXT("Equip Weapon"));
+    
+    if (CombatComponent)
+    {
+        CombatComponent->EquipWeapon(DefaultWeaponTag);
+    }
 }
 
 void APlayerCharacter::UnEquip(const FInputActionValue& Value)
