@@ -18,7 +18,9 @@ public:
 	void InitWithASC(UAbilitySystemComponent* InASC);
 	
 protected:
-	virtual void NativeDestruct() override;private:
+	virtual void NativeDestruct() override;
+	
+private:
     void BindCallbacks();
     void UnbindCallbacks();
 
@@ -27,8 +29,7 @@ protected:
 
     void OnHealthChanged(const FOnAttributeChangeData& Data);
     void OnStaminaChanged(const FOnAttributeChangeData& Data);
-
-private:
+	
     UPROPERTY()
     TObjectPtr<UAbilitySystemComponent> ASC;
 
