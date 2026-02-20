@@ -16,7 +16,7 @@ void AFinalMinutesGameState::BeginPlay()
 	UE_LOG(LogTemp, Warning, TEXT("아따 게임 시작 됐십니더"));
 }
 
-void AFinalMinutesGameState::AddKill()
+void AFinalMinutesGameState::AddKill(FGameplayTag MonsterTag)
 {
 	KillCount++;
 	OnKillCountChanged.Broadcast(KillCount);

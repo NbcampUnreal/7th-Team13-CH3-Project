@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameStateBase.h"
+#include "GameplayTagContainer.h"
 #include "FinalMinutesGameState.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnKillCountChanged, int32, NewKillCount);
@@ -18,7 +19,7 @@ public:
 	virtual void BeginPlay() override;
 	
 	UFUNCTION(BlueprintCallable, Category="GameState")
-	void AddKill();
+	void AddKill(FGameplayTag MonsterTag);
 	
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnKillCountChanged OnKillCountChanged;
