@@ -7,6 +7,7 @@
 
 class UAbilitySystemComponent;
 class UProgressBar;
+class UTextBlock;
 
 UCLASS()
 class FINALMINUTES_API UPlayerStatusWidget : public UUserWidget
@@ -21,20 +22,33 @@ protected:
 	virtual void NativeDestruct() override;
 	
 private:
+	// 바인딩/해제
     void BindCallbacks();
     void UnbindCallbacks();
 
+	// UI 갱신
     void UpdateHealth(float Current);
     void UpdateStamina(float Current);
 
+	void UpdateAmmo(float Current);
+	void UpdateMaxAmmo(float Max);
+	
+	// 델리게이트 핸들러
     void OnHealthChanged(const FOnAttributeChangeData& Data);
     void OnStaminaChanged(const FOnAttributeChangeData& Data);
+	
+	void OnAmmoChanged(const FOnAttributeChangeData& Data);
+	void OnMaxAmmoChanged(const FOnAttributeChangeData& Data);
 	
     UPROPERTY()
     TObjectPtr<UAbilitySystemComponent> ASC;
 
+	// 델리게이트 핸들
     FDelegateHandle HealthChangedHandle;
     FDelegateHandle StaminaChangedHandle;
+	
+	FDelegateHandle AmmoChangedHandle;
+	FDelegateHandle MaxAmmoChangedHandle;
 
     float MaxHealth = 100.f;
     float MaxStamina = 100.f;
@@ -49,4 +63,10 @@ protected:
 
     UPROPERTY(meta=(BindWidget))
     TObjectPtr<UProgressBar> PB_Stamina;
+	
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<class UTextBlock> TXT_Ammo;
+
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<class UTextBlock> TXT_MaxAmmo;
 };
