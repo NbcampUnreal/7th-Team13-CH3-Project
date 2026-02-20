@@ -1,8 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "BTController.h"
-
+#include "Controller/BTController.h"
 
 // Sets default values
 ABTController::ABTController()

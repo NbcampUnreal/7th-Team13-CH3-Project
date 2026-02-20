@@ -42,8 +42,4 @@ protected:
 	// 앉기 버튼을 뗄떼 호출
 	UFUNCTION()
 	void OnCrouchExitRequested(FGameplayEventData EventData);
-
-	// Gameplay Event 콜백 (AnimNotify 대신)
-	UFUNCTION()
-	void OnCrouchGameplayEvent(FGameplayEventData EventData);
 };

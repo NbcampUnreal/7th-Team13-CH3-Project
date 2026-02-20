@@ -42,8 +42,4 @@ protected:
 	// 토글로 일어날때
 	UFUNCTION()
 	void OnProneExitRequested(FGameplayEventData EventData);
-
-	// Gameplay Event 콜백 (AnimNotify 대신)
-	UFUNCTION()
-	void OnProneGameplayEvent(FGameplayEventData EventData);
 };
