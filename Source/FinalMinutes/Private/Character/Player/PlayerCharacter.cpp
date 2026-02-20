@@ -4,6 +4,7 @@
 #include "Controller/PlayerCharacterController.h"
 #include "AbilitySystem/Attributes/CharacterAttributeSet.h"
 #include "AbilitySystem/Attributes/SensorAttributeSet.h"
+#include "AbilitySystemBlueprintLibrary.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -26,6 +27,36 @@ void APlayerCharacter::BeginPlay()
 	
 	// ASC초기화
 	InitializeAbilitySystem();
+    
+    GiveDefaultAbilities();
+}
+
+void APlayerCharacter::GiveDefaultAbilities()
+{
+    // ASC 확인
+    if (!AbilitySystemComponent)
+    {
+        return;
+    }
+
+    // Authority 체크 (서버에서만 부여, 싱글플레이는 항상 true)
+    if (!HasAuthority())
+    {
+        return;
+    }
+
+    // DefaultAbilities 배열 순회하며 부여
+    for (TSubclassOf<UGameplayAbility>& AbilityClass : DefaultAbilities)
+    {
+        if (AbilityClass)
+        {
+            // Ability Spec 생성
+            FGameplayAbilitySpec AbilitySpec(AbilityClass, 1, INDEX_NONE, this);
+
+            // ASC에 Ability 부여
+            AbilitySystemComponent->GiveAbility(AbilitySpec);
+        }
+    }
 }
 
 void APlayerCharacter::InitializeAbilitySystem()
@@ -60,27 +91,25 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
                 EnhancedInput->BindAction(PlayerController->JumpAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopJump);
             }
 
-            if (PlayerController->CrouchAction)
+            if (IA_Crouch)
             {
-                EnhancedInput->BindAction(PlayerController->CrouchAction, ETriggerEvent::Started, this, &APlayerCharacter::StartCrouch);
-                EnhancedInput->BindAction(PlayerController->CrouchAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopCrouch);
+                EnhancedInput->BindAction(IA_Crouch, ETriggerEvent::Started, this, &APlayerCharacter::OnCrouch);
             }
             
-            if (PlayerController->SprintAction)
+            if (IA_Prone)
             {
-                EnhancedInput->BindAction(PlayerController->SprintAction, ETriggerEvent::Started, this, &APlayerCharacter::StartSprint);
-                EnhancedInput->BindAction(PlayerController->SprintAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopSprint);
+                EnhancedInput->BindAction(IA_Prone, ETriggerEvent::Started, this, &APlayerCharacter::OnProne);
             }
             
-            if (PlayerController->ProneAction)
+            if (IA_Roll)
             {
-                EnhancedInput->BindAction(PlayerController->ProneAction, ETriggerEvent::Started, this, &APlayerCharacter::StartProne);
-                EnhancedInput->BindAction(PlayerController->ProneAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopProne);
+                EnhancedInput->BindAction(IA_Roll, ETriggerEvent::Started, this, &APlayerCharacter::OnRoll);
             }
             
-            if (PlayerController->RollAction)
+            if (IA_Sprint)
             {
-                EnhancedInput->BindAction(PlayerController->RollAction, ETriggerEvent::Started, this, &APlayerCharacter::Roll);
+                EnhancedInput->BindAction(IA_Sprint, ETriggerEvent::Started, this, &APlayerCharacter::StartSprint);
+                EnhancedInput->BindAction(IA_Sprint, ETriggerEvent::Completed, this, &APlayerCharacter::StopSprint);
             }
             
             if (PlayerController->EquipAction)
@@ -93,15 +122,15 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
                 EnhancedInput->BindAction(PlayerController->UnEquipAction, ETriggerEvent::Started, this, &APlayerCharacter::UnEquip);
             }
             
-            if (PlayerController->ReloadAction)
+            if (IA_Reload)
             {
-                EnhancedInput->BindAction(PlayerController->ReloadAction, ETriggerEvent::Started, this, &APlayerCharacter::Reload);
+                EnhancedInput->BindAction(IA_Reload, ETriggerEvent::Started, this, &APlayerCharacter::OnReload);
             }
             
-            if (PlayerController->FireAction)
+            if (IA_Attack)
             {
-                EnhancedInput->BindAction(PlayerController->FireAction, ETriggerEvent::Started, this, &APlayerCharacter::StartFire);
-                EnhancedInput->BindAction(PlayerController->FireAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopFire);
+                EnhancedInput->BindAction(IA_Attack, ETriggerEvent::Started, this, &APlayerCharacter::OnAttackStarted);
+                EnhancedInput->BindAction(IA_Attack, ETriggerEvent::Completed, this, &APlayerCharacter::OnAttackEnded);
             }
             
             if (PlayerController->InteractAction)
@@ -114,7 +143,23 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 void APlayerCharacter::Move(const FInputActionValue& value)
 {
+    UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+    if (!ASC) return;
     if (!Controller) return;
+    
+    // 장전 중, 엎드린상태에서 공격중에는 움직일 수 없음
+    FGameplayTag ReloadingTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsReloading"));
+    FGameplayTag AttackingTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsAttacking"));
+    FGameplayTag ProneTag      = FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning"));
+
+    const bool bIsReloading = ASC->HasMatchingGameplayTag(ReloadingTag);
+    const bool bIsAttacking = ASC->HasMatchingGameplayTag(AttackingTag);
+    const bool bIsProning   = ASC->HasMatchingGameplayTag(ProneTag);
+    
+    if (bIsReloading || (bIsAttacking && bIsProning))
+    {
+        return;
+    }
     
     const FVector2D MoveInput = value.Get<FVector2D>();
     
@@ -131,13 +176,117 @@ void APlayerCharacter::Move(const FInputActionValue& value)
     AddMovementInput(RightDirection, MoveInput.Y);
 }
 
+void APlayerCharacter::OnCrouch(const FInputActionValue& Value)
+{
+    UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+    if (!ASC) return;
+
+    FGameplayTag CrouchStateTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsCrouching"));
+
+    // 현재 앉은 상태 태그가 있는지 확인
+    if (!ASC->HasMatchingGameplayTag(CrouchStateTag))
+    {
+        // 태그가 없다면 -> 앉기 실행
+        FGameplayTagContainer AbilityTags;
+        AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Crouch")));
+        ASC->TryActivateAbilitiesByTag(AbilityTags);
+    }
+    else
+    {
+        // 태그가 있다면 -> 앉기 이벤트 전송
+        FGameplayEventData Payload;
+        ASC->HandleGameplayEvent(FGameplayTag::RequestGameplayTag(FName("State.Crouch.End")), &Payload);
+    }
+}
+
+void APlayerCharacter::OnProne(const FInputActionValue& Value)
+{
+    UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+    if (!ASC) return;
+
+    FGameplayTag ProneStateTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning"));
+
+    if (!ASC->HasMatchingGameplayTag(ProneStateTag))
+    {
+        FGameplayTagContainer AbilityTags;
+        AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Prone")));
+        ASC->TryActivateAbilitiesByTag(AbilityTags);
+    }
+    else
+    {
+        FGameplayEventData Payload;
+        ASC->HandleGameplayEvent(FGameplayTag::RequestGameplayTag(FName("State.Prone.End")), &Payload);
+    }
+}
+
+void APlayerCharacter::OnRoll(const FInputActionValue& Value)
+{
+    UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+    if (!ASC) return;
+
+    // 이미 구르는 중인지 확인
+    FGameplayTag RollingTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsRolling"));
+    
+    // 구르는 중이 아닐 때만 구를수 있게
+    if (!ASC->HasMatchingGameplayTag(RollingTag))
+    {
+        FGameplayTagContainer AbilityTags;
+        AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Roll")));
+        
+        // 상태 관리는 GA_Roll 내부의 PlayMontageAndWait에서
+        ASC->TryActivateAbilitiesByTag(AbilityTags);
+    }
+}
+
+
+void APlayerCharacter::OnReload(const FInputActionValue& Value)
+{
+    UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+    if (!ASC) return;
+
+    // 이미 장전 중인지 확인
+    FGameplayTag ReloadTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsReloading"));
+    
+    // 장전중이 아닐때만 장전 가능하게
+    if (!ASC->HasMatchingGameplayTag(ReloadTag))
+    {
+        FGameplayTagContainer AbilityTags;
+        AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Reload")));
+        ASC->TryActivateAbilitiesByTag(AbilityTags);
+    }
+}
+
+void APlayerCharacter::OnAttackStarted(const FInputActionValue& Value)
+{
+    FGameplayTagContainer AbilityTags;
+    AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Attack")));
+    GetAbilitySystemComponent()->TryActivateAbilitiesByTag(AbilityTags);
+}
+
+void APlayerCharacter::OnAttackEnded(const FInputActionValue& Value)
+{
+    FGameplayEventData Payload;
+    Payload.EventTag = FGameplayTag::RequestGameplayTag(FName("State.Attack.End"));
+    UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, Payload.EventTag, Payload);
+}
+
 void APlayerCharacter::StartJump(const FInputActionValue& value)
 {
+    if (GetAbilitySystemComponent()->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsRolling"))))
+    {
+        return;
+    }
+    
     Jump();
 }
 
 void APlayerCharacter::StopJump(const FInputActionValue& value)
 {
+    if (GetAbilitySystemComponent()->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsRolling"))))
+    {
+        return;
+    }
+    
     StopJumping();
 }
 
@@ -149,40 +298,19 @@ void APlayerCharacter::Look(const FInputActionValue& value)
     AddControllerPitchInput(LookInput.Y);
 }
 
-void APlayerCharacter::StartCrouch()
-{
-	UE_LOG(LogTemp, Warning, TEXT("Starting Crouch"));
-	Crouch();
-}
-void APlayerCharacter::StopCrouch()
-{
-	UE_LOG(LogTemp, Warning, TEXT("Stop Crouch"));
-	UnCrouch();
-}
-
 void APlayerCharacter::StartSprint(const FInputActionValue& Value)
 {
-    UE_LOG(LogTemp, Warning, TEXT("Start Sprint"));
+    FGameplayTagContainer AbilityTags;
+    AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Sprint")));
+    GetAbilitySystemComponent()->TryActivateAbilitiesByTag(AbilityTags);
 }
 
 void APlayerCharacter::StopSprint(const FInputActionValue& Value)
 {
-    UE_LOG(LogTemp, Warning, TEXT("Stop Sprint"));
-}
-
-void APlayerCharacter::StartProne(const FInputActionValue& Value)
-{
-    UE_LOG(LogTemp, Warning, TEXT("Start Prone"));
-}
-
-void APlayerCharacter::StopProne(const FInputActionValue& Value)
-{
-    UE_LOG(LogTemp, Warning, TEXT("Stop Prone"));
-}
-
-void APlayerCharacter::Roll(const FInputActionValue& Value)
-{
-    UE_LOG(LogTemp, Warning, TEXT("Rolling!"));
+    UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+    FGameplayEventData Payload;
+    FGameplayTag StopTag = FGameplayTag::RequestGameplayTag(FName("Event.Montage.Sprint"));
+    ASC->HandleGameplayEvent(StopTag, &Payload);
 }
 
 void APlayerCharacter::Equip(const FInputActionValue& Value)
@@ -193,21 +321,6 @@ void APlayerCharacter::Equip(const FInputActionValue& Value)
 void APlayerCharacter::UnEquip(const FInputActionValue& Value)
 {
     UE_LOG(LogTemp, Warning, TEXT("UnEquip Weapon"));
-}
-
-void APlayerCharacter::Reload(const FInputActionValue& Value)
-{
-    UE_LOG(LogTemp, Warning, TEXT("Reloading..."));
-}
-
-void APlayerCharacter::StartFire(const FInputActionValue& Value)
-{
-    UE_LOG(LogTemp, Warning, TEXT("Firing Started"));
-}
-
-void APlayerCharacter::StopFire(const FInputActionValue& Value)
-{
-    UE_LOG(LogTemp, Warning, TEXT("Firing Stopped"));
 }
 
 void APlayerCharacter::Interact(const FInputActionValue& Value)
