@@ -274,6 +274,12 @@ void APlayerCharacter::OnAttackStarted(const FInputActionValue& Value)
     FGameplayTagContainer AbilityTags;
     AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Attack")));
     GetAbilitySystemComponent()->TryActivateAbilitiesByTag(AbilityTags);
+    
+    if (CombatComponent)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Firing Started..."));
+        CombatComponent->Fire();
+    }
 }
 
 void APlayerCharacter::OnAttackEnded(const FInputActionValue& Value)
