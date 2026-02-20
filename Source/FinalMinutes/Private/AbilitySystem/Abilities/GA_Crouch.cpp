@@ -41,7 +41,7 @@ void UGA_Crouch::ActivateAbility(
 	if (!Character || !MyASC) return;
 	
 	Character->GetCapsuleComponent()->SetCapsuleHalfHeight(60.f);
-	Character->GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -60.f));
+	Character->GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -48.f));
 	FGameplayEffectContextHandle EffectContext = MyASC->MakeEffectContext();
 	EffectContext.AddSourceObject(Character);
 
