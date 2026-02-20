@@ -78,32 +78,6 @@ void UGA_Prone::ActivateAbility(
 	}
 }
 
-
-void UGA_Prone::OnProneGameplayEvent(FGameplayEventData EventData)
-{
-	APlayerCharacter* Character = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
-	UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
-
-	if (!Character || !MyASC) return;
-	
-	// 컨텍스트 생성, 효과가 어디서부터 나타났는지, 추후에 데미지 계산이나 로그 시스템에서 누가 사용한지 알 수 있음
-	FGameplayEffectContextHandle EffectContext = GetAbilitySystemComponentFromActorInfo()->MakeEffectContext();
-	EffectContext.AddSourceObject(Character);
-
-	// 실제로 적용될 효과를 작성, GE클래스
-	FGameplayEffectSpecHandle SpecHandle = GetAbilitySystemComponentFromActorInfo()->MakeOutgoingSpec(
-		ProneEffectClass,
-		1.0f, // Level
-		EffectContext
-	);
-	
-	if (SpecHandle.IsValid())
-	{
-		// 나에게 발생하므로 나한테 효과 적용
-		ActiveProneEffectHandle = MyASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-	}
-}
-
 void UGA_Prone::OnProneExitRequested(FGameplayEventData EventData)
 {
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
