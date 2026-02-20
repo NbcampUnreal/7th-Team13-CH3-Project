@@ -131,7 +131,6 @@ void UPlayerStatusWidget::UpdateAmmo(float Current)
 	}
 }
 
-// MaxAmmo도 표시할 거면
 void UPlayerStatusWidget::UpdateMaxAmmo(float Max)
 {
 	if (TXT_MaxAmmo)
