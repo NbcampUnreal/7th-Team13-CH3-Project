@@ -6,6 +6,7 @@
 #include "GameplayTagContainer.h"
 #include "PlayerCharacter.generated.h"
 
+class UWeaponAttributeSet;
 class UAbilitySystemComponent;
 class UCharacterAttributeSet;
 class USensorAttributeSet;
@@ -34,6 +35,9 @@ protected:
     
 	UPROPERTY()
 	TObjectPtr<USensorAttributeSet> SensorAttributeSet;
+	
+	UPROPERTY()
+	TObjectPtr<UWeaponAttributeSet> WeaponAttributeSet;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     TObjectPtr<class UCombatComponent> CombatComponent;

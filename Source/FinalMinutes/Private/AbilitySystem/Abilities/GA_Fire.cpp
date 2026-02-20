@@ -26,14 +26,14 @@ void UGA_Fire::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FG
 	// 1. 탄약 체크 (WeaponAttributeSet 참조)
     UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
     const UWeaponAttributeSet* WeaponAS = ASC ? ASC->GetSet<UWeaponAttributeSet>() : nullptr;
-    /*
+    
     if (!WeaponAS || WeaponAS->GetCurrentAmmo() <= 0.0f)
     {
-        UE_LOG(LogTemp, Warning, TEXT("탄약체크 실행 여부"));
+        UE_LOG(LogTemp, Warning, TEXT("탄약이 부족합니다."));
         EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
         return;
     }
-
+    
     // 2. 어빌리티 커밋 (Cost/Cooldown 적용)
     if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
     {
@@ -41,7 +41,9 @@ void UGA_Fire::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FG
         EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
         return;
     }
-*/
+    
+    UE_LOG(LogTemp, Warning, TEXT("탄약 개수: %f"), WeaponAS->GetCurrentAmmo());
+    
     // 3. 투사체 생성 로직 실행
     SpawnProjectile();
 

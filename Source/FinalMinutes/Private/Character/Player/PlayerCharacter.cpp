@@ -4,6 +4,7 @@
 #include "Controller/PlayerCharacterController.h"
 #include "AbilitySystem/Attributes/CharacterAttributeSet.h"
 #include "AbilitySystem/Attributes/SensorAttributeSet.h"
+#include "AbilitySystem/Attributes/WeaponAttributeSet.h"
 #include "Character/Components/CombatComponent.h"
 
 APlayerCharacter::APlayerCharacter()
@@ -14,8 +15,11 @@ APlayerCharacter::APlayerCharacter()
 	// 사용할 AttributeSet 설정
 	CharacterAttributeSet = CreateDefaultSubobject<UCharacterAttributeSet>(TEXT("CharacterAttributeSet"));
 	SensorAttributeSet = CreateDefaultSubobject<USensorAttributeSet>(TEXT("SensorAttributeSet"));
+    WeaponAttributeSet = CreateDefaultSubobject<UWeaponAttributeSet>(TEXT("WeaponAttributeSet"));
     
     CombatComponent = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
+    
+    
 }
 
 UAbilitySystemComponent* APlayerCharacter::GetAbilitySystemComponent() const
