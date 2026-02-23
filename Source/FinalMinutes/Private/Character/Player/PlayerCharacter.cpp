@@ -157,6 +157,10 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
                 EnhancedInput->BindAction(IA_Attack, ETriggerEvent::Completed, this, &APlayerCharacter::OnAttackEnded);
             }
             
+            if (IA_Interact)
+            {
+                EnhancedInput->BindAction(IA_Interact, ETriggerEvent::Started, this, &APlayerCharacter::Interact);
+            }
             
             if (IA_Zoom)
             {
@@ -365,6 +369,13 @@ void APlayerCharacter::UnEquip(const FInputActionValue& Value)
 
 void APlayerCharacter::Interact(const FInputActionValue& Value)
 {
+    UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+    if (!ASC) return;
+    
+    FGameplayTagContainer AbilityTags;
+    AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Interact")));
+    
+    ASC->TryActivateAbilitiesByTag(AbilityTags);
 }
 
 

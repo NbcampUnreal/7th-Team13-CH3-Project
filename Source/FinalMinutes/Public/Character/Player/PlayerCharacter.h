@@ -139,6 +139,15 @@ protected:
 	
 	void OnZoomTagChanged(const FGameplayTag CallbackTag, int32 NewCount);
 #pragma endregion
+	
+#pragma region 상호작용
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS|Input")
+	UInputAction* IA_Interact;
+	
+	UFUNCTION()
+	void Interact(const FInputActionValue& value);
+#pragma endregion
+	
 public:	
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 };
