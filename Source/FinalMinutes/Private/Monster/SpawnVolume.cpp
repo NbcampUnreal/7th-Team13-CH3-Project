@@ -33,7 +33,7 @@ void ASpawnVolume::SpawnRandomMonster()
 {
 	if (FMonsterSpawnRow* SelectedRow = GetRandomMonster())
 	{
-		if (UClass* ActualClass = SelectedRow->MonsterCalss.Get())
+		if (UClass* ActualClass = SelectedRow->MonsterClass.Get())
 		{
 			SpawnMonster(ActualClass);
 		}
@@ -52,7 +52,7 @@ FMonsterSpawnRow* ASpawnVolume::GetRandomMonster() const
 	float TotalChance = 0.0f;
 	for (const FMonsterSpawnRow* Row : AllRows)
 	{
-		if (Row) TotalChance += Row->Spawnchance;
+		if (Row) TotalChance += Row->SpawnChance;
 	}
 
 	const float RandValue = FMath::FRand() * TotalChance;
@@ -60,7 +60,7 @@ FMonsterSpawnRow* ASpawnVolume::GetRandomMonster() const
 
 	for (FMonsterSpawnRow* Row : AllRows)
 	{
-		AccumulateChance += Row->Spawnchance;
+		AccumulateChance += Row->SpawnChance;
 		if (RandValue <= AccumulateChance)
 		{
 			return Row;
