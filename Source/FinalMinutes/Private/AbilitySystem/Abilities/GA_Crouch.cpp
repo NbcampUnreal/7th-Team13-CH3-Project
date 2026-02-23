@@ -81,7 +81,8 @@ void UGA_Crouch::EndAbility(
 	APlayerCharacter* Character = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
 	if (Character)
 	{
-		Character->UnCrouch(); 
+		Character->GetCapsuleComponent()->SetCapsuleHalfHeight(90.f); 
+		Character->GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -90.f));
 
 		if (Character->GetMesh() && Character->GetMesh()->GetAnimInstance())
 		{

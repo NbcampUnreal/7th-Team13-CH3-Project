@@ -12,6 +12,9 @@ class UCharacterAttributeSet;
 class USensorAttributeSet;
 class UGameplayAbility;
 class UInputAction;
+class UCameraComponent;
+class USpringArmComponent;
+class UGameplayEffect;
 
 UCLASS()
 class FINALMINUTES_API APlayerCharacter : public ACharacter, public IAbilitySystemInterface
@@ -20,7 +23,7 @@ class FINALMINUTES_API APlayerCharacter : public ACharacter, public IAbilitySyst
 
 public:
 	APlayerCharacter();
-	
+	virtual void Tick(float DeltaTime) override;
 	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	virtual void InitializeAbilitySystem();
 	
@@ -68,10 +71,7 @@ protected:
 	void Equip(const FInputActionValue& value);
 	UFUNCTION()
 	void UnEquip(const FInputActionValue& value);
-	
-	UFUNCTION()
-	void Interact(const FInputActionValue& value);
-	
+
 #pragma region 앉기
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
 	TObjectPtr<UInputAction> IA_Crouch;
@@ -119,6 +119,38 @@ protected:
 	void StartSprint(const FInputActionValue& value);
 	UFUNCTION()
 	void StopSprint(const FInputActionValue& value);
+#pragma endregion
+	
+#pragma region 줌
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS|Input")
+	UInputAction* IA_Zoom;
+	
+	// 우클릭을 눌렀을 때 (어빌리티 실행)
+	void OnZoomStarted(const FInputActionValue& Value);
+
+	// 우클릭을 뗐을 때 (어빌리티 종료/입력 해제 신호)
+	void OnZoomEnded(const FInputActionValue& Value);
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Camera")
+	UCameraComponent* FollowCamera;
+
+	// 줌 상태 관리 변수
+	bool bIsZooming = false;
+	
+	void OnZoomTagChanged(const FGameplayTag CallbackTag, int32 NewCount);
+#pragma endregion
+	
+#pragma region 상호작용
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS|Input")
+	UInputAction* IA_Interact;
+	
+	UFUNCTION()
+	void Interact(const FInputActionValue& value);
+#pragma endregion
+	
+#pragma region 스태미너
+	UPROPERTY(EditDefaultsOnly, Category = "Abilities")
+	TSubclassOf<UGameplayEffect> StaminaRegenEffectClass;
 #pragma endregion
 public:	
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
