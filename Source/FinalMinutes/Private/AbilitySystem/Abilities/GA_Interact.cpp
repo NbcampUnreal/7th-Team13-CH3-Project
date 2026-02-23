@@ -1,0 +1,65 @@
+#include "AbilitySystem/Abilities/GA_Interact.h"
+#include "Character/Player/PlayerCharacter.h" // 본인의 캐릭터 헤더로 맞게 수정하세요
+#include "DrawDebugHelpers.h" // 디버그 선(레이저)을 눈으로 보기 위해 필요함
+
+UGA_Interact::UGA_Interact()
+{
+    InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+
+    AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Interact")));
+}
+
+void UGA_Interact::ActivateAbility(
+    const FGameplayAbilitySpecHandle Handle, 
+    const FGameplayAbilityActorInfo* ActorInfo, 
+    const FGameplayAbilityActivationInfo ActivationInfo, 
+    const FGameplayEventData* TriggerEventData)
+{
+    if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
+    {
+        EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+        return;
+    }
+    
+    APlayerController* PC = ActorInfo->PlayerController.Get();
+    if (!PC)
+    {
+        EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+        return;
+    }
+    
+    FVector CameraLocation;
+    FRotator CameraRotation;
+    PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
+    
+    FVector StartTrace = CameraLocation;
+    FVector EndTrace = StartTrace + (CameraRotation.Vector() * InteractDistance);
+    
+    FHitResult HitResult;
+    
+    FCollisionQueryParams QueryParams;
+    QueryParams.AddIgnoredActor(ActorInfo->AvatarActor.Get());
+    
+    bool bHit = GetWorld()->LineTraceSingleByChannel(
+        HitResult,
+        StartTrace,
+        EndTrace,
+        ECC_Visibility,
+        QueryParams
+    );
+    
+    FColor DebugColor = bHit ? FColor::Green : FColor::Red;
+    DrawDebugLine(GetWorld(), StartTrace, EndTrace, DebugColor, false, 2.0f, 0, 2.0f);
+    
+    if (bHit && HitResult.GetActor())
+    {
+        AActor* HitActor = HitResult.GetActor();
+        
+        // 상호작용 대상 로그 찍어보기
+        UE_LOG(LogTemp, Warning, TEXT("상호작용 대상 이름: %s"), *HitActor->GetName());
+
+        // 여기에 해당하는 아이템에 관한 상호작용 넣으면 될듯
+    }
+    
+    EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
+}

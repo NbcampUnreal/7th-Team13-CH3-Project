@@ -1,0 +1,78 @@
+#include "AbilitySystem/Abilities/GA_Zoom.h"
+#include "AbilitySystemComponent.h"
+#include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
+
+UGA_Zoom::UGA_Zoom()
+{
+	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+	
+	// 어빌리티 고유 태그
+	AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Zoom")));
+    
+	// 이미 줌 상태일 경우 중복 실행 방지
+	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsZooming")));
+
+	// 어빌리티가 실행 중일 때 자동으로 소유하게 될 태그 (GE 없이도 상태 판별 가능)
+	ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsZooming")));
+}
+
+void UGA_Zoom::ActivateAbility(
+    const FGameplayAbilitySpecHandle Handle,
+    const FGameplayAbilityActorInfo* ActorInfo,
+    const FGameplayAbilityActivationInfo ActivationInfo,
+    const FGameplayEventData* TriggerEventData)
+{
+    // 스킬 사용 조건 체크 (코스트, 쿨타임 등)
+    if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
+    {
+       EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+       return;
+    }
+
+    UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
+    if (MyASC && ZoomEffectClass)
+    {
+       // Effect Context 세팅 및 Spec 생성
+       FGameplayEffectContextHandle EffectContext = MyASC->MakeEffectContext();
+       EffectContext.AddSourceObject(GetAvatarActorFromActorInfo());
+
+       FGameplayEffectSpecHandle SpecHandle = MyASC->MakeOutgoingSpec(ZoomEffectClass, 1.0f, EffectContext);
+       if (SpecHandle.IsValid())
+       {
+          ActiveZoomEffectHandle = MyASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+       }
+    }
+
+    // 줌은 버튼을 떼면 종료되므로 WaitInputRelease 사용
+    UAbilityTask_WaitInputRelease* WaitReleaseTask = UAbilityTask_WaitInputRelease::WaitInputRelease(this);
+
+    if (WaitReleaseTask)
+    {
+       // 신호가 오면 어빌리티 종료 함수 연결
+       WaitReleaseTask->OnRelease.AddDynamic(this, &UGA_Zoom::OnInputReleased);
+       WaitReleaseTask->ReadyForActivation();
+    }
+}
+
+void UGA_Zoom::OnInputReleased(float TimeHeld)
+{
+    // 입력이 끝나면 어빌리티 종료
+    EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+}
+
+void UGA_Zoom::EndAbility(
+    const FGameplayAbilitySpecHandle Handle,
+    const FGameplayAbilityActorInfo* ActorInfo,
+    const FGameplayAbilityActivationInfo ActivationInfo,
+    bool bReplicateEndAbility,
+    bool bWasCancelled)
+{
+    // 어빌리티 종료 시 GE(줌 상태 관련 효과 등) 제거
+    if (ActiveZoomEffectHandle.IsValid())
+    {
+       GetAbilitySystemComponentFromActorInfo()->RemoveActiveGameplayEffect(ActiveZoomEffectHandle);
+       ActiveZoomEffectHandle.Invalidate();
+    }
+    
+    Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
+}
