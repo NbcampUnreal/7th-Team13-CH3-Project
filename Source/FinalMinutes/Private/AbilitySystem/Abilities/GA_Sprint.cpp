@@ -32,28 +32,29 @@ void UGA_Sprint::ActivateAbility(
 	}
 
 	UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
-	if (MyASC && SprintEffectClass && SprintStaminaEffectClass)
-	{
-		// 기존 이펙트에 스태미너 깎는 로직 추가
-		FGameplayEffectContextHandle EffectContext = MyASC->MakeEffectContext();
-		EffectContext.AddSourceObject(GetAvatarActorFromActorInfo());
+	if (!MyASC) return;
+	if (!SprintEffectClass) return;
+	if (!SprintStaminaEffectClass) return;
+	
+	// 기존 이펙트에 스태미너 깎는 로직 추가
+	FGameplayEffectContextHandle EffectContext = MyASC->MakeEffectContext();
+	EffectContext.AddSourceObject(GetAvatarActorFromActorInfo());
 
-		FGameplayEffectSpecHandle SpecHandle = MyASC->MakeOutgoingSpec(SprintEffectClass, 1.0f, EffectContext);
-		if (SpecHandle.IsValid())
-		{
-			ActiveSprintEffectHandle = MyASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-		}
-		
-		FGameplayEffectSpecHandle StaminaSpecHandle = MyASC->MakeOutgoingSpec(SprintStaminaEffectClass, 1.0f, EffectContext);
-		if (StaminaSpecHandle.IsValid())
-		{
-			FGameplayTag CostTag = FGameplayTag::RequestGameplayTag(FName("Player.Stats.Stamina"));
-			StaminaSpecHandle.Data.Get()->SetSetByCallerMagnitude(CostTag, -1.0f);
-			
-			ActiveSprintStaminaEffectHandle = MyASC->ApplyGameplayEffectSpecToSelf(*StaminaSpecHandle.Data.Get());
-		}
+	FGameplayEffectSpecHandle SpecHandle = MyASC->MakeOutgoingSpec(SprintEffectClass, 1.0f, EffectContext);
+	if (SpecHandle.IsValid())
+	{
+		ActiveSprintEffectHandle = MyASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 	}
 	
+	FGameplayEffectSpecHandle StaminaSpecHandle = MyASC->MakeOutgoingSpec(SprintStaminaEffectClass, 1.0f, EffectContext);
+	if (StaminaSpecHandle.IsValid())
+	{
+		FGameplayTag CostTag = FGameplayTag::RequestGameplayTag(FName("Player.Stats.Stamina"));
+		StaminaSpecHandle.Data.Get()->SetSetByCallerMagnitude(CostTag, -1.0f);
+		
+		ActiveSprintStaminaEffectHandle = MyASC->ApplyGameplayEffectSpecToSelf(*StaminaSpecHandle.Data.Get());
+	}
+
 	// 스태미너 변화를 감지, 변화가 있을때마다 OnStaminaDepelted 호출
 	StaminaChangeDelegateHandle = MyASC->GetGameplayAttributeValueChangeDelegate(
 		   UCharacterAttributeSet::GetStaminaAttribute()
@@ -64,12 +65,10 @@ void UGA_Sprint::ActivateAbility(
 		FGameplayTag::RequestGameplayTag(FName("Event.Montage.Sprint"))
 	);
 
-	if (WaitStopTask)
-	{
-		// 신호가 오면 어빌리티 종료 함수 연결
-		WaitStopTask->EventReceived.AddDynamic(this, &UGA_Sprint::OnSprintStopReceived);
-		WaitStopTask->ReadyForActivation();
-	}
+	if (!WaitStopTask) return;
+	// 신호가 오면 어빌리티 종료 함수 연결
+	WaitStopTask->EventReceived.AddDynamic(this, &UGA_Sprint::OnSprintStopReceived);
+	WaitStopTask->ReadyForActivation();
 }
 
 // 스태미너가 깎일때마다 호출
@@ -95,27 +94,25 @@ void UGA_Sprint::EndAbility(
 	bool bWasCancelled)
 {
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
-	if (ASC)
+	if (!ASC) return;
+	
+	// 어빌리티 종료시 GE(속도 증가 효과)제거
+	if (ActiveSprintEffectHandle.IsValid())
 	{
-		// 어빌리티 종료시 GE(속도 증가 효과)제거
-		if (ActiveSprintEffectHandle.IsValid())
-		{
-			ASC->RemoveActiveGameplayEffect(ActiveSprintEffectHandle);
-			ActiveSprintEffectHandle.Invalidate();
-		}
-	
-		if (ActiveSprintStaminaEffectHandle.IsValid())
-		{
-			ASC->RemoveActiveGameplayEffect(ActiveSprintStaminaEffectHandle);
-			ActiveSprintStaminaEffectHandle.Invalidate();
-		}
-	
-		if (StaminaChangeDelegateHandle.IsValid())
-		{
-			ASC->GetGameplayAttributeValueChangeDelegate(UCharacterAttributeSet::GetStaminaAttribute()).Remove(StaminaChangeDelegateHandle);
-		}
+		ASC->RemoveActiveGameplayEffect(ActiveSprintEffectHandle);
+		ActiveSprintEffectHandle.Invalidate();
 	}
-	
-    
+
+	if (ActiveSprintStaminaEffectHandle.IsValid())
+	{
+		ASC->RemoveActiveGameplayEffect(ActiveSprintStaminaEffectHandle);
+		ActiveSprintStaminaEffectHandle.Invalidate();
+	}
+
+	if (StaminaChangeDelegateHandle.IsValid())
+	{
+		ASC->GetGameplayAttributeValueChangeDelegate(UCharacterAttributeSet::GetStaminaAttribute()).Remove(StaminaChangeDelegateHandle);
+	}
+
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
