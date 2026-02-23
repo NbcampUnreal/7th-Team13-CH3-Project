@@ -148,6 +148,10 @@ protected:
 	void Interact(const FInputActionValue& value);
 #pragma endregion
 	
+#pragma region 스태미너
+	UPROPERTY(EditDefaultsOnly, Category = "Abilities")
+	TSubclassOf<UGameplayEffect> StaminaRegenEffectClass;
+#pragma endregion
 public:	
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 };

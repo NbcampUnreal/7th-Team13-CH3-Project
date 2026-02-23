@@ -88,6 +88,18 @@ void APlayerCharacter::InitializeAbilitySystem()
             EGameplayTagEventType::NewOrRemoved // 새로 생기거나 제거될때 신호를 준다.
         ).AddUObject(this, &APlayerCharacter::OnZoomTagChanged); // 신호오면 알려줄 함수
 	    
+	    // 캐릭터는 스태미너가 계속해서 찬다.
+	    if (StaminaRegenEffectClass)
+	    {
+	        FGameplayEffectContextHandle ContextHandle = AbilitySystemComponent->MakeEffectContext();
+	        ContextHandle.AddSourceObject(this);
+	        
+	        FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(StaminaRegenEffectClass, 1.0f, ContextHandle);
+	        if (SpecHandle.IsValid())
+	        {
+	            AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+	        }
+	    }
 	}
 }
 
