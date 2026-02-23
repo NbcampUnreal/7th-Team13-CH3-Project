@@ -25,5 +25,5 @@ protected:
 		const FGameplayEventData* TriggerEventData) override;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
-	float InteractDistance = 600.0f; 
+	float InteractDistance; 
 };
