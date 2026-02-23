@@ -37,22 +37,22 @@ void UGA_Prone::ActivateAbility(
 	}
 	
 	UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
-	AActor* Avatar = GetAvatarActorFromActorInfo();
-	ACharacter* Character = Cast<ACharacter>(Avatar);
 	if (!MyASC || !ProneEffectClass) // 클래스 할당 여부 체크 필수
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;
 	}
+	AActor* Avatar = GetAvatarActorFromActorInfo();
+	if (!Avatar) return;
 	
-	if (Character)
-	{
-		// 기존 높이 저장
-		Character->GetCapsuleComponent()->SetCapsuleHalfHeight(30.f);
-		Character->AddActorWorldOffset(FVector(0.f, 0.f, -60.f));
+	ACharacter* Character = Cast<ACharacter>(Avatar);
+	if (!Character) return;
 
-		Character->GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -30.f));
-	}
+	// 기존 높이 저장
+	Character->GetCapsuleComponent()->SetCapsuleHalfHeight(30.f);
+	Character->AddActorWorldOffset(FVector(0.f, 0.f, -60.f));
+
+	Character->GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -30.f));
 	
 	FGameplayEffectContextHandle EffectContext = MyASC->MakeEffectContext();
 	EffectContext.AddSourceObject(Avatar);
@@ -68,14 +68,12 @@ void UGA_Prone::ActivateAbility(
 		this, 
 		FGameplayTag::RequestGameplayTag(FName("State.Prone.End"))
 	);
+	if (!WaitProneEventTask) return;
 	
-	if (WaitProneEventTask)
-	{
-		// 이벤트 델리게이트
-		WaitProneEventTask->EventReceived.AddDynamic(this, &UGA_Prone::OnProneExitRequested);
-		// Task 활성화 (감시자 작동)
-		WaitProneEventTask->ReadyForActivation();
-	}
+	// 이벤트 델리게이트
+	WaitProneEventTask->EventReceived.AddDynamic(this, &UGA_Prone::OnProneExitRequested);
+	// Task 활성화 (감시자 작동)
+	WaitProneEventTask->ReadyForActivation();
 }
 
 void UGA_Prone::OnProneExitRequested(FGameplayEventData EventData)
@@ -91,20 +89,18 @@ void UGA_Prone::EndAbility(
 	bool bWasCancelled)
 {
 	APlayerCharacter* Character = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
-	if (Character)
+	if (!Character) return;
+	if (Character->GetMesh() && Character->GetMesh()->GetAnimInstance())
 	{
-		
-		if (Character->GetMesh() && Character->GetMesh()->GetAnimInstance())
-		{
-			Character->GetMesh()->GetAnimInstance()->Montage_Stop(0.2f, ProneMontage);
-			Character->GetCapsuleComponent()->SetCapsuleSize(34.f, 90.f);
-			Character->GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -90.f));
-		}
+		Character->GetMesh()->GetAnimInstance()->Montage_Stop(0.2f, ProneMontage);
+		Character->GetCapsuleComponent()->SetCapsuleSize(34.f, 90.f);
+		Character->GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -90.f));
 	}
 	
 	// 추가 정리작업
 	UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
-	if (MyASC && ActiveProneEffectHandle.IsValid())
+	if (!MyASC) return;
+	if (ActiveProneEffectHandle.IsValid())
 	{
 		bool bRemoved = MyASC->RemoveActiveGameplayEffect(ActiveProneEffectHandle);
 		ActiveProneEffectHandle.Invalidate(); // 핸들 초기화

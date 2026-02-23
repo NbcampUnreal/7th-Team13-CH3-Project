@@ -34,6 +34,8 @@ void UGA_Reload::ActivateAbility(
 	}
 	
 	UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
+	if (!MyASC) return;
+	
 	UAnimMontage* SelectedMontage = ReloadMontage;
 	
 	if (MyASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning"))))
@@ -85,9 +87,10 @@ void UGA_Reload::ActivateAbility(
 void UGA_Reload::OnReloadGameplayEvent(FGameplayEventData EventData)
 {
 	APlayerCharacter* Character = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
+	if (!Character) return;
 	UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
-
-	if (!Character || !MyASC) return;
+	if (!MyASC) return;
+	
 	
 	// 컨텍스트 생성, 효과가 어디서부터 나타났는지, 추후에 데미지 계산이나 로그 시스템에서 누가 사용한지 알 수 있음
 	FGameplayEffectContextHandle EffectContext = GetAbilitySystemComponentFromActorInfo()->MakeEffectContext();

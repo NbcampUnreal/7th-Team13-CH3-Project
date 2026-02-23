@@ -36,9 +36,9 @@ void UGA_Crouch::ActivateAbility(
 		return;
 	}
 	APlayerCharacter* Character = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
+	if (!Character) return;
 	UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
-	
-	if (!Character || !MyASC) return;
+	if (!MyASC) return;
 	
 	Character->GetCapsuleComponent()->SetCapsuleHalfHeight(60.f);
 	Character->GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -48.f));
@@ -57,13 +57,13 @@ void UGA_Crouch::ActivateAbility(
 		this, 
 		FGameplayTag::RequestGameplayTag(FName("State.Crouch.End"))
 	);
-	if (WaitCrouchEventTask)
-	{
-		// 이벤트 델리게이트, 앉기가 끝나면 OnCrouchExitRequested호출해달라
-		WaitCrouchEventTask->EventReceived.AddDynamic(this, &UGA_Crouch::OnCrouchExitRequested);
-		// Task 활성화 (감시자 작동)
-		WaitCrouchEventTask->ReadyForActivation();
-	}
+	if (!WaitCrouchEventTask) return;
+	
+	// 이벤트 델리게이트, 앉기가 끝나면 OnCrouchExitRequested호출해달라
+	WaitCrouchEventTask->EventReceived.AddDynamic(this, &UGA_Crouch::OnCrouchExitRequested);
+	// Task 활성화 (감시자 작동)
+	WaitCrouchEventTask->ReadyForActivation();
+	
 }
 
 void UGA_Crouch::OnCrouchExitRequested(FGameplayEventData EventData)
@@ -79,20 +79,19 @@ void UGA_Crouch::EndAbility(
 	bool bWasCancelled)
 {
 	APlayerCharacter* Character = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
-	if (Character)
-	{
-		Character->GetCapsuleComponent()->SetCapsuleHalfHeight(90.f); 
-		Character->GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -90.f));
+	if (!Character) return;
+	Character->GetCapsuleComponent()->SetCapsuleHalfHeight(90.f); 
+	Character->GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -90.f));
 
-		if (Character->GetMesh() && Character->GetMesh()->GetAnimInstance())
-		{
-			Character->GetMesh()->GetAnimInstance()->Montage_Stop(0.2f, CrouchMontage);
-		}
+	if (Character->GetMesh() && Character->GetMesh()->GetAnimInstance())
+	{
+		Character->GetMesh()->GetAnimInstance()->Montage_Stop(0.2f, CrouchMontage);
 	}
 	
 	// 추가 정리작업
 	UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
-	if (MyASC && ActiveCrouchEffectHandle.IsValid())
+	if (!MyASC) return;
+	if (ActiveCrouchEffectHandle.IsValid())
 	{
 		bool bRemoved = MyASC->RemoveActiveGameplayEffect(ActiveCrouchEffectHandle);
 		ActiveCrouchEffectHandle.Invalidate(); // 핸들 초기화
