@@ -133,13 +133,13 @@ void UGA_Attack::OnAttackGameplayEvent(FGameplayEventData EventData)
 	if (!Character || !MyASC) return;
 	
 	// 컨텍스트 생성, 효과가 어디서부터 나타났는지, 추후에 데미지 계산이나 로그 시스템에서 누가 사용한지 알 수 있음
-	FGameplayEffectContextHandle EffectContext = GetAbilitySystemComponentFromActorInfo()->MakeEffectContext();
+	FGameplayEffectContextHandle EffectContext = MyASC->MakeEffectContext();
 	EffectContext.AddSourceObject(Character);
 
 	// 실제로 적용될 효과를 작성, GE클래스
 	FGameplayEffectSpecHandle SpecHandle;
 	
-	SpecHandle = GetAbilitySystemComponentFromActorInfo()->MakeOutgoingSpec(
+	SpecHandle = MyASC->MakeOutgoingSpec(
 	AttackEffectClass,
 	1.0f, // Level
 	EffectContext
@@ -182,9 +182,11 @@ void UGA_Attack::EndAbility(
 	bool bReplicateEndAbility,
 	bool bWasCancelled)
 {
+	UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
+	if (!MyASC) return;
 	if (ActiveAttackEffectHandle.IsValid())
 	{
-		GetAbilitySystemComponentFromActorInfo()->RemoveActiveGameplayEffect(ActiveAttackEffectHandle);
+		MyASC->RemoveActiveGameplayEffect(ActiveAttackEffectHandle);
 		ActiveAttackEffectHandle.Invalidate();
 	}
 	
