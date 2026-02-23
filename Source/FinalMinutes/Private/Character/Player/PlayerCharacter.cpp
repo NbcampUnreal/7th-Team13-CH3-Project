@@ -7,18 +7,22 @@
 #include "AbilitySystem/Attributes/WeaponAttributeSet.h"
 #include "Character/Components/CombatComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "Camera/CameraComponent.h"
 
 APlayerCharacter::APlayerCharacter()
 {
 	// ASC 달아주기
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	
+    // Tick 사용
+    PrimaryActorTick.bCanEverTick = true;
+    
 	// 사용할 AttributeSet 설정
 	CharacterAttributeSet = CreateDefaultSubobject<UCharacterAttributeSet>(TEXT("CharacterAttributeSet"));
 	SensorAttributeSet = CreateDefaultSubobject<USensorAttributeSet>(TEXT("SensorAttributeSet"));
-  WeaponAttributeSet = CreateDefaultSubobject<UWeaponAttributeSet>(TEXT("WeaponAttributeSet"));
+    WeaponAttributeSet = CreateDefaultSubobject<UWeaponAttributeSet>(TEXT("WeaponAttributeSet"));
     
-  CombatComponent = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
+    CombatComponent = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
 }
 
 UAbilitySystemComponent* APlayerCharacter::GetAbilitySystemComponent() const
@@ -30,6 +34,7 @@ void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
+    FollowCamera = FindComponentByClass<UCameraComponent>();
 	// ASC초기화
 	InitializeAbilitySystem();
   
@@ -74,6 +79,15 @@ void APlayerCharacter::InitializeAbilitySystem()
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->InitAbilityActorInfo(this, this);
+	    
+	    // Zoom 태그용 델리게이트 바인딩
+	    FGameplayTag ZoomTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsZooming"));
+        
+	    AbilitySystemComponent->RegisterGameplayTagEvent(
+            ZoomTag, // 어떤 태그 감시?
+            EGameplayTagEventType::NewOrRemoved // 새로 생기거나 제거될때 신호를 준다.
+        ).AddUObject(this, &APlayerCharacter::OnZoomTagChanged); // 신호오면 알려줄 함수
+	    
 	}
 }
 
@@ -143,9 +157,11 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
                 EnhancedInput->BindAction(IA_Attack, ETriggerEvent::Completed, this, &APlayerCharacter::OnAttackEnded);
             }
             
-            if (PlayerController->InteractAction)
+            
+            if (IA_Zoom)
             {
-                EnhancedInput->BindAction(PlayerController->InteractAction, ETriggerEvent::Started, this, &APlayerCharacter::Interact);
+                EnhancedInput->BindAction(IA_Zoom, ETriggerEvent::Started, this, &APlayerCharacter::OnZoomStarted);
+                EnhancedInput->BindAction(IA_Zoom, ETriggerEvent::Completed, this, &APlayerCharacter::OnZoomEnded);
             }
         }
     }
@@ -349,5 +365,52 @@ void APlayerCharacter::UnEquip(const FInputActionValue& Value)
 
 void APlayerCharacter::Interact(const FInputActionValue& Value)
 {
-    UE_LOG(LogTemp, Warning, TEXT("Interaction Attempted"));
+}
+
+
+void APlayerCharacter::OnZoomTagChanged(const FGameplayTag CallbackTag, int32 NewCount)
+{
+    // NewCount는 이 줌 태그를 몇개 가지고 있는가 숫자, 즉 1이면 줌, 0이면 줌 아닌상태
+    bIsZooming = (NewCount > 0);
+}
+
+void APlayerCharacter::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
+    
+    if (FollowCamera)
+    {
+        float TargetFOV = bIsZooming ? 45.0f : 90.0f;
+        float CurrentFOV = FollowCamera->FieldOfView;
+
+        if (!FMath::IsNearlyEqual(CurrentFOV, TargetFOV, 0.1f))
+        {
+            float NewFOV = FMath::FInterpTo(CurrentFOV, TargetFOV, DeltaTime, 10.0f);
+            FollowCamera->SetFieldOfView(NewFOV);
+        }
+        else if (CurrentFOV != TargetFOV)
+        {
+            FollowCamera->SetFieldOfView(TargetFOV);
+        }
+    }
+}
+
+void APlayerCharacter::OnZoomStarted(const FInputActionValue& Value)
+{
+    UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+    if (!ASC) return;
+    
+    FGameplayTagContainer AbilityTags;
+    AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Zoom")));
+    ASC->TryActivateAbilitiesByTag(AbilityTags);
+}
+
+void APlayerCharacter::OnZoomEnded(const FInputActionValue& Value)
+{
+    UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+    if (!ASC) return;
+    
+    FGameplayTagContainer AbilityTags;
+    AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Zoom")));
+    ASC->CancelAbilities(&AbilityTags);
 }
