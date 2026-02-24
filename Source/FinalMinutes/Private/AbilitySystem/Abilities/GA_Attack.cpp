@@ -214,8 +214,13 @@ void UGA_Attack::SpawnProjectile()
         DamageSpecHandle.Data.Get()->SetSetByCallerMagnitude(
             FGameplayTag::RequestGameplayTag(FName("Data.Stat.Damage")), WeaponData.DefaultDamage);
     }
-    
-    PlayFireSound(WeaponData, Avatar, MuzzleLocation);
+
+    // UGA_Reload::ActivateAbility 내부
+    if (CurrentWeapon)
+    {
+        // 기존의 복잡한 PlayReloadSound 대신 이 한 줄로 해결
+        CurrentWeapon->ExecuteWeaponEffects(EWeaponActionType::Fire);
+    }
 
     // --- 4. 투사체 스폰 (보정된 AdjustedRotation 사용) ---
     FActorSpawnParameters SpawnParams;
@@ -233,31 +238,6 @@ void UGA_Attack::SpawnProjectile()
     }
 }
 
-void UGA_Attack::PlayFireSound(const FWeaponData& WeaponData, AActor* Avatar, FVector MuzzleLocation)
-{
-    // 1. SoftObjectPtr이 유효한지 확인
-    if (WeaponData.FireSound.IsNull()) return;
-
-    // 2. 동기식 로드 (이미 로드되어 있다면 포인터만 반환함)
-    // 공격 중에는 짧은 로드가 성능에 큰 영향을 주지 않으므로 LoadSynchronous가 편리합니다.
-    USoundBase* FireSoundAsset = WeaponData.FireSound.LoadSynchronous();
-
-    if (FireSoundAsset)
-    {
-        // 3. 총구 위치에 3D 공간 사운드 재생
-        UGameplayStatics::PlaySoundAtLocation(
-            this, 
-            FireSoundAsset, 
-            MuzzleLocation, 
-            1.0f, // 볼륨
-            1.0f, // 피치
-            0.0f // 시작 시간
-        );
-        
-        // 캐릭터에 소리가 따라가야하는 경우 사용
-        // UGameplayStatics::SpawnSoundAttached(FireSoundAsset, CurrentWeapon->GetWeaponMesh(), WeaponData.MuzzleSocketName);
-    }
-}
 
 void UGA_Attack::OnMontageEnded()
 {

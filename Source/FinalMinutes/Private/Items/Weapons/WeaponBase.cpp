@@ -9,7 +9,9 @@
 #include "Engine/StreamableManager.h"
 #include "Engine/AssetManager.h"
 #include "AbilitySystem/Attributes/WeaponAttributeSet.h"
+#include "Kismet/GameplayStatics.h"
 #include "Subsystems/WeaponRegistrySubsystem.h"
+#include "NiagaraFunctionLibrary.h"
 
 
 AWeaponBase::AWeaponBase()
@@ -90,7 +92,7 @@ void AWeaponBase::AttachToCharacter()
     // 태그가 변경되었음을 알리기 위해 수동으로 업데이트가 필요할 수 있습니다.
     ASC->UpdateTagMap(CurrentDataAsset->WeaponData.WeaponTag, 1);
 
-    
+
     // 떨림 방지를 위한 충돌 및 물리 설정 추가 ---
     // 캐릭터와 무기 메시가 겹쳐서 서로 밀어내는 현상을 방지합니다.
     WeaponMesh->SetSimulatePhysics(false); // 물리 시뮬레이션 중지
@@ -133,6 +135,67 @@ void AWeaponBase::DetachFromCharacter()
 
     // 물리적 분리 로직
     DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+}
+
+void AWeaponBase::ExecuteWeaponEffects(EWeaponActionType ActionType)
+{
+    if (!CurrentDataAsset) return;
+    const FWeaponData& Data = CurrentDataAsset->WeaponData;
+
+    if (ActionType == EWeaponActionType::Fire)
+    {
+        // 사운드 재생 로직
+        if (USoundBase* Sound = Data.FireSound.LoadSynchronous())
+        {
+            UGameplayStatics::PlaySoundAtLocation(this, Sound, GetMuzzleLocation());
+        }
+
+        // VFX(Niagara) 재생 로직
+        if (UNiagaraSystem* VFX = Data.MuzzleFlash.LoadSynchronous())
+        {
+            UNiagaraFunctionLibrary::SpawnSystemAttached(
+                VFX,
+                WeaponMesh,
+                Data.MuzzleSocketName,
+                FVector::ZeroVector,
+                FRotator::ZeroRotator,
+                EAttachLocation::SnapToTarget,
+                true
+            );
+        }
+    }
+
+    if (ActionType == EWeaponActionType::Reload)
+    {
+        // 사운드 재생 로직
+        if (USoundBase* Sound = Data.ReloadSound.LoadSynchronous())
+        {
+            UGameplayStatics::PlaySoundAtLocation(this, Sound, GetMuzzleLocation());
+        }
+
+        // VFX(Niagara) 재생 로직
+        if (UNiagaraSystem* VFX = Data.MuzzleFlash.LoadSynchronous())
+        {
+            UNiagaraFunctionLibrary::SpawnSystemAttached(
+                VFX,
+                WeaponMesh,
+                Data.MuzzleSocketName,
+                FVector::ZeroVector,
+                FRotator::ZeroRotator,
+                EAttachLocation::SnapToTarget,
+                true
+            );
+        }
+    }
+}
+
+FVector AWeaponBase::GetMuzzleLocation() const
+{
+    if (WeaponMesh && CurrentDataAsset)
+    {
+        return WeaponMesh->GetSocketLocation(CurrentDataAsset->WeaponData.MuzzleSocketName);
+    }
+    return GetActorLocation();
 }
 
 FVector AWeaponBase::GetCameraTargetLocation() const

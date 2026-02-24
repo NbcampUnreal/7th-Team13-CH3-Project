@@ -8,11 +8,13 @@
 #include "GameFramework/Actor.h"
 #include "WeaponBase.generated.h"
 
+enum class EWeaponActionType : uint8;
 // 전방 선언
 class UWeaponAttributeSet;
 class UWeaponDataAsset;
 class USkeletalMeshComponent;
 class UGameplayEffect;
+
 
 UCLASS()
 class FINALMINUTES_API AWeaponBase : public AActor
@@ -37,6 +39,12 @@ public:
 
     /** 무기 비주얼을 담당하는 SkeletalMesh 컴포넌트를 반환합니다. */
     FORCEINLINE USkeletalMeshComponent* GetWeaponMesh() const { return WeaponMesh; }
+
+    /** 사운드와 이펙트를 동시에 실행하는 로직 */
+    void ExecuteWeaponEffects(EWeaponActionType ActionType);
+
+    // 총구 위치 반환 헬퍼 함수
+    FVector GetMuzzleLocation() const;
 
 protected:
     /** 메시 로딩 완료 후 호출될 콜백 */

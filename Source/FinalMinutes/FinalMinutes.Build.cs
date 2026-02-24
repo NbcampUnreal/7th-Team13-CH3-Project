@@ -21,7 +21,8 @@ public class FinalMinutes : ModuleRules
 			"GameplayTasks",
 			"UMG",
 			"GameplayAbilities",
-			"GameplayTags"
+			"GameplayTags",
+			"Niagara"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "GameplayAbilities", "GameplayTags", "GameplayTasks" });

@@ -7,6 +7,16 @@
 #include "GameplayTagContainer.h"
 #include "FWeaponData.generated.h"
 
+class UNiagaraSystem;
+
+UENUM(BlueprintType)
+enum class EWeaponActionType : uint8
+{
+    Fire,
+    Reload,
+    Equip
+};
+
 /**
  * 
  */
@@ -36,12 +46,20 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual")
     FTransform WeaponMeshOffset = FTransform(FRotator(-8.06f, -77.8f, 22.03f), FVector(-10.0f, -0.8f, 8.99f));
 
+    /** 시각적인 이펙트 */
+    UPROPERTY(EditDefaultsOnly, Category = "Weapon|Visual")
+    TSoftObjectPtr<UNiagaraSystem> MuzzleFlash; // 총구 화염 (Niagara)
+
+    UPROPERTY(EditDefaultsOnly, Category = "Weapon|Visual")
+    TSoftObjectPtr<UNiagaraSystem> ImpactEffect; // 피격 이펙트
+
     /** 발사 및 재장전 사운드 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Audio")
     TSoftObjectPtr<USoundBase> FireSound;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Audio")
     TSoftObjectPtr<USoundBase> ReloadSound;
+
 
     /** 애니메이션 몽타주 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Animation")
