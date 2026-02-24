@@ -25,6 +25,8 @@ void USaveSubsystem::SaveGameData(int32 CurrentKillCount, float SurviveTime, FSt
 	//플레이어가 있고 장착된 무기가 있을 때
 	if (Player && Player->GetCombatComponent() && Player->GetCombatComponent()->GetCurrentWeapon())
 	{
+		//플레이어 위치 저장 로직
+		SaveObject->PlayerLocation = Player->GetActorLocation();
 		//현재 무기에서 DataAsset을 가져와 WeaponAsset 포인터에 저장
 		UWeaponDataAsset* WeaponAsset = Player->GetCombatComponent()->GetCurrentWeapon()->GetCurrentDataAsset();
 		if (WeaponAsset)
