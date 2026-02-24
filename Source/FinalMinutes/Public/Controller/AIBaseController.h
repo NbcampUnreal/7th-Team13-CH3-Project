@@ -37,4 +37,10 @@ protected:
 private:
 	UFUNCTION()
 	void OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
+	void MoveToRandomLocation();
+	
+	UPROPERTY(EditAnywhere, Category = "AI")
+	float MoveRadius = 1000.0f;
+	
+	FTimerHandle RandomMoveTimer;
 };
