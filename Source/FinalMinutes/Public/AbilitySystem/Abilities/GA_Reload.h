@@ -58,4 +58,7 @@ protected:
 	// Gameplay Event 콜백 (AnimNotify 대신)
 	UFUNCTION()
 	void OnReloadGameplayEvent(FGameplayEventData EventData);
+	
+	UFUNCTION(BlueprintCallable)
+	void PlayReloadSound(const FWeaponData& WeaponData, AActor* Avatar, FVector MuzzleLocation);
 };

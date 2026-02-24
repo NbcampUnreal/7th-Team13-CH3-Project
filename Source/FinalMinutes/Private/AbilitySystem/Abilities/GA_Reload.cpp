@@ -3,6 +3,11 @@
 #include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
+#include "Character/Components/CombatComponent.h"
+#include "Items/Weapons/FWeaponData.h"
+#include "Items/Weapons/WeaponBase.h"
+#include "Items/Weapons/WeaponDataAsset.h"
+#include "Kismet/GameplayStatics.h"
 
 UGA_Reload::UGA_Reload()
 {
@@ -68,6 +73,18 @@ void UGA_Reload::ActivateAbility(
 		}
 	}
 	
+	AActor* Avatar = GetAvatarActorFromActorInfo();
+    APlayerCharacter* PlayerChar = Cast<APlayerCharacter>(Avatar);
+    if (!PlayerChar) return;
+
+    UCombatComponent* CombatComp = PlayerChar->GetCombatComponent();
+    if (!CombatComp) return;
+
+    AWeaponBase* CurrentWeapon = CombatComp->GetCurrentWeapon();
+    if (!CurrentWeapon || !CurrentWeapon->GetCurrentDataAsset()) return;
+
+    const FWeaponData& WeaponData = CurrentWeapon->GetCurrentDataAsset()->WeaponData;
+	FVector MuzzleLocation = CurrentWeapon->GetWeaponMesh()->GetSocketLocation(WeaponData.MuzzleSocketName);
 	
 	// Gameplay Event 대기
 	// 추가 옵션
@@ -76,11 +93,12 @@ void UGA_Reload::ActivateAbility(
 			this,
 			FGameplayTag::RequestGameplayTag(FName("Event.Montage.Reload"))
 		);
-
+	
 	if (WaitEventTask)
 	{
 		WaitEventTask->EventReceived.AddDynamic(this, &UGA_Reload::OnReloadGameplayEvent);
 		WaitEventTask->ReadyForActivation();
+		PlayReloadSound(WeaponData, Avatar, MuzzleLocation);
 	}
 }
 
@@ -108,6 +126,32 @@ void UGA_Reload::OnReloadGameplayEvent(FGameplayEventData EventData)
 		// 나에게 발생하므로 나한테 효과 적용
 		ActiveReloadEffectHandle = MyASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 	}
+}
+
+void UGA_Reload::PlayReloadSound(const FWeaponData& WeaponData, AActor* Avatar, FVector MuzzleLocation)
+{
+	    // 1. SoftObjectPtr이 유효한지 확인
+    if (WeaponData.ReloadSound.IsNull()) return;
+
+    // 2. 동기식 로드 (이미 로드되어 있다면 포인터만 반환함)
+    // 공격 중에는 짧은 로드가 성능에 큰 영향을 주지 않으므로 LoadSynchronous가 편리합니다.
+    USoundBase* ReloadSoundAsset = WeaponData.ReloadSound.LoadSynchronous();
+
+    if (ReloadSoundAsset)
+    {
+        // 3. 총구 위치에 3D 공간 사운드 재생
+        UGameplayStatics::PlaySoundAtLocation(
+            this, 
+            ReloadSoundAsset, 
+            MuzzleLocation, 
+            1.0f, // 볼륨
+            1.0f, // 피치
+            0.0f // 시작 시간
+        );
+        
+        // 캐릭터에 소리가 따라가야하는 경우 사용
+        // UGameplayStatics::SpawnSoundAttached(FireSoundAsset, CurrentWeapon->GetWeaponMesh(), WeaponData.MuzzleSocketName);
+    }
 }
 
 void UGA_Reload::OnMontageEnded()
