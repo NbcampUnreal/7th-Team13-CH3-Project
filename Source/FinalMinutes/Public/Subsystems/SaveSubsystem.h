@@ -17,4 +17,8 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "SaveData")
 	void LoadGameData(FString SloatName);
+	
+	// 유저가 현재 플레이 중인 슬롯의 이름 나중에 설정해줄 예정
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveData")
+	FString CurrentSlotName = TEXT("SaveSlot_1");
 };
