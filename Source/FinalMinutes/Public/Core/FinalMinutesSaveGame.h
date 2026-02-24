@@ -31,6 +31,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveData", SaveGame)
 	FGameplayTag LastEquipWeapon;
 	
+	//무기 여러개 장착시 태그 여러개 목록 저장하는 배열
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SaveData", SaveGame)
+	TArray<FGameplayTag> InventoryWeapons;
+	
 	//플레이어가 있던 마지막 위치 (세이브 로드시 스폰될 위치)
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveData", SaveGame)
 	FVector PlayerLocation = FVector::ZeroVector;
@@ -46,5 +50,5 @@ public:
 	//플레이어 마지막 스테미나
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveData", SaveGame)
 	float CurrentStamina = 100.0f;
-	
+
 };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "SaveSubsystem.generated.h"
 
@@ -21,4 +22,5 @@ public:
 	// 유저가 현재 플레이 중인 슬롯의 이름 나중에 설정해줄 예정
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveData")
 	FString CurrentSlotName = TEXT("SaveSlot_1");
+		
 };
