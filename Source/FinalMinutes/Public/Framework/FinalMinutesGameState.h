@@ -27,6 +27,14 @@ public:
 	// 킬 수 확인용
 	UFUNCTION(BlueprintCallable, Category = "Data")
 	int32 GetKillCount() const { return KillCount; }
+	
+	//UI에서 접근 할 최고 생존 시간
+	UPROPERTY(BlueprintReadOnly, Category = "Data")
+	float BestSurviveTime = 0.0f;
+	
+	//세이브파일에서 데이터를 불러와 덮어쓸 때 쓸 함수
+	UFUNCTION(BlueprintCallable, Category = "GameState")
+	void SetLoadedData(int32 LoadedKillCount, float LoadedTime);
 
 private:
 	int32 KillCount = 0;

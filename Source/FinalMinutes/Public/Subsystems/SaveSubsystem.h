@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "SaveSubsystem.generated.h"
 
@@ -10,8 +11,16 @@ class FINALMINUTES_API USaveSubsystem : public UGameInstanceSubsystem
 	GENERATED_BODY()
 	
 public:
-	//예시 아무거나 쓴거
-	UFUNCTION(BlueprintCallable, Category = "Events")
-	void SaveGame();
 	
+	//킰수, 생존시간, 슬롯 받아서 파일로 저장
+	UFUNCTION(BlueprintCallable, Category = "SaveData")
+	void SaveGameData(int32 CurrentKillCount, float SurviveTime, FString SlotName);
+	
+	UFUNCTION(BlueprintCallable, Category = "SaveData")
+	void LoadGameData(FString SloatName);
+	
+	// 유저가 현재 플레이 중인 슬롯의 이름 나중에 설정해줄 예정
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveData")
+	FString CurrentSlotName = TEXT("SaveSlot_1");
+		
 };
