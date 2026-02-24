@@ -59,19 +59,45 @@ protected:
     FGameplayTag DefaultWeaponTag;
 	
 protected:
+	
+#pragma region 이동
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
+	TObjectPtr<UInputAction> IA_Move;
+	
 	UFUNCTION()
 	void Move(const FInputActionValue& value);
+#pragma endregion
+
+#pragma region Look
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
+	TObjectPtr<UInputAction> IA_Look;
+	
+	UFUNCTION()
+	void Look(const FInputActionValue& value);
+#pragma endregion
+
+#pragma region 점프
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
+	TObjectPtr<UInputAction> IA_Jump;
+	
 	UFUNCTION()
 	void StartJump(const FInputActionValue& value);
 	UFUNCTION()
 	void StopJump(const FInputActionValue& value);
-	UFUNCTION()
-	void Look(const FInputActionValue& value);
+#pragma endregion
+	
+#pragma region 장비장착
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
+	TObjectPtr<UInputAction> IA_Equip;
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
+	TObjectPtr<UInputAction> IA_UnEquip;
+	
 	UFUNCTION()
 	void Equip(const FInputActionValue& value);
 	UFUNCTION()
 	void UnEquip(const FInputActionValue& value);
-
+#pragma endregion
+	
 #pragma region 앉기
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
 	TObjectPtr<UInputAction> IA_Crouch;
@@ -135,7 +161,7 @@ protected:
 	UCameraComponent* FollowCamera;
 
 	// 줌 상태 관리 변수
-	bool bIsZooming = false;
+	bool bIsZooming;
 	
 	void OnZoomTagChanged(const FGameplayTag CallbackTag, int32 NewCount);
 #pragma endregion

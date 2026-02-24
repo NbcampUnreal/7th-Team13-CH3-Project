@@ -30,28 +30,26 @@ void UGA_Zoom::ActivateAbility(
     }
 
     UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
-    if (MyASC && ZoomEffectClass)
-    {
-       // Effect Context 세팅 및 Spec 생성
-       FGameplayEffectContextHandle EffectContext = MyASC->MakeEffectContext();
-       EffectContext.AddSourceObject(GetAvatarActorFromActorInfo());
+	if (!MyASC) return;
+    if (!ZoomEffectClass) return;
+	// Effect Context 세팅 및 Spec 생성
+	FGameplayEffectContextHandle EffectContext = MyASC->MakeEffectContext();
+	EffectContext.AddSourceObject(GetAvatarActorFromActorInfo());
 
-       FGameplayEffectSpecHandle SpecHandle = MyASC->MakeOutgoingSpec(ZoomEffectClass, 1.0f, EffectContext);
-       if (SpecHandle.IsValid())
-       {
-          ActiveZoomEffectHandle = MyASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-       }
-    }
-
+	FGameplayEffectSpecHandle SpecHandle = MyASC->MakeOutgoingSpec(ZoomEffectClass, 1.0f, EffectContext);
+	if (SpecHandle.IsValid())
+	{
+	  ActiveZoomEffectHandle = MyASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+	}
+	
     // 줌은 버튼을 떼면 종료되므로 WaitInputRelease 사용
     UAbilityTask_WaitInputRelease* WaitReleaseTask = UAbilityTask_WaitInputRelease::WaitInputRelease(this);
 
-    if (WaitReleaseTask)
-    {
-       // 신호가 오면 어빌리티 종료 함수 연결
-       WaitReleaseTask->OnRelease.AddDynamic(this, &UGA_Zoom::OnInputReleased);
-       WaitReleaseTask->ReadyForActivation();
-    }
+    if (!WaitReleaseTask) return;
+	// 신호가 오면 어빌리티 종료 함수 연결
+	WaitReleaseTask->OnRelease.AddDynamic(this, &UGA_Zoom::OnInputReleased);
+	WaitReleaseTask->ReadyForActivation();
+    
 }
 
 void UGA_Zoom::OnInputReleased(float TimeHeld)

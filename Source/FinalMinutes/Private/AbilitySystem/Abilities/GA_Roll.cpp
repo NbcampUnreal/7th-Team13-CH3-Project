@@ -46,16 +46,14 @@ void UGA_Roll::ActivateAbility(
 			1.0f // 재생 속도
 		);
 
-	if (PlayMontageTask)
-	{
-		// Montage 콜백 연결
-		PlayMontageTask->OnCompleted.AddDynamic(this, &UGA_Roll::OnMontageEnded);
-		PlayMontageTask->OnCancelled.AddDynamic(this, &UGA_Roll::OnMontageEnded);
-		PlayMontageTask->OnInterrupted.AddDynamic(this, &UGA_Roll::OnMontageEnded);
-		// Task 활성화
-		PlayMontageTask->ReadyForActivation();
-	}
-
+	if (!PlayMontageTask) return;
+	// Montage 콜백 연결
+	PlayMontageTask->OnCompleted.AddDynamic(this, &UGA_Roll::OnMontageEnded);
+	PlayMontageTask->OnCancelled.AddDynamic(this, &UGA_Roll::OnMontageEnded);
+	PlayMontageTask->OnInterrupted.AddDynamic(this, &UGA_Roll::OnMontageEnded);
+	// Task 활성화
+	PlayMontageTask->ReadyForActivation();
+	
 	// Gameplay Event 대기
 	// 구를때 추가 옵션 (구를때 회피라던지)
 	UAbilityTask_WaitGameplayEvent* WaitEventTask =
@@ -64,20 +62,18 @@ void UGA_Roll::ActivateAbility(
 			FGameplayTag::RequestGameplayTag(FName("Event.Montage.Roll"))
 		);
 
-	if (WaitEventTask)
-	{
-		WaitEventTask->EventReceived.AddDynamic(this, &UGA_Roll::OnRollGameplayEvent);
-		WaitEventTask->ReadyForActivation();
-	}
+	if (!WaitEventTask) return;
+	WaitEventTask->EventReceived.AddDynamic(this, &UGA_Roll::OnRollGameplayEvent);
+	WaitEventTask->ReadyForActivation();
 }
 
 // 공격들이 회피가 된다
 void UGA_Roll::OnRollGameplayEvent(FGameplayEventData EventData)
 {
 	APlayerCharacter* Character = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
+	if (!Character) return;
 	UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
-
-	if (!Character || !MyASC) return;
+	if (!MyASC) return;
 	
 	// 컨텍스트 생성, 효과가 어디서부터 나타났는지, 추후에 데미지 계산이나 로그 시스템에서 누가 사용한지 알 수 있음
 	FGameplayEffectContextHandle EffectContext = GetAbilitySystemComponentFromActorInfo()->MakeEffectContext();
