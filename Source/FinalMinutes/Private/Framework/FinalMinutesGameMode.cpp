@@ -107,6 +107,17 @@ void AFinalMinutesGameMode::GameOver()
 
 void AFinalMinutesGameMode::GameExit()
 {
-	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	UKismetSystemLibrary::QuitGame(GetWorld(), PC, EQuitPreference::Quit, false);
+	//게임 끄기 직전에 오토세이브 진행 하기
+	//GameState가 없을 때 0 반환 하기
+	int32 RealKill = (GetGameState<AFinalMinutesGameState>()) ? GetGameState<AFinalMinutesGameState>()->GetKillCount() : 0;
+	float RealTime = GetWorldTimerManager().GetTimerElapsed(TimerHandle);
+	
+	if (auto* SaveSS = GetGameInstance()->GetSubsystem<USaveSubsystem>())
+	{
+		//현재 플레이 중이던 슬롯에 그대로 덮어 쓰기 하기
+		//무조건 1번이 아니라 플레이 중이던 슬롯에 덮어쓰게하는거임
+		SaveSS->SaveGameData(RealKill, RealTime, SaveSS->CurrentSlotName);
+	}
+	//게임 종료
+	UKismetSystemLibrary::QuitGame(GetWorld(), UGameplayStatics::GetPlayerController(this, 0), EQuitPreference::Quit, true);
 }
