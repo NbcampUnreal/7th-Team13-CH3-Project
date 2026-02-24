@@ -90,6 +90,12 @@ void AWeaponBase::AttachToCharacter()
     // 태그가 변경되었음을 알리기 위해 수동으로 업데이트가 필요할 수 있습니다.
     ASC->UpdateTagMap(CurrentDataAsset->WeaponData.WeaponTag, 1);
 
+    
+    // 떨림 방지를 위한 충돌 및 물리 설정 추가 ---
+    // 캐릭터와 무기 메시가 겹쳐서 서로 밀어내는 현상을 방지합니다.
+    WeaponMesh->SetSimulatePhysics(false); // 물리 시뮬레이션 중지
+    WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision); // 충돌 완전 비활성화
+    WeaponMesh->SetCollisionResponseToAllChannels(ECR_Ignore); // 모든 채널 무시
 
     // 2-1. DataAsset에 정의된 소켓 이름 사용 
     FName SocketName = CurrentDataAsset->WeaponData.HandSocketName;

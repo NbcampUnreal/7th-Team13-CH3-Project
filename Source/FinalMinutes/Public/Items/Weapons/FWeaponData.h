@@ -34,7 +34,7 @@ public:
 
     /** 무기별 미세 조정용 트랜스폼 */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual")
-    FTransform WeaponMeshOffset = FTransform(FRotator(11.0f, -85.0f, 16.0f), FVector(0.0f, 0.0f, 0.0f));
+    FTransform WeaponMeshOffset = FTransform(FRotator(-8.06f, -77.8f, 22.03f), FVector(-10.0f, -0.8f, 8.99f));
 
     /** 발사 및 재장전 사운드 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Audio")
@@ -54,7 +54,7 @@ public:
 #pragma region 소켓 및 투사체
     /** 캐릭터 손에 붙을 소켓 이름 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Socket")
-    FName HandSocketName = FName("weapon_r");
+    FName HandSocketName = FName("hand_r");
 
     /** 총알이 나갈 총구 소켓 이름 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Socket")
