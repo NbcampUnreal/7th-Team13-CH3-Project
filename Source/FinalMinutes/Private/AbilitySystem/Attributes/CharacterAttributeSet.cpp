@@ -32,17 +32,8 @@ void UCharacterAttributeSet::PreAttributeChange(const FGameplayAttribute& Attrib
     }
     else if (Attribute == GetMoveSpeedAttribute())
     {
-        // 이동속도 보정 (이동속도는 0보다 작을 수 없음)
+        // 값 보정만 담당
         NewValue = FMath::Max(NewValue, 0.0f);
-    }
-    else if (Attribute == GetMoveSpeedAttribute())
-    {
-        UE_LOG(LogTemp, Warning, TEXT("PreAttributeChange: NewValue is %f"), NewValue);
-        
-        if (ACharacter* Character = Cast<ACharacter>(GetOwningActor()))
-        {
-            Character->GetCharacterMovement()->MaxWalkSpeed = NewValue;
-        }
     }
 }
 
@@ -53,14 +44,11 @@ void UCharacterAttributeSet::PostAttributeChange(const FGameplayAttribute& Attri
 
     if (Attribute == GetMoveSpeedAttribute())
     {
-        if (AActor* TargetActor = GetOwningAbilitySystemComponent()->GetAvatarActor())
-        {
-            if (ACharacter* Character = Cast<ACharacter>(TargetActor))
-            {
-                // 여기서 실제 속도를 변경해줘야 '지속형' GE가 적용될 때도 반응합니다.
-                Character->GetCharacterMovement()->MaxWalkSpeed = NewValue;
-            }
-        }
+        AActor* TargetActor = GetOwningAbilitySystemComponent()->GetAvatarActor();
+        if (!TargetActor) return;
+        ACharacter* Character = Cast<ACharacter>(TargetActor);
+        if (!Character) return;
+        Character->GetCharacterMovement()->MaxWalkSpeed = NewValue;
     }
 }
 
@@ -82,16 +70,28 @@ void UCharacterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModC
     {
         SetStamina(FMath::Clamp(GetStamina(), 0.0f, GetMaxStamina()));
     }
-    else if (Data.EvaluatedData.Attribute == GetMoveSpeedAttribute())
+    else if (Data.EvaluatedData.Attribute == GetDamageAttribute())
     {
-        const float CurrentMoveSpeed = GetMoveSpeed();
-        if (AActor* TargetActor = Data.Target.GetAvatarActor())
-        {
-            if (ACharacter* Character = Cast<ACharacter>(TargetActor))
-            {
-                float FinalSpeed = Character->GetCharacterMovement()->MaxWalkSpeed = CurrentMoveSpeed;
-            }
-        }
+        // Health에서 바로 깎지 않는 이유는 도트데미지일수도 있어서
+        
+        // 들어온 데미지 저장
+        const float DamageValue = GetDamage();
+        SetDamage(0.f);
+        
+        // 데미지가 0이하면 무시
+        if (DamageValue <= 0.f) return;
+        
+        // 피 보정
+        const float NewHealth = FMath::Clamp(GetHealth() - DamageValue, 0.0f, GetMaxHealth());
+        SetHealth(NewHealth);
+        
+        // GameplayCue에 넘길 파라미터
+        FGameplayCueParameters Parameters;
+        Parameters.RawMagnitude = DamageValue;
+        
+        // 태그를 가진 Cue를 실행
+        const FGameplayTag DamageTag = FGameplayTag::RequestGameplayTag(FName("GameplayCue.Character.Damaged"));
+        GetOwningAbilitySystemComponent()->ExecuteGameplayCue(DamageTag, Parameters);
     }
 }
 
