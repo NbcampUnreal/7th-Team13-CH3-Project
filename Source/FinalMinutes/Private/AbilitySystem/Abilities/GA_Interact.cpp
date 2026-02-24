@@ -1,5 +1,5 @@
 #include "AbilitySystem/Abilities/GA_Interact.h"
-#include "Character/Player/PlayerCharacter.h" // 본인의 캐릭터 헤더로 맞게 수정하세요
+#include "Character/Player/PlayerCharacter.h"
 #include "DrawDebugHelpers.h" // 디버그 선(레이저)을 눈으로 보기 위해 필요함
 
 UGA_Interact::UGA_Interact()
@@ -7,6 +7,7 @@ UGA_Interact::UGA_Interact()
     InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 
     AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Interact")));
+    InteractDistance = 600.0f;
 }
 
 void UGA_Interact::ActivateAbility(
