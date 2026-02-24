@@ -57,4 +57,14 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Character|Stats")
 	FGameplayAttributeData MoveSpeed;
 	ATTRIBUTE_ACCESSORS(UCharacterAttributeSet, MoveSpeed);
+	
+	// 부위별 방어력 (머리)
+	UPROPERTY(BlueprintReadOnly, Category = "Monster|Def")
+	FGameplayAttributeData HeadDefence;
+	ATTRIBUTE_ACCESSORS(UCharacterAttributeSet, HeadDefence)
+	
+	// 부위별 방어력 (몸통)
+	UPROPERTY(BlueprintReadOnly, Category = "Monster|Def")
+	FGameplayAttributeData BodyDefence;
+	ATTRIBUTE_ACCESSORS(UCharacterAttributeSet, BodyDefence)
 };
