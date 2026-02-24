@@ -18,7 +18,7 @@ AAMonsterCharacter::AAMonsterCharacter()
 	RootComponent = CapsuleComp;
 	
 	// Move
-	MovementComp = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("MonsterMovement"))
+	MovementComp = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("MonsterMovement"));
 	
 	MovementComp->MaxSpeed = 150.f;
 	MovementComp->Acceleration = 100.f;

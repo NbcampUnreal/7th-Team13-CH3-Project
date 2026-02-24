@@ -29,11 +29,10 @@ void AAIBaseController::OnPossess(APawn* InPawn)
 	if (AAMonsterCharacter* PossessedMonster = Cast<AAMonsterCharacter>(InPawn))
 	{
 		PossessedMonster->bUseControllerRotationYaw = false;
-
 		
 		if (UFloatingPawnMovement* MovComp = Cast<UFloatingPawnMovement>(PossessedMonster->GetMovementComponent()))
 		{
-			MovComp->UFloatingPawnMovement = true; 
+			/*MovComp->bOrientRotationToMovement = true; */
 		}
 	}
 	
@@ -79,7 +78,7 @@ void AAIBaseController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Sti
 
 void AAIBaseController::MoveToRandomLocation()
 {
-	const APawn* MyPawn = GetPawn();
+	APawn* MyPawn = GetPawn();
 	if (MyPawn == nullptr) return;
 	
 	const UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(GetWorld());
@@ -95,6 +94,15 @@ void AAIBaseController::MoveToRandomLocation()
 	if (bFound)
 	{
 		MoveToLocation(RandomLocation.Location);
+		
+		FVector Direction = (RandomLocation.Location - MyPawn->GetActorLocation()).GetSafeNormal();
+		if (!Direction.IsNearlyZero())
+		{
+			FRotator TargetRot = Direction.Rotation();
+			TargetRot.Pitch = 0.f;
+			TargetRot.Roll = 0.f;
+			MyPawn->SetActorRotation(TargetRot);
+		}
 	}
 }
 
