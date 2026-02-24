@@ -107,10 +107,7 @@ void UCombatComponent::EquipWeapon(FGameplayTag Tag)
 
 void UCombatComponent::SwapWeapon()
 {
-}
-
-void UCombatComponent::ToggleZoom()
-{
+    
 }
 
 void UCombatComponent::PerformTrace()

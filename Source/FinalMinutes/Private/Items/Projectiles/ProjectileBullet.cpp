@@ -14,28 +14,40 @@ AProjectileBullet::AProjectileBullet()
 {
     PrimaryActorTick.bCanEverTick = true;
 
-    // 1. 물리 충돌체 설정
+    // 1. 물리 충돌체(Sphere) 설정
     CollisionComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
     CollisionComp->InitSphereRadius(5.0f);
+
+    // 프로필 설정 후, 'Query(이벤트 감지)'가 가능하도록 명시적 설정
     CollisionComp->SetCollisionProfileName(TEXT("Projectile"));
-    CollisionComp->OnComponentHit.AddDynamic(this, &AProjectileBullet::OnHit);
+    CollisionComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+
+    // 충돌 시 OnHit 이벤트가 발생하도록 설정 (Simulation Generates Hit Events)
     CollisionComp->SetNotifyRigidBodyCollision(true);
+
+    // 빠른 탄속에서의 터널링 방지를 위한 CCD 활성화
     CollisionComp->BodyInstance.bUseCCD = true;
+
+    CollisionComp->OnComponentHit.AddDynamic(this, &AProjectileBullet::OnHit);
     RootComponent = CollisionComp;
 
-    // 2. 비주얼 설정
+    // 2. 비주얼(Mesh) 설정
     BulletMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BulletMesh"));
     BulletMesh->SetupAttachment(RootComponent);
-    BulletMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-    // 3. 발사체 이동 컴포넌트 (초기 속도는 0, Initialize에서 설정)
+    // 메시는 충돌 연산을 하지 않고 시각 정보만 제공 (간섭 방지)
+    BulletMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    BulletMesh->SetCollisionResponseToAllChannels(ECR_Ignore);
+
+    // 3. 발사체 이동 컴포넌트
     ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileComp"));
     ProjectileMovement->UpdatedComponent = CollisionComp;
     ProjectileMovement->ProjectileGravityScale = 1.0f;
     ProjectileMovement->bRotationFollowsVelocity = true;
     ProjectileMovement->bShouldBounce = false;
 
-    InitialLifeSpan = 10.0f; // 3초 뒤 자동 소멸
+    // 수명 설정
+    InitialLifeSpan = 10.0f;
 }
 
 void AProjectileBullet::InitializeProjectile(const FGameplayEffectSpecHandle& InSpecHandle, float InSpeed)
