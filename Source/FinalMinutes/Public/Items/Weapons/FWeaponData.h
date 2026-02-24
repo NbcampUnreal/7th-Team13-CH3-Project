@@ -13,10 +13,10 @@
 USTRUCT(BlueprintType)
 struct FINALMINUTES_API FWeaponData : public FTableRowBase
 {
-	GENERATED_BODY()
-	
+    GENERATED_BODY()
+
 public:
-	#pragma region 기본 정보 및 식별
+#pragma region 기본 정보 및 식별
     /** 무기의 UI 표시용 이름 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Info")
     FText WeaponName;
@@ -31,10 +31,10 @@ public:
      */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Visual")
     TSoftObjectPtr<USkeletalMesh> WeaponMesh;
-	
-	/** 무기별 미세 조정용 트랜스폼 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual")
-	FTransform WeaponMeshOffset = FTransform(FRotator(11.0f, -85.0f, 16.0f), FVector(0.0f, 0.0f, 0.0f));
+
+    /** 무기별 미세 조정용 트랜스폼 */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual")
+    FTransform WeaponMeshOffset = FTransform(FRotator(11.0f, -85.0f, 16.0f), FVector(0.0f, 0.0f, 0.0f));
 
     /** 발사 및 재장전 사운드 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Audio")
@@ -70,23 +70,23 @@ public:
 #pragma endregion
 
 #pragma region 초기 스탯 (AttributeSet 초기화용)
-	/** 기본 탄창 크기 */
+    /** 기본 탄창 크기 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")
     float DefaultMaxAmmo = 30.0f;
 
-	/** 기본 공격력 */
+    /** 기본 공격력 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")
     float DefaultDamage = 20.0f;
 
-	/** 기본 연사 속도 */
+    /** 기본 연사 속도 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")
     float DefaultFireRate = 0.2f;
 
-	/** 기본 재장전 속도 */
+    /** 기본 재장전 속도 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")
     float DefaultReloadSpeed = 1.0f;
 
-	/** 기본 총알 속도 */
+    /** 기본 총알 속도 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")
     float DefaultBulletSpeed = 5000.0f;
 
@@ -102,8 +102,8 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")
     float MaxSpreadAngle = 5.0f;
 #pragma endregion
-	
-	// 사격 어빌리티 설정
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Data")
-	TSubclassOf<class UGameplayAbility> FireAbilityClass;
+
+    // 사격 어빌리티 설정
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Data")
+    TSubclassOf<class UGameplayAbility> FireAbilityClass;
 };

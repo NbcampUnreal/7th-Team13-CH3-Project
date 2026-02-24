@@ -13,8 +13,8 @@
 AProjectileBullet::AProjectileBullet()
 {
     PrimaryActorTick.bCanEverTick = true;
-    
-	// 1. 물리 충돌체 설정
+
+    // 1. 물리 충돌체 설정
     CollisionComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
     CollisionComp->InitSphereRadius(5.0f);
     CollisionComp->SetCollisionProfileName(TEXT("Projectile"));
@@ -40,16 +40,16 @@ AProjectileBullet::AProjectileBullet()
 
 void AProjectileBullet::InitializeProjectile(const FGameplayEffectSpecHandle& InSpecHandle, float InSpeed)
 {
-	DamageEffectSpecHandle = InSpecHandle;
-    
+    DamageEffectSpecHandle = InSpecHandle;
+
     if (ProjectileMovement)
     {
         ProjectileMovement->InitialSpeed = InSpeed;
         ProjectileMovement->MaxSpeed = InSpeed;
-        
+
         ProjectileMovement->Velocity = GetActorForwardVector() * InSpeed;
     }
-    
+
     if (AActor* MyInstigator = GetInstigator())
     {
         // CollisionComponent가 MyInstigator(캐릭터)를 무시하도록 설정
@@ -58,9 +58,9 @@ void AProjectileBullet::InitializeProjectile(const FGameplayEffectSpecHandle& In
 }
 
 void AProjectileBullet::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp,
-	FVector NormalImpulse, const FHitResult& Hit)
+                              FVector NormalImpulse, const FHitResult& Hit)
 {
-	if (OtherActor && OtherActor != GetInstigator())
+    if (OtherActor && OtherActor != GetInstigator())
     {
         // 4. 타겟의 ASC를 찾아 미리 보관해둔 데미지 효과 적용
         if (IAbilitySystemInterface* ASCOwner = Cast<IAbilitySystemInterface>(OtherActor))
@@ -72,7 +72,7 @@ void AProjectileBullet::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherAc
                 TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
             }
         }
-        
+
         // 피격 이펙트 재생 로직이 들어갈 자리 (VFX/SFX)
     }
 
@@ -82,32 +82,30 @@ void AProjectileBullet::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherAc
 // Called when the game starts or when spawned
 void AProjectileBullet::BeginPlay()
 {
-	Super::BeginPlay();
-    
+    Super::BeginPlay();
+
     // 시작 위치 초기화
     LastLocation = GetActorLocation();
-	
 }
 
 void AProjectileBullet::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
-    
+
     FVector CurrentLocation = GetActorLocation();
-    
+
     // 이전 위치에서 현재 위치까지 빨간색 선을 그림
     DrawDebugLine(
         GetWorld(),
         LastLocation,
         CurrentLocation,
-        FColor::Red,         // 색상
-        false,               // 지속성 여부
-        DebugLineDuration,   // 지속 시간
-        0,                   // 우선 순위
-        1.0f                 // 두께
+        FColor::Red, // 색상
+        false, // 지속성 여부
+        DebugLineDuration, // 지속 시간
+        0, // 우선 순위
+        1.0f // 두께
     );
 
     // 다음 프레임을 위해 위치 갱신
     LastLocation = CurrentLocation;
 }
-
