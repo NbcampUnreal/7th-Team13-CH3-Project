@@ -37,6 +37,11 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Character|Combat")
 	FGameplayAttributeData AttackDamage;
 	ATTRIBUTE_ACCESSORS(UCharacterAttributeSet, AttackDamage);
+	
+	// 캐릭터에게 들어온 데미지를 저장
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Combat")
+	FGameplayAttributeData Damage;
+	ATTRIBUTE_ACCESSORS(UCharacterAttributeSet, Damage);
 
 	// 방어력
 	UPROPERTY(BlueprintReadOnly, Category = "Character|Combat")
