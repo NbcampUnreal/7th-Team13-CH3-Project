@@ -54,6 +54,11 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack")
 	UAnimMontage* ProneAttackMontage;
+	
+	// 공격 Sound
+	UFUNCTION(BlueprintCallable)
+	void PlayFireSound(const FWeaponData& WeaponData, AActor* Avatar, FVector MuzzleLocation);
+	
 
 	// 적용할 Effect
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack")
