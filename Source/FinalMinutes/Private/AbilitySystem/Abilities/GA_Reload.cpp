@@ -10,17 +10,14 @@
 
 UGA_Reload::UGA_Reload()
 {
-    // 어빌리티가 실행될때 액터당 하나의 인스턴스(객체)만 생성해서 재사용하겠다.
+    // 어빌리티 인스턴싱 정책: 액터당 하나 생성
     InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 
-    // Ability Tags, 어빌리티 자체에 붙여주는 태그
+    // 어빌리티 및 상태 태그 설정
     AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Reload")));
-    
-    // 소유태그 / 실행중 어떤 태그를 가질지
     ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsReloading")));
 
-    // 이태그가 있으면 실행안함 
-    ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsReloading")));
+    // 실행 차단 태그: 공격 중에는 장전 불가
     ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsAttacking")));
 }
 
@@ -30,105 +27,90 @@ void UGA_Reload::ActivateAbility(
     const FGameplayAbilityActivationInfo ActivationInfo,
     const FGameplayEventData* TriggerEventData)
 {
-    // 스킬 사용을 위한 조건 체크 , 쿨타임, 코스트다 있는지
+    // 1. 실행 조건 체크 (코스트/쿨다운)
     if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
     {
-        // Commit 실패 (스태미너 부족, Cooldown 중 등)
         EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
         return;
     }
 
-    UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
-    if (!MyASC) return;
+    // 2. 필요 컴포넌트 및 데이터 유효성 검사
+    UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+    APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
+    if (!ASC || !PlayerCharacter) return;
 
+    UCombatComponent* CombatComponent = PlayerCharacter->GetCombatComponent();
+    AWeaponBase* CurrentWeapon = CombatComponent ? CombatComponent->GetCurrentWeapon() : nullptr;
+    if (!CurrentWeapon || !CurrentWeapon->GetCurrentDataAsset())
+    {
+        EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+        return;
+    }
+
+    // 3. 재장전 애니메이션 및 이벤트 대기 설정
+    SetupReloadTasks(ASC, PlayerCharacter);
+    
+    // 재장전 관련 시각/청각 효과 실행
+    CurrentWeapon->ExecuteWeaponEffects(EWeaponActionType::Reload);
+}
+
+void UGA_Reload::SetupReloadTasks(UAbilitySystemComponent* ASC, APlayerCharacter* PlayerCharacter)
+{
+    // 1. 자세에 따른 몽타주 선택
     UAnimMontage* SelectedMontage = ReloadMontage;
-
-    if (MyASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning"))))
+    if (ASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning"))))
     {
         SelectedMontage = ReloadProneMontage;
     }
-    else if (MyASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsCrouching"))))
+    else if (ASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsCrouching"))))
     {
         SelectedMontage = ReloadCrouchMontage;
     }
 
-    if (SelectedMontage)
+    if (!SelectedMontage)
     {
-        UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
-            this,
-            NAME_None,
-            SelectedMontage
-        );
-        if (MontageTask)
-        {
-            MontageTask->OnBlendOut.AddDynamic(this, &UGA_Reload::OnMontageEnded);
-            MontageTask->OnInterrupted.AddDynamic(this, &UGA_Reload::OnMontageEnded);
-            MontageTask->OnCancelled.AddDynamic(this, &UGA_Reload::OnMontageEnded);
-
-            MontageTask->ReadyForActivation();
-        }
-        else
-        {
-            EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-        }
+        EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
+        return;
     }
 
-    AActor* Avatar = GetAvatarActorFromActorInfo();
-    APlayerCharacter* PlayerChar = Cast<APlayerCharacter>(Avatar);
-    if (!PlayerChar) return;
-
-    UCombatComponent* CombatComp = PlayerChar->GetCombatComponent();
-    if (!CombatComp) return;
-
-    AWeaponBase* CurrentWeapon = CombatComp->GetCurrentWeapon();
-    if (!CurrentWeapon || !CurrentWeapon->GetCurrentDataAsset()) return;
-
-    // Gameplay Event 대기
-    // 추가 옵션
-    UAbilityTask_WaitGameplayEvent* WaitEventTask =
-        UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
-            this,
-            FGameplayTag::RequestGameplayTag(FName("Event.Montage.Reload"))
-        );
-
+    // 2. 재장전 완료 이벤트 대기 Task (애니메이션 특정 시점에 탄환 장전)
+    UAbilityTask_WaitGameplayEvent* WaitEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(FName("Event.Montage.Reload")));
     if (WaitEventTask)
     {
         WaitEventTask->EventReceived.AddDynamic(this, &UGA_Reload::OnReloadGameplayEvent);
         WaitEventTask->ReadyForActivation();
-        CurrentWeapon->ExecuteWeaponEffects(EWeaponActionType::Reload);
+    }
+
+    // 3. 몽타주 재생 Task
+    UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, SelectedMontage);
+    if (MontageTask)
+    {
+        MontageTask->OnBlendOut.AddDynamic(this, &UGA_Reload::OnMontageEnded);
+        MontageTask->OnInterrupted.AddDynamic(this, &UGA_Reload::OnMontageEnded);
+        MontageTask->OnCancelled.AddDynamic(this, &UGA_Reload::OnMontageEnded);
+        MontageTask->ReadyForActivation();
     }
 }
 
 void UGA_Reload::OnReloadGameplayEvent(FGameplayEventData EventData)
 {
-    APlayerCharacter* Character = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
-    if (!Character) return;
-    UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
-    if (!MyASC) return;
+    UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+    if (!ASC) return;
 
+    // 장전 효과(GE) 적용 (탄창 수치 변경)
+    FGameplayEffectContextHandle EffectContext = ASC->MakeEffectContext();
+    EffectContext.AddSourceObject(GetAvatarActorFromActorInfo());
 
-    // 컨텍스트 생성, 효과가 어디서부터 나타났는지, 추후에 데미지 계산이나 로그 시스템에서 누가 사용한지 알 수 있음
-    FGameplayEffectContextHandle EffectContext = GetAbilitySystemComponentFromActorInfo()->MakeEffectContext();
-    EffectContext.AddSourceObject(Character);
-
-    // 실제로 적용될 효과를 작성, GE클래스
-    FGameplayEffectSpecHandle SpecHandle = GetAbilitySystemComponentFromActorInfo()->MakeOutgoingSpec(
-        ReloadEffectClass,
-        1.0f, // Level
-        EffectContext
-    );
-
+    FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(ReloadEffectClass, 1.0f, EffectContext);
     if (SpecHandle.IsValid())
     {
-        // 나에게 발생하므로 나한테 효과 적용
-        ActiveReloadEffectHandle = MyASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+        ActiveReloadEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
     }
 }
 
 
 void UGA_Reload::OnMontageEnded()
 {
-    // 몽타주가 끝났으므로 어빌리티를 정상 종료
     EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 }
 
@@ -139,12 +121,15 @@ void UGA_Reload::EndAbility(
     bool bReplicateEndAbility,
     bool bWasCancelled)
 {
+    // 적용 중인 재장전 관련 GE 제거
     if (ActiveReloadEffectHandle.IsValid())
     {
-        GetAbilitySystemComponentFromActorInfo()->RemoveActiveGameplayEffect(ActiveReloadEffectHandle);
+        if (UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo())
+        {
+            ASC->RemoveActiveGameplayEffect(ActiveReloadEffectHandle);
+        }
         ActiveReloadEffectHandle.Invalidate();
     }
 
-    // 부모 클래스 호출 (Tag 제거 등)
     Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
