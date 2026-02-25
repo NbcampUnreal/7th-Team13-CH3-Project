@@ -41,16 +41,6 @@ bool UGA_Attack::CanActivateAbility(
     const FWeaponData* WeaponData = GetWeaponData();
     if (!WeaponData) return false;
 
-    // 단발 무기의 경우, 이전 사격의 태그가 아직 남아있다면 중복 실행 방지
-    // if (WeaponData->bIsFullAuto) return false;
-
-
-    /*if (ActorInfo->AbilitySystemComponent->HasMatchingGameplayTag(
-        FGameplayTag::RequestGameplayTag(FName("State.Player.IsAttacking"))))
-    {
-        return false;
-    }*/
-
     return true;
 }
 
@@ -61,59 +51,63 @@ void UGA_Attack::ActivateAbility(
     const FGameplayEventData* TriggerEventData)
 {
     UE_LOG(LogTemp, Warning, TEXT("ActivateAbility 실행"));
-    // Cooldown, Cost가 없다면 종료
+    
+    // 1. 코스트/쿨다운 체크
     if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
     {
         EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
         return;
     }
 
-    bIsInputPressed = true;
-
-    UAbilityTask_WaitInputRelease* ReleaseTask = UAbilityTask_WaitInputRelease::WaitInputRelease(this, false);
-    ReleaseTask->OnRelease.AddDynamic(this, &UGA_Attack::OnInputReleased);
-    ReleaseTask->ReadyForActivation();
-
-    if (HasAuthority(&CurrentActivationInfo))
-    {
-        HandleFiringLoop();
-    }
+    bIsFirstShot = true;
+    
+    // 2. 루프 시작
+    HandleFiringLoop();
 }
 
 void UGA_Attack::HandleFiringLoop()
 {
     const FWeaponData* WeaponData = GetWeaponData();
-    // 발사 실행
-    UE_LOG(LogTemp, Warning, TEXT("발사 실행"));
-    PlayRecoilMontage();
-    SpawnProjectile();
-    
-    FString RoleString = HasAuthority(&CurrentActivationInfo) ? TEXT("Authority(Server)") : TEXT("Simulated(Client)");
-    UE_LOG(LogTemp, Warning, TEXT("[%s] ActivateAbility 실행됨!"), *RoleString);
-    
-    // 연사 처리
-    if (WeaponData->bIsFullAuto)
+    if (!WeaponData) 
     {
-        // 마우스를 계속 누르고 있는 상태인지 확인
-        if (bIsInputPressed)
-        {
-            UAbilityTask_WaitDelay* DelayTask = UAbilityTask_WaitDelay::WaitDelay(this, WeaponData->DefaultFireRate);
-            if (DelayTask)
-            {
-                // [핵심 2] 연사 루프를 돌 때 OnFinish에 다시 이 함수를 연결
-                DelayTask->OnFinish.AddDynamic(this, &UGA_Attack::HandleFiringLoop);
-                DelayTask->ReadyForActivation();
-            }
-        }
-        else
-        {
-            // 마우스를 뗐다면 종료
-            EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
-        }
+        EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+        return;
+    }
+    
+    if (bIsFirstShot)
+    {
+        bIsFirstShot = false; // 플래그 변경
     }
     else
     {
-        // [핵심 3] 단발 무기는 한 발 쏘고 무조건 종료
+        // 두 번째 발사부터: 비용(탄약)만 체크하고 소모합니다. (1발 소모)
+        if (!CheckCost(CurrentSpecHandle, CurrentActorInfo))
+        {
+            EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+            return;
+        }
+        ApplyCost(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo);
+    }
+
+    // 3. 발사 실행
+    if (HasAuthority(&CurrentActivationInfo))
+    {
+        PlayRecoilMontage();
+        SpawnProjectile();
+    }
+
+    // 4. 연사(FullAuto) 처리
+    if (WeaponData->bIsFullAuto)
+    {
+        // 다음 발사 예약
+        // 캐릭터에서 CancelAbilities를 호출하면 이 예약된 태스크도 자동으로 취소되어 루프가 멈춥니다.
+        UAbilityTask_WaitDelay* DelayTask = UAbilityTask_WaitDelay::WaitDelay(this, WeaponData->DefaultFireRate);
+        DelayTask->OnFinish.AddDynamic(this, &UGA_Attack::HandleFiringLoop);
+        DelayTask->ReadyForActivation();
+    }
+    else
+    {
+        // 단발 무기면 한 번 쏘고 종료
         EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
     }
 }
@@ -139,11 +133,6 @@ void UGA_Attack::PlayRecoilMontage()
             MontageTask->ReadyForActivation();
         }
     }
-}
-
-void UGA_Attack::OnInputReleased(float TimeHeld)
-{
-    bIsInputPressed = false;
 }
 
 void UGA_Attack::SpawnProjectile() const

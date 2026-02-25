@@ -31,10 +31,6 @@ protected:
     /** 발사 시 짧은 상체 반동 몽타주 재생 */
     void PlayRecoilMontage();
 
-    /** 입력 해제 시 호출 */
-    UFUNCTION()
-    void OnInputReleased(float TimeHeld);
-
     /** 현재 무기 데이터 취득 헬퍼 */
     const struct FWeaponData* GetWeaponData() const;
 
@@ -61,4 +57,7 @@ protected:
 private:
     bool bIsInputPressed = false;
     FActiveGameplayEffectHandle ActiveAttackEffectHandle;
+    
+    // 첫 발사 여부 체크용 변수
+    bool bIsFirstShot;
 };
