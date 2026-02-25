@@ -274,21 +274,18 @@ void APlayerCharacter::OnAttackStarted(const FInputActionValue& Value)
 {
     if (!AbilitySystemComponent) return;
     FGameplayTagContainer AttackTag;
-
     AttackTag.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Attack")));
+    
     AbilitySystemComponent->TryActivateAbilitiesByTag(AttackTag);
 }
 
 void APlayerCharacter::OnAttackEnded(const FInputActionValue& Value)
 {
     if (!AbilitySystemComponent) return;
-
-    // 1. 컨테이너를 지역 변수로 선언 (표준 방식)
-    FGameplayTag AttackTag = FGameplayTag::RequestGameplayTag(FName("Ability.Player.Attack"));
     FGameplayTagContainer CancelTags;
+    FGameplayTag AttackTag = FGameplayTag::RequestGameplayTag(FName("Ability.Player.Attack"));
     CancelTags.AddTag(AttackTag);
-
-    // 2. 해당 변수의 주소를 전달
+    
     AbilitySystemComponent->CancelAbilities(&CancelTags);
 }
 
