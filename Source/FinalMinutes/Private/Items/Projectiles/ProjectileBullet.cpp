@@ -48,6 +48,9 @@ AProjectileBullet::AProjectileBullet()
 
     // 수명 설정
     InitialLifeSpan = 10.0f;
+    
+    bReplicates = true;
+    SetReplicateMovement(true);
 }
 
 void AProjectileBullet::InitializeProjectile(const FGameplayEffectSpecHandle& InSpecHandle, float InSpeed)
@@ -103,6 +106,11 @@ void AProjectileBullet::BeginPlay()
 void AProjectileBullet::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
+    
+    if (GetNetMode() == NM_DedicatedServer)
+    {
+        return;
+    }
 
     FVector CurrentLocation = GetActorLocation();
 

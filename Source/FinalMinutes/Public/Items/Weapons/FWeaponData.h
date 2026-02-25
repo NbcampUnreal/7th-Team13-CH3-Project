@@ -95,6 +95,10 @@ public:
     /** 기본 공격력 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")
     float DefaultDamage = 20.0f;
+    
+    /** 연사 가능 여부 */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")
+    bool bIsFullAuto = true;
 
     /** 기본 연사 속도 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")

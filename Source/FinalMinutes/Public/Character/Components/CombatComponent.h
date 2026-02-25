@@ -35,14 +35,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void EquipWeapon(FGameplayTag Tag);
 	
-	// 사격
-	UFUNCTION(BlueprintCallable)
-	void Fire();
-	
-	// 재장전
-	UFUNCTION(BlueprintCallable)
-	void Reload();
-	
 	// 무기 교체
 	UFUNCTION(BlueprintCallable)
 	void SwapWeapon();

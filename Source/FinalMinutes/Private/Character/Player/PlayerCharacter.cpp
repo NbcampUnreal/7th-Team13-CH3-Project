@@ -12,6 +12,7 @@ APlayerCharacter::APlayerCharacter()
 {
 	// ASC 달아주기
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+    CombatComponent = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
 	
     // Tick 사용
     PrimaryActorTick.bCanEverTick = true;
@@ -21,7 +22,7 @@ APlayerCharacter::APlayerCharacter()
 	SensorAttributeSet = CreateDefaultSubobject<USensorAttributeSet>(TEXT("SensorAttributeSet"));
     WeaponAttributeSet = CreateDefaultSubobject<UWeaponAttributeSet>(TEXT("WeaponAttributeSet"));
     
-    CombatComponent = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
+    
     bIsZooming = false;
 }
 
@@ -251,10 +252,6 @@ void APlayerCharacter::OnRoll(const FInputActionValue& Value)
     }
 }
 
-void APlayerCharacter::GrantFireAbility()
-{
-}
-
 void APlayerCharacter::OnReload(const FInputActionValue& Value)
 {
     if (!AbilitySystemComponent) return;
@@ -276,19 +273,15 @@ void APlayerCharacter::OnAttackStarted(const FInputActionValue& Value)
     FGameplayTagContainer AbilityTags;
     AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Attack")));
     AbilitySystemComponent->TryActivateAbilitiesByTag(AbilityTags);
-    
-    if (CombatComponent)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("Firing Started..."));
-        CombatComponent->Fire();
-    }
 }
 
 void APlayerCharacter::OnAttackEnded(const FInputActionValue& Value)
 {
+    /*
     FGameplayEventData Payload;
     Payload.EventTag = FGameplayTag::RequestGameplayTag(FName("State.Attack.End"));
     UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, Payload.EventTag, Payload);
+    */
 }
 
 void APlayerCharacter::StartJump(const FInputActionValue& value)

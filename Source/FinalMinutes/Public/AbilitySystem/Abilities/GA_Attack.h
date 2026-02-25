@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
+#include "Items/Weapons/FWeaponData.h"
 #include "GA_Attack.generated.h"
 
 UCLASS()
@@ -11,73 +12,53 @@ class FINALMINUTES_API UGA_Attack : public UGameplayAbility
 
 public:
     UGA_Attack();
+    bool CanActivateAbility(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+                            const FGameplayTagContainer* SourceTags, const FGameplayTagContainer* TargetTags,
+                            FGameplayTagContainer* OptionalRelevantTags) const;
 
-    virtual void ActivateAbility(
-        const FGameplayAbilitySpecHandle Handle,
-        const FGameplayAbilityActorInfo* ActorInfo,
-        const FGameplayAbilityActivationInfo ActivationInfo,
-        const FGameplayEventData* TriggerEventData
-    ) override;
-
-    virtual bool CanActivateAbility(
-        const FGameplayAbilitySpecHandle Handle,
-        const FGameplayAbilityActorInfo* ActorInfo,
-        const FGameplayTagContainer* SourceTags = nullptr,
-        const FGameplayTagContainer* TargetTags = nullptr,
-        FGameplayTagContainer* OptionalRelevantTags = nullptr
-    ) const override;
-
-    // Ability 종료
-    virtual void EndAbility(
-        const FGameplayAbilitySpecHandle Handle,
-        const FGameplayAbilityActorInfo* ActorInfo,
-        const FGameplayAbilityActivationInfo ActivationInfo,
-        bool bReplicateEndAbility,
-        bool bWasCancelled
-    ) override;
-
-    // 연사모드인지 (추후에 무기컴포넌트에서 불러오는식으로 변경)
-    UPROPERTY(EditAnywhere)
-    bool bIsRepeat = true;
-
-    void PlayAttack();
-    // 공격키를 누르고 있는지 판단
-    bool bIsInputPressed = true;
+    virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+                                 const FGameplayAbilityActivationInfo ActivationInfo,
+                                 const FGameplayEventData* TriggerEventData) override;
+    virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+                            const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility,
+                            bool bWasCancelled) override;
 
 protected:
-    // 공격 Montage
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack")
-    UAnimMontage* StandAttackMontage;
-
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack")
-    UAnimMontage* CrouchAttackMontage;
-
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack")
-    UAnimMontage* ProneAttackMontage;
-
-    // 적용할 Effect
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack")
-    TSubclassOf<UGameplayEffect> AttackEffectClass;
-
-    // Montage 완료 콜백
+    /** 실제 사격 논리 루프 (FireRate 기반) */
     UFUNCTION()
-    void OnMontageEnded();
+    void HandleFiringLoop();
 
+    /** 발사 시 짧은 상체 반동 몽타주 재생 */
+    void PlayRecoilMontage();
+
+    /** 입력 해제 시 호출 */
     UFUNCTION()
     void OnInputReleased(float TimeHeld);
 
-    // 적용된 이펙트를 삭제하기 위한 핸들 변수
-    FActiveGameplayEffectHandle ActiveAttackEffectHandle;
+    /** 현재 무기 데이터 취득 헬퍼 */
+    const struct FWeaponData* GetWeaponData() const;
 
-    // Gameplay Event 콜백 (AnimNotify 대신)
-    UFUNCTION()
-    void OnAttackGameplayEvent(FGameplayEventData EventData);
+    /** 실제 투사체 생성 */
+    void SpawnProjectile() const;
 
-    /** 실제 투사체 생성 로직 */
-    UFUNCTION()
-    void SpawnProjectile();
-
-    /** 투사체에 주입할 데미지 효과 클래스 */
+protected:
+    /** 수동 설정할 몽타주들 (반동용 짧은 Additive 권장) */
     UPROPERTY(EditDefaultsOnly, Category = "Effects")
-    TSubclassOf<UGameplayEffect> DamageEffectClass;
+    TObjectPtr<UAnimMontage> StandRecoilMontage;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Effects")
+    TObjectPtr<UAnimMontage> CrouchRecoilMontage;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Effects")
+    TObjectPtr<UAnimMontage> ProneRecoilMontage;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Effects")
+    TSubclassOf<class UGameplayEffect> AttackEffectClass;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Effects")
+    TSubclassOf<class UGameplayEffect> DamageEffectClass;
+
+private:
+    bool bIsInputPressed = false;
+    FActiveGameplayEffectHandle ActiveAttackEffectHandle;
 };
