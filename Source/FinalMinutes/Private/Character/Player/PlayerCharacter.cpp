@@ -172,13 +172,15 @@ void APlayerCharacter::Move(const FInputActionValue& value)
     // 장전 중, 엎드린상태에서 공격중에는 움직일 수 없음
     FGameplayTag ReloadingTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsReloading"));
     FGameplayTag AttackingTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsAttacking"));
-    FGameplayTag ProneTag      = FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning"));
+    FGameplayTag ProneTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning"));
+    FGameplayTag DeathTag = FGameplayTag::RequestGameplayTag(FName("State.Player.Death"));
 
     const bool bIsReloading = AbilitySystemComponent->HasMatchingGameplayTag(ReloadingTag);
     const bool bIsAttacking = AbilitySystemComponent->HasMatchingGameplayTag(AttackingTag);
     const bool bIsProning   = AbilitySystemComponent->HasMatchingGameplayTag(ProneTag);
+    const bool bIsDeath   = AbilitySystemComponent->HasMatchingGameplayTag(DeathTag);
     
-    if (bIsReloading || (bIsAttacking && bIsProning)) return;
+    if (bIsReloading || (bIsAttacking && bIsProning) || bIsDeath) return;
     
     const FVector2D MoveInput = value.Get<FVector2D>();
     
