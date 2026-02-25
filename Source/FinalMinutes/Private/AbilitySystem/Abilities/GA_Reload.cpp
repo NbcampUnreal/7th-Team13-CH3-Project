@@ -40,7 +40,7 @@ void UGA_Reload::ActivateAbility(
     if (!ASC || !PlayerCharacter) return;
 
     UCombatComponent* CombatComponent = PlayerCharacter->GetCombatComponent();
-    AWeaponBase* CurrentWeapon = CombatComponent ? CombatComponent->GetCurrentWeapon() : nullptr;
+    AWeaponBase* CurrentWeapon = CombatComponent ? CombatComponent->GetActiveWeapon() : nullptr;
     if (!CurrentWeapon || !CurrentWeapon->GetCurrentDataAsset())
     {
         EndAbility(Handle, ActorInfo, ActivationInfo, true, true);

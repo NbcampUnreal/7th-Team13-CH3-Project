@@ -36,12 +36,22 @@ void APlayerCharacter::BeginPlay()
     Super::BeginPlay();
 
     FollowCamera = FindComponentByClass<UCameraComponent>();
-    // ASC초기화
-    InitializeAbilitySystem();
+    InitializeAbilitySystem(); // ASC 초기화
 
-    if (CombatComponent && DefaultWeaponTag.IsValid())
+    // [수정] 슬롯 기반 장착 로직
+    if (CombatComponent)
     {
-        CombatComponent->EquipWeapon(DefaultWeaponTag);
+        // 1. 보조무기(권총) 먼저 장착
+        if (DefaultSecondaryWeaponTag.IsValid())
+        {
+            CombatComponent->EquipWeapon(DefaultSecondaryWeaponTag);
+        }
+
+        // 2. 만약 시작 주무기가 설정되어 있다면 장착 (보통은 비어있음)
+        if (DefaultPrimaryWeaponTag.IsValid())
+        {
+            CombatComponent->EquipWeapon(DefaultPrimaryWeaponTag);
+        }
     }
 
     GiveDefaultAbilities();
@@ -164,6 +174,18 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
         EnhancedInput->BindAction(IA_Zoom, ETriggerEvent::Started, this, &APlayerCharacter::OnZoomStarted);
         EnhancedInput->BindAction(IA_Zoom, ETriggerEvent::Completed, this, &APlayerCharacter::OnZoomEnded);
     }
+
+    // 1번 키 (주무기)
+    if (IA_Weapon1)
+    {
+        EnhancedInput->BindAction(IA_Weapon1, ETriggerEvent::Started, this, &APlayerCharacter::OnWeapon1Input);
+    }
+
+    // 2번 키 (보조무기)
+    if (IA_Weapon2)
+    {
+        EnhancedInput->BindAction(IA_Weapon2, ETriggerEvent::Started, this, &APlayerCharacter::OnWeapon2Input);
+    }
 }
 
 void APlayerCharacter::Move(const FInputActionValue& value)
@@ -275,7 +297,7 @@ void APlayerCharacter::OnAttackStarted(const FInputActionValue& Value)
     if (!AbilitySystemComponent) return;
     FGameplayTagContainer AttackTag;
     AttackTag.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Attack")));
-    
+
     AbilitySystemComponent->TryActivateAbilitiesByTag(AttackTag);
 }
 
@@ -285,8 +307,18 @@ void APlayerCharacter::OnAttackEnded(const FInputActionValue& Value)
     FGameplayTagContainer CancelTags;
     FGameplayTag AttackTag = FGameplayTag::RequestGameplayTag(FName("Ability.Player.Attack"));
     CancelTags.AddTag(AttackTag);
-    
+
     AbilitySystemComponent->CancelAbilities(&CancelTags);
+}
+
+void APlayerCharacter::OnWeapon1Input()
+{
+    if (CombatComponent) CombatComponent->SwapToSlot(EWeaponSlot::Primary);
+}
+
+void APlayerCharacter::OnWeapon2Input()
+{
+    if (CombatComponent) CombatComponent->SwapToSlot(EWeaponSlot::Secondary);
 }
 
 void APlayerCharacter::StartJump(const FInputActionValue& value)
@@ -341,7 +373,7 @@ void APlayerCharacter::Equip(const FInputActionValue& Value)
 
     if (CombatComponent)
     {
-        CombatComponent->EquipWeapon(DefaultWeaponTag);
+        CombatComponent->EquipWeapon(DefaultPrimaryWeaponTag);
     }
 }
 

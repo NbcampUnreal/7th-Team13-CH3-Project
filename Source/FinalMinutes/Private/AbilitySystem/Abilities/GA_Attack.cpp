@@ -119,7 +119,7 @@ void UGA_Attack::SpawnProjectile() const
     if (!PlayerCharacter) return;
 
     UCombatComponent* CombatComponent = PlayerCharacter->GetCombatComponent();
-    AWeaponBase* CurrentWeapon = CombatComponent ? CombatComponent->GetCurrentWeapon() : nullptr;
+    AWeaponBase* CurrentWeapon = CombatComponent ? CombatComponent->GetActiveWeapon() : nullptr;
     if (!CurrentWeapon || !CurrentWeapon->GetCurrentDataAsset()) return;
 
     const FWeaponData& WeaponData = CurrentWeapon->GetCurrentDataAsset()->WeaponData;
@@ -204,6 +204,6 @@ const FWeaponData* UGA_Attack::GetWeaponData() const
     const APlayerCharacter* Player = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
     if (!Player || !Player->GetCombatComponent()) return nullptr;
 
-    const AWeaponBase* Weapon = Player->GetCombatComponent()->GetCurrentWeapon();
+    const AWeaponBase* Weapon = Player->GetCombatComponent()->GetActiveWeapon();
     return (Weapon && Weapon->GetCurrentDataAsset()) ? &Weapon->GetCurrentDataAsset()->WeaponData : nullptr;
 }

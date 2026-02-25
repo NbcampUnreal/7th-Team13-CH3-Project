@@ -1,20 +1,16 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "ActiveGameplayEffectHandle.h"
-#include "GameplayTagContainer.h" // GameplayTag
+#include "GameplayTagContainer.h"
 #include "GameFramework/Actor.h"
 #include "WeaponBase.generated.h"
 
 enum class EWeaponActionType : uint8;
-// 전방 선언
 class UWeaponAttributeSet;
 class UWeaponDataAsset;
 class USkeletalMeshComponent;
 class UGameplayEffect;
-
 
 UCLASS()
 class FINALMINUTES_API AWeaponBase : public AActor
@@ -24,37 +20,40 @@ class FINALMINUTES_API AWeaponBase : public AActor
 public:
     AWeaponBase();
 
-protected:
-    virtual void BeginPlay() override;
-
-public:
-    /** 외부(Pawn 등)에서 무기 생성을 요청할 때 호출하는 진입점 */
-    UFUNCTION(BlueprintCallable)
+    /** 무기 초기화 및 비동기 메시 로딩 시작 */
     void InitializeWeapon(FGameplayTag InWeaponTag, AActor* InOwner);
 
+    /** 데이터 테이블의 수치를 기반으로 GAS 어트리뷰트 초기화 */
     void InitializeAttributes();
 
-    /** 현재 무기에 로드된 정적 데이터 에셋을 반환합니다. */
-    FORCEINLINE UWeaponDataAsset* GetCurrentDataAsset() const { return CurrentDataAsset; }
-
-    /** 무기 비주얼을 담당하는 SkeletalMesh 컴포넌트를 반환합니다. */
-    FORCEINLINE USkeletalMeshComponent* GetWeaponMesh() const { return WeaponMesh; }
-
-    /** 사운드와 이펙트를 동시에 실행하는 로직 */
+    /** 사운드 및 VFX 실행 */
     void ExecuteWeaponEffects(EWeaponActionType ActionType);
 
-    // 총구 위치 반환 헬퍼 함수
+    /** 캐릭터 손 소켓에 부착 및 태그 부여 */
+    void AttachToCharacter();
+
+    /** 캐릭터 손에서 분리 및 태그 제거 */
+    void DetachFromCharacter();
+
+    // Getter
+    FORCEINLINE UWeaponDataAsset* GetCurrentDataAsset() const { return CurrentDataAsset; }
+    FORCEINLINE USkeletalMeshComponent* GetWeaponMesh() const { return WeaponMesh; }
     FVector GetMuzzleLocation() const;
 
 protected:
-    /** 메시 로딩 완료 후 호출될 콜백 */
+    /** 메시 로딩 완료 콜백 - 활성화 플래그에 따라 부착 여부 결정 */
     virtual void OnWeaponMeshLoaded(FGameplayTag InWeaponTag);
 
-    /** 실제 캐릭터 소켓에 부착하는 로직 */
-    void AttachToCharacter();
+public:
+    /** 현재 이 무기가 손에 들려야 하는 상태인지 여부 (CombatComponent에서 설정) */
+    bool bIsActiveWeapon = false;
+    
+    /** 무기가 개별적으로 기억하는 현재 탄약 수치 */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")
+    int32 CurrentAmmoCount = 0;
 
-    /** 실제 캐릭터 소켓에 해제하는 로직 */
-    void DetachFromCharacter();
+    // 현재 탄수 수동 설정 (CombatComponent에서 사용)
+    void SetCurrentAmmoCount(int32 InAmmo) { CurrentAmmoCount = InAmmo; }
 
 protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -66,10 +65,9 @@ protected:
     UPROPERTY(Transient)
     TWeakObjectPtr<AActor> WeaponOwner;
 
+    /** 무기 스탯 초기화용 GE 클래스 (SetByCaller 활용) */
     UPROPERTY(EditDefaultsOnly, Category = "GAS")
-    TSubclassOf<UGameplayEffect> InitStatEffectClass; // 무기 스탯 초기화용 GE 클래스
+    TSubclassOf<UGameplayEffect> InitStatEffectClass;
 
-    FActiveGameplayEffectHandle WeaponStatEffectHandle; // 나중에 무기 해제 시 제거하기 위해 보관
-
-    FVector GetCameraTargetLocation() const;
+    FActiveGameplayEffectHandle WeaponStatEffectHandle;
 };
