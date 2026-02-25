@@ -37,7 +37,8 @@ void UGA_Death::ActivateAbility(
 		return;
 	}
 	
-	FGameplayEffectContextHandle EffectContext = MakeEffectContext(Handle, ActorInfo);
+	// 추후에 누가 죽였는지 필요하면 작성하고 우선은 빼두자
+	// FGameplayEffectContextHandle EffectContext = MakeEffectContext(Handle, ActorInfo);
 	FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(DeathEffectClass, GetAbilityLevel());
 	if (SpecHandle.IsValid())
 	{
