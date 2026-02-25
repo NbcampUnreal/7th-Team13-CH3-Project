@@ -175,13 +175,15 @@ void APlayerCharacter::Move(const FInputActionValue& value)
     FGameplayTag ReloadingTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsReloading"));
     FGameplayTag AttackingTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsAttacking"));
     FGameplayTag ProneTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning"));
+    FGameplayTag DeathTag = FGameplayTag::RequestGameplayTag(FName("State.Player.Death"));
 
     const bool bIsReloading = AbilitySystemComponent->HasMatchingGameplayTag(ReloadingTag);
     const bool bIsAttacking = AbilitySystemComponent->HasMatchingGameplayTag(AttackingTag);
-    const bool bIsProning = AbilitySystemComponent->HasMatchingGameplayTag(ProneTag);
-
-    if (bIsReloading || (bIsAttacking && bIsProning)) return;
-
+    const bool bIsProning   = AbilitySystemComponent->HasMatchingGameplayTag(ProneTag);
+    const bool bIsDeath   = AbilitySystemComponent->HasMatchingGameplayTag(DeathTag);
+    
+    if (bIsReloading || (bIsAttacking && bIsProning) || bIsDeath) return;
+    
     const FVector2D MoveInput = value.Get<FVector2D>();
 
     if (MoveInput.SquaredLength() < KINDA_SMALL_NUMBER) return;
