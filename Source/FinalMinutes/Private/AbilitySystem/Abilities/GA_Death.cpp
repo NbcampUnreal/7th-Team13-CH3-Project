@@ -9,7 +9,6 @@ UGA_Death::UGA_Death()
 	AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Death")));
 	
 	CancelAbilitiesWithTag.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability")));
-	ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.Death")));
 }
 
 void UGA_Death::ActivateAbility(
@@ -31,6 +30,20 @@ void UGA_Death::ActivateAbility(
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;
 	}
+	
+	if (!DeathEffectClass)
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
+	
+	FGameplayEffectContextHandle EffectContext = MakeEffectContext(Handle, ActorInfo);
+	FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(DeathEffectClass, GetAbilityLevel());
+	if (SpecHandle.IsValid())
+	{
+		ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, SpecHandle);
+	}
+	
 	
 	float StateValue = TriggerEventData->EventMagnitude;
 	UAnimMontage* SelectedMontage = DeathMontage;
