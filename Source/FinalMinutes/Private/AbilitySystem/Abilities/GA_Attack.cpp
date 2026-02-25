@@ -1,196 +1,209 @@
 #include "AbilitySystem/Abilities/GA_Attack.h"
 #include "Character/Player/PlayerCharacter.h"
 #include "AbilitySystemComponent.h"
-#include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
-#include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
+#include "Abilities/Tasks/AbilityTask_WaitDelay.h"
+#include "Character/Components/CombatComponent.h"
+#include "Items/Projectiles/ProjectileBullet.h"
+#include "Items/Weapons/FWeaponData.h"
+#include "Items/Weapons/WeaponBase.h"
+#include "Items/Weapons/WeaponDataAsset.h"
 
 UGA_Attack::UGA_Attack()
 {
-	// 어빌리티가 실행될때 액터당 하나의 인스턴스(객체)만 생성해서 재사용하겠다.
-	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+    // 어빌리티 인스턴싱 정책: 액터당 하나 생성
+    InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 
-	// Ability Tags, 어빌리티 자체에 붙여주는 태그
-	AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Attack")));
-	
-	// 소유태그 / 실행중 어떤 태그를 가질지
-	ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsAttacking")));
+    // 어빌리티 및 상태 태그 설정
+    AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Attack")));
+    ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsAttacking")));
+    
+    // 실행 차단 태그: 장전 중에는 공격 불가
+    ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsReloading")));
 }
 
 bool UGA_Attack::CanActivateAbility(
-	const FGameplayAbilitySpecHandle Handle, 
-		const FGameplayAbilityActorInfo* ActorInfo, 
-		const FGameplayTagContainer* SourceTags, 
-		const FGameplayTagContainer* TargetTags, 
-		FGameplayTagContainer* OptionalRelevantTags) const
+    const FGameplayAbilitySpecHandle Handle, 
+    const FGameplayAbilityActorInfo* ActorInfo, 
+    const FGameplayTagContainer* SourceTags, 
+    const FGameplayTagContainer* TargetTags, 
+    FGameplayTagContainer* OptionalRelevantTags) const
 {
-	if (!Super::CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, OptionalRelevantTags))
-	{
-		return false;
-	}
-	
-	// const 안정성을 위해서 매개변수의 ActorInfo를 직접 쓰는게 좋다고 한다.
-	APlayerCharacter* Player = Cast<APlayerCharacter>(ActorInfo->AvatarActor.Get());
-	if (!Player) return false;
-	
-	// 이 부분은 나중에 무기정보같은곳에서 연사인지 단발인지 판단을 해서 분기하면 될듯
-	if (!bIsRepeat)
-	{
-		FGameplayTag AttackingTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsAttacking"));
-		if (ActorInfo->AbilitySystemComponent->HasMatchingGameplayTag(AttackingTag))
-		{
-			return false;
-		}
-	}
-
-	return true;
+    return Super::CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, OptionalRelevantTags) && GetWeaponData() != nullptr;
 }
 
 void UGA_Attack::ActivateAbility(
-	const FGameplayAbilitySpecHandle Handle,
-	const FGameplayAbilityActorInfo* ActorInfo,
-	const FGameplayAbilityActivationInfo ActivationInfo,
-	const FGameplayEventData* TriggerEventData)
+    const FGameplayAbilitySpecHandle Handle,
+    const FGameplayAbilityActorInfo* ActorInfo,
+    const FGameplayAbilityActivationInfo ActivationInfo,
+    const FGameplayEventData* TriggerEventData)
 {
-	// 스킬 사용을 위한 조건 체크 , 쿨타임, 코스트다 있는지
-	if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
-	{
-		// Commit 실패 (스태미너 부족, Cooldown 중 등)
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-		return;
-	}
-	
-	bIsInputPressed = true;
+    // 첫 발 소모 및 쿨다운 적용
+    if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
+    {
+        EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+        return;
+    }
 
-	UAbilityTask_WaitInputRelease* ReleaseTask;
-	// 연사모드면 키 떼기 감지
-	if (bIsRepeat)
-	{
-		ReleaseTask = UAbilityTask_WaitInputRelease::WaitInputRelease(this, true);
-		ReleaseTask->OnRelease.AddDynamic(this, &UGA_Attack::OnInputReleased);
-		ReleaseTask->ReadyForActivation();
-	}
-	
-	PlayAttack();
+    bIsFirstShot = true;
+    HandleFiringLoop();
 }
 
-// 재사용 하기 위해 공격 로직 분리
-void UGA_Attack::PlayAttack()
+void UGA_Attack::HandleFiringLoop()
 {
-	UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
-	UAnimMontage* SelectedMontage = StandAttackMontage;
-	APlayerCharacter* Player = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
-	if (MyASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning"))))
-	{
-		SelectedMontage = ProneAttackMontage;
-	}
-	else if (MyASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsCrouching"))))
-	{
-		SelectedMontage = CrouchAttackMontage;
-	}
-	
-	if (SelectedMontage)
-	{
-		UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
-			this,
-			NAME_None,
-			SelectedMontage
-			);
-		if (MontageTask)
-		{
-			MontageTask->OnCompleted .AddDynamic(this, &UGA_Attack::OnMontageEnded);
-			MontageTask->OnInterrupted.AddDynamic(this, &UGA_Attack::OnMontageEnded);
-			MontageTask->OnCancelled.AddDynamic(this, &UGA_Attack::OnMontageEnded);
-			
-			MontageTask->ReadyForActivation();
-		}
-	}
-	// Gameplay Event 대기
-	UAbilityTask_WaitGameplayEvent* WaitEventTask =
-		UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
-			this,
-			FGameplayTag::RequestGameplayTag(FName("Event.Montage.Attack"))
-		);
+    const FWeaponData* WeaponData = GetWeaponData();
+    if (!WeaponData)
+    {
+        EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+        return;
+    }
 
-	if (WaitEventTask)
-	{
-		WaitEventTask->EventReceived.AddDynamic(this, &UGA_Attack::OnAttackGameplayEvent);
-		WaitEventTask->ReadyForActivation();
-	}
+    // 1. 탄약 체크 및 소모
+    if (!bIsFirstShot)
+    {
+        if (!CheckCost(CurrentSpecHandle, CurrentActorInfo))
+        {
+            EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+            return;
+        }
+        ApplyCost(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo);
+    }
+    bIsFirstShot = false;
+
+    // 2. 발사 실행
+    if (HasAuthority(&CurrentActivationInfo))
+    {
+        PlayRecoilMontage();
+        SpawnProjectile();
+    }
+
+    // 3. 연사/단발 결정 로직 간소화
+    if (!WeaponData->bIsFullAuto)
+    {
+        EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+        return;
+    }
+
+    // 연사 예약
+    UAbilityTask_WaitDelay* DelayTask = UAbilityTask_WaitDelay::WaitDelay(this, WeaponData->DefaultFireRate);
+    DelayTask->OnFinish.AddDynamic(this, &UGA_Attack::HandleFiringLoop);
+    DelayTask->ReadyForActivation();
 }
 
-void UGA_Attack::OnInputReleased(float TimeHeld)
+void UGA_Attack::PlayRecoilMontage()
 {
-	// EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
-	bIsInputPressed = false;
+    UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+    if (!ASC) return;
+
+    // 자세별 몽타주 선택
+    UAnimMontage* SelectedMontage = StandRecoilMontage;
+    
+    if (ASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning"))))
+    {
+        SelectedMontage = ProneRecoilMontage;
+    }
+    else if (ASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsCrouching"))))
+    {
+        SelectedMontage = CrouchRecoilMontage;
+    }
+
+    if (SelectedMontage)
+    {
+        UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, SelectedMontage)->ReadyForActivation();
+    }
 }
 
-void UGA_Attack::OnAttackGameplayEvent(FGameplayEventData EventData)
+void UGA_Attack::SpawnProjectile() const
 {
-	APlayerCharacter* Character = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
-	if (!Character) return;
-	UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
-	if (!MyASC) return;
-	
-	
-	// 컨텍스트 생성, 효과가 어디서부터 나타났는지, 추후에 데미지 계산이나 로그 시스템에서 누가 사용한지 알 수 있음
-	FGameplayEffectContextHandle EffectContext = MyASC->MakeEffectContext();
-	EffectContext.AddSourceObject(Character);
+    APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
+    if (!PlayerCharacter) return;
 
-	// 실제로 적용될 효과를 작성, GE클래스
-	FGameplayEffectSpecHandle SpecHandle;
-	
-	SpecHandle = MyASC->MakeOutgoingSpec(
-	AttackEffectClass,
-	1.0f, // Level
-	EffectContext
-	);
-	
-	
-	if (SpecHandle.IsValid())
-	{
-		ActiveAttackEffectHandle = MyASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-	}
+    UCombatComponent* CombatComponent = PlayerCharacter->GetCombatComponent();
+    AWeaponBase* CurrentWeapon = CombatComponent ? CombatComponent->GetCurrentWeapon() : nullptr;
+    if (!CurrentWeapon || !CurrentWeapon->GetCurrentDataAsset()) return;
+
+    const FWeaponData& WeaponData = CurrentWeapon->GetCurrentDataAsset()->WeaponData;
+    APlayerController* PlayerController = Cast<APlayerController>(PlayerCharacter->GetController());
+    if (!PlayerController) return;
+
+    // 1. 타겟 지점 계산
+    FVector TargetLocation = GetTargetLocation(PlayerController);
+
+    // 2. 사격 방향 설정
+    FVector MuzzleLocation = CurrentWeapon->GetWeaponMesh()->GetSocketLocation(WeaponData.MuzzleSocketName);
+    FRotator ShootRotation = (TargetLocation - MuzzleLocation).Rotation();
+
+    // 3. 데미지 정보 생성
+    FGameplayEffectSpecHandle DamageSpec = CreateDamageSpec(PlayerCharacter, CurrentWeapon, WeaponData.DefaultDamage);
+
+    // 4. 발사 연출 및 스폰
+    CurrentWeapon->ExecuteWeaponEffects(EWeaponActionType::Fire);
+
+    FActorSpawnParameters SpawnParams;
+    SpawnParams.Owner = PlayerCharacter;
+    SpawnParams.Instigator = PlayerCharacter;
+    SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+    if (AProjectileBullet* Bullet = GetWorld()->SpawnActor<AProjectileBullet>(WeaponData.ProjectileClass, MuzzleLocation, ShootRotation, SpawnParams))
+    {
+        Bullet->InitializeProjectile(DamageSpec, WeaponData.DefaultBulletSpeed);
+    }
 }
 
-void UGA_Attack::OnMontageEnded()
+FVector UGA_Attack::GetTargetLocation(APlayerController* PC) const
 {
-	// 몽타주가 끝났을때 판단
-	if (bIsRepeat && bIsInputPressed)
-	{
-		// 아직 좌클릭을 누르고 있으면 다시 공격
-		// 쿨타임/코스트 체크를 위해 Commit 다시 수행
-		if (CommitAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo))
-		{
-			PlayAttack();
-		}
-		else
-		{
-			EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
-		}
-	}
-	else
-	{
-		// 손을 뗐거나 단발이면 종료
-		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
-	}
+    FVector ViewLocation;
+    FRotator ViewRotation;
+    PC->GetPlayerViewPoint(ViewLocation, ViewRotation);
+
+    FVector TraceEnd = ViewLocation + (ViewRotation.Vector() * 50000.0f);
+    FHitResult HitResult;
+    FCollisionQueryParams Params;
+    Params.AddIgnoredActor(GetAvatarActorFromActorInfo());
+
+    return GetWorld()->LineTraceSingleByChannel(HitResult, ViewLocation, TraceEnd, ECC_Visibility, Params) 
+           ? HitResult.ImpactPoint : TraceEnd;
+}
+
+FGameplayEffectSpecHandle UGA_Attack::CreateDamageSpec(APlayerCharacter* Instigator, AWeaponBase* Weapon, float Damage) const
+{
+    UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+    FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
+    Context.AddInstigator(Instigator, Weapon);
+
+    FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(DamageEffectClass, 1.0f, Context);
+    if (SpecHandle.IsValid())
+    {
+        FGameplayTag DamageTag = FGameplayTag::RequestGameplayTag(FName("Data.Stat.Damage"));
+        SpecHandle.Data.Get()->SetSetByCallerMagnitude(DamageTag, Damage);
+    }
+    return SpecHandle;
 }
 
 void UGA_Attack::EndAbility(
-	const FGameplayAbilitySpecHandle Handle,
-	const FGameplayAbilityActorInfo* ActorInfo,
-	const FGameplayAbilityActivationInfo ActivationInfo,
-	bool bReplicateEndAbility,
-	bool bWasCancelled)
+    const FGameplayAbilitySpecHandle Handle, 
+    const FGameplayAbilityActorInfo* ActorInfo,
+    const FGameplayAbilityActivationInfo ActivationInfo, 
+    bool bReplicateEndAbility,
+    bool bWasCancelled)
 {
-	UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
-	if (!MyASC) return;
-	if (ActiveAttackEffectHandle.IsValid())
-	{
-		MyASC->RemoveActiveGameplayEffect(ActiveAttackEffectHandle);
-		ActiveAttackEffectHandle.Invalidate();
-	}
-	
-	// 부모 클래스 호출 (Tag 제거 등)
-	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
+    if (UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo())
+    {
+        if (ActiveAttackEffectHandle.IsValid())
+        {
+            ASC->RemoveActiveGameplayEffect(ActiveAttackEffectHandle);
+            ActiveAttackEffectHandle.Invalidate();
+        }
+    }
+
+    Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
+}
+
+const FWeaponData* UGA_Attack::GetWeaponData() const
+{
+    const APlayerCharacter* Player = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
+    if (!Player || !Player->GetCombatComponent()) return nullptr;
+
+    const AWeaponBase* Weapon = Player->GetCombatComponent()->GetCurrentWeapon();
+    return (Weapon && Weapon->GetCurrentDataAsset()) ? &Weapon->GetCurrentDataAsset()->WeaponData : nullptr;
 }
