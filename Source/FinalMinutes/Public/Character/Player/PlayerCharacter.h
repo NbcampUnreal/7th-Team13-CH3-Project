@@ -44,6 +44,17 @@ protected:
     void GiveDefaultAbilities();
 #pragma endregion
 
+#pragma region Tag
+    FGameplayTag ReloadTag;
+    FGameplayTag AttackingTag;
+    FGameplayTag ProneTag;
+    FGameplayTag DeathTag;
+    FGameplayTag CrouchTag;
+    FGameplayTag RollTag;
+    
+    bool CanMove() const;
+    bool CanJump() const;
+#pragma endregion
 protected:
     virtual void BeginPlay() override;
 
