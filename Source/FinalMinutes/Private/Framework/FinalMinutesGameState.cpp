@@ -24,3 +24,14 @@ void AFinalMinutesGameState::AddKill(FGameplayTag MonsterTag)
 	UE_LOG(LogTemp, Warning, TEXT("킬 카운트 테스트 : %d"), KillCount);
 }
 	
+void AFinalMinutesGameState::SetLoadedData(int32 LoadedKillCount, float LoadedTime)
+{
+	//킬카운트 덮어쓰기
+	KillCount = LoadedKillCount;
+	//생존시간 덮어쓰기
+	BestSurviveTime = LoadedTime;
+    
+	// 점수가 바뀌었음을 UI에 방송
+	OnKillCountChanged.Broadcast(KillCount);
+	
+}

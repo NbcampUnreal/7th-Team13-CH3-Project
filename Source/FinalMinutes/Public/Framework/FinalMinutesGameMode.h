@@ -21,7 +21,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Game|Flow" )
 	void GameStart();
 	
-	//일시정지 인벤토리?
+	//일시정지
 	UFUNCTION(BlueprintCallable, Category = "Game|Flow" )
 	void GamePause(bool bIsPause);
 	

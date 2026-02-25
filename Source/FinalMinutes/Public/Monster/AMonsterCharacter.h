@@ -6,7 +6,7 @@
 
 class UAbilitySystemComponent;
 class UAbilitySystemInterface;
-class UMonsterAttributeSet;
+class UCharacterAttributeSet;
 
 UCLASS()
 class FINALMINUTES_API AAMonsterCharacter : public APawn
@@ -23,7 +23,7 @@ protected:
 	TObjectPtr<class UAbilitySystemComponent> ASC;
 	
 	UPROPERTY()
-	TObjectPtr<class UMonsterAttributeSet> AttributeSet;
+	TObjectPtr<UCharacterAttributeSet> AttributeSet;
 	
 	UPROPERTY()
 	class UAbilitySystemComponent* AbilitySystemComponent;
