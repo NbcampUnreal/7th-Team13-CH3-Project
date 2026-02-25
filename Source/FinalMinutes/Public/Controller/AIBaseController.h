@@ -19,6 +19,7 @@ public:
 	
 protected:
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
 	
 protected:
 	UPROPERTY(EditAnywhere, Category="AI")
@@ -41,6 +42,11 @@ private:
 	
 	UPROPERTY(EditAnywhere, Category = "AI")
 	float MoveRadius = 1000.0f;
+	
+	
+	FRotator TargetRotation;
+	UPROPERTY(EditAnywhere, Category = "Rotate")
+	float RotationSpeed = 5.0f;
 	
 	FTimerHandle RandomMoveTimer;
 };
