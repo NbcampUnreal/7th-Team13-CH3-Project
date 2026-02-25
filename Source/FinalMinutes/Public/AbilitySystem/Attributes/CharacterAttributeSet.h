@@ -37,6 +37,11 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Character|Combat")
 	FGameplayAttributeData AttackDamage;
 	ATTRIBUTE_ACCESSORS(UCharacterAttributeSet, AttackDamage);
+	
+	// 캐릭터에게 들어온 데미지를 저장
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Combat")
+	FGameplayAttributeData Damage;
+	ATTRIBUTE_ACCESSORS(UCharacterAttributeSet, Damage);
 
 	// 방어력
 	UPROPERTY(BlueprintReadOnly, Category = "Character|Combat")
@@ -57,4 +62,14 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Character|Stats")
 	FGameplayAttributeData MoveSpeed;
 	ATTRIBUTE_ACCESSORS(UCharacterAttributeSet, MoveSpeed);
+	
+	// 부위별 방어력 (머리)
+	UPROPERTY(BlueprintReadOnly, Category = "Monster|Def")
+	FGameplayAttributeData HeadDefence;
+	ATTRIBUTE_ACCESSORS(UCharacterAttributeSet, HeadDefence)
+	
+	// 부위별 방어력 (몸통)
+	UPROPERTY(BlueprintReadOnly, Category = "Monster|Def")
+	FGameplayAttributeData BodyDefence;
+	ATTRIBUTE_ACCESSORS(UCharacterAttributeSet, BodyDefence)
 };
