@@ -11,7 +11,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName MonsterName;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<AActor> MonsterCalss;
+	TSoftClassPtr<AActor> MonsterClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float Spawnchance;
+	float SpawnChance;
 };

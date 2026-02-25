@@ -35,22 +35,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void EquipWeapon(FGameplayTag Tag);
 	
-	// 사격
-	UFUNCTION(BlueprintCallable)
-	void Fire();
-	
-	// 재장전
-	UFUNCTION(BlueprintCallable)
-	void Reload();
-	
 	// 무기 교체
 	UFUNCTION(BlueprintCallable)
 	void SwapWeapon();
-	
-	// 줌인/줌아웃
-	UFUNCTION(BlueprintCallable)
-	void ToggleZoom();
-	
 private:
 	/** 레이캐스트 수행 및 충돌 처리 */
     void PerformTrace();
@@ -64,8 +51,4 @@ private:
 	
 	UPROPERTY()
 	TObjectPtr<AWeaponBase> CurrentWeapon;
-	
-	float DefaultFOV;
-	
-	float ZoomFOV;
 };
