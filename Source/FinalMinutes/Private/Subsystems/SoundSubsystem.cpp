@@ -4,8 +4,8 @@
 void USoundSubsystem::PlaySoundTag(FGameplayTag SoundTag, FVector Location)
 {
 	//디버깅용
-	UE_LOG(LogTemp, Warning, TEXT("여따가 소리가 나옵니다잉: %s"), *Location.ToString());
-	//어따 소리가 나옵니다잉 : X..Y..Z..
+	UE_LOG(LogTemp, Warning, TEXT("여따가 소리가 나옴: %s"), *Location.ToString());
+	//어따 소리가 나옴 : X..Y..Z..
 	
 	//태그 확인
 	//if(SoundTag.MatchesTag(FGameplayTag::RequestGameplayTag("Sound.Weapon.Fire")))

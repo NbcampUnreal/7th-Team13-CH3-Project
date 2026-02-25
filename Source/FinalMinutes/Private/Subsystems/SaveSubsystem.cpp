@@ -1,5 +1,4 @@
 #include "FinalMinutes/Public/Subsystems/SaveSubsystem.h"
-
 #include "AbilitySystem/Attributes/CharacterAttributeSet.h"
 #include "Kismet/GameplayStatics.h"
 #include "Core/FinalMinutesSaveGame.h"
@@ -8,6 +7,7 @@
 #include "FinalMinutes/Public/Character/Components/CombatComponent.h"
 #include "FinalMinutes/Public/Items/Weapons/WeaponDataAsset.h"
 #include "FinalMinutes/Public/Items/Weapons/WeaponBase.h"
+#include "Framework/FinalMinutesGameMode.h"
 
 void USaveSubsystem::SaveGameData(int32 CurrentKillCount, float SurviveTime, FString SlotName)
 {
@@ -62,17 +62,7 @@ void USaveSubsystem::SaveGameData(int32 CurrentKillCount, float SurviveTime, FSt
 		SaveObject->LastEquipWeapon = CombatComp->GetCurrentWeapon()->GetCurrentDataAsset()->WeaponData.WeaponTag;
 	}
 	
-	/*
-	//여긴 총 여러개 완성?하면 추가해도 될듯
-	//장착되지않은 주무기,보조무기 등 저장하는거
-	SaveObject->InventoryWeapons.Empty();
-	
-	 //무기 컴포넌트를 가지고 있는 인벤 태그를 하나씩 Tag에 넣음
-	 for(FGameplayTag Tag : CombatComp-> 인벤토리태그s)
-	 {
-	   SaveObject->InventoryWeapons.Add(Tag);
-	 }
-	 */
+	//무기 여러개 저장하는 로직 만들기(인벤토리 기능 만들어지면)
 	
 	//로컬에 저장
 	UGameplayStatics::SaveGameToSlot(SaveObject, SlotName, 0);
@@ -92,6 +82,12 @@ void USaveSubsystem::LoadGameData(FString SlotName)
 	if (GS)
 	{
 		GS->SetLoadedData(LoadObject->TotalKillCount, LoadObject->BestSurviveTime);
+	}
+	//게임모드 - 남은시간 다시 계산하기
+	if (AFinalMinutesGameMode* GM = Cast<AFinalMinutesGameMode>(UGameplayStatics::GetGameMode(this)))
+	{
+		// 세이브 파일에 적힌 시간 넘기기
+		GM->AdjustTimerAfterLoad(LoadObject->BestSurviveTime);
 	}
 	
 	//플레이어나 컴포넌트를 못 찾으면 종료 
@@ -119,19 +115,8 @@ void USaveSubsystem::LoadGameData(FString SlotName)
 			ASC->ForceReplication();
 		}
 	}
-		
-	//세이브된 무기 태그가 유효하지 않으면 종료
-	if (!LoadObject->LastEquipWeapon.IsValid()) return; 
 	
-	/*
-	//저장했던 인벤토리 무기를 다시 인벤에 넣어버리기
-	//무기 컴포넌트를 가지고 있는 인벤 태그를 하나씩 Tag에 넣음
-	 for(FGameplayTag SaveTag : LoadObject-> InventoryWeapons)
-	 {
-	 //무기 컴포넌트에 무기를 추가하는 함수가 있다면 호출
-	   Player->GetCombatComponent()->무기를 추가하는 함수 아마 AddWeaponToInventory(SaveTag);
-	 }
-	 */
+	//무기 여러개 로드하는 로직 만들기 (인벤토리 기능 만들어 지면)
 	
 	//무기 장착
 	Player->GetCombatComponent()->EquipWeapon(LoadObject->LastEquipWeapon);

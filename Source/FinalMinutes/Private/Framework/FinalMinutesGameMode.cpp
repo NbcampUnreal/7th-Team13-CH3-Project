@@ -55,7 +55,7 @@ void AFinalMinutesGameMode::GamePause(bool bIsPause)
 			PC->SetInputMode(FInputModeGameOnly());
 		}
 	}
-	//일시정시 함수
+	//일시정시UI 함수
 }
 
 void AFinalMinutesGameMode::GameClear()
@@ -107,10 +107,10 @@ void AFinalMinutesGameMode::GameOver()
 
 void AFinalMinutesGameMode::GameExit()
 {
-	//게임 끄기 직전에 오토세이브 진행 하기
-	//GameState가 없을 때 0 반환 하기
-	int32 RealKill = (GetGameState<AFinalMinutesGameState>()) ? GetGameState<AFinalMinutesGameState>()->GetKillCount() : 0;
-	float RealTime = GetWorldTimerManager().GetTimerElapsed(TimerHandle);
+	//게임 스테이트에 기록된 시간을 가져오기 킬 카운트도 같이
+	AFinalMinutesGameState* GS = GetGameState<AFinalMinutesGameState>();
+	float RealTime = GS ? GS->GameTime : 0.0f;
+	int32 RealKill = GS ? GS->GetKillCount() : 0;
 	
 	if (auto* SaveSS = GetGameInstance()->GetSubsystem<USaveSubsystem>())
 	{
@@ -120,4 +120,26 @@ void AFinalMinutesGameMode::GameExit()
 	}
 	//게임 종료
 	UKismetSystemLibrary::QuitGame(GetWorld(), UGameplayStatics::GetPlayerController(this, 0), EQuitPreference::Quit, true);
+}
+
+void AFinalMinutesGameMode::AdjustTimerAfterLoad(float LoadedTime)
+{
+	//전체 시간-플레이한 시간
+	float RemainingTime = TimeLimit - LoadedTime;
+	//남은시간 없으면 클리어 - 혹시나 클리어 이후에 저장된 파일이면.
+	if (RemainingTime <= 0)
+	{
+		GameClear(); 
+		return;
+	}
+	//기존에 돌아가던 타이머 관할 핸들러 취소시키기
+	GetWorldTimerManager().ClearTimer(TimerHandle);
+	//남은 시간만큼 예약해버리기 
+	GetWorldTimerManager().SetTimer(
+		TimerHandle,
+		this,
+		&AFinalMinutesGameMode::GameClear,
+		RemainingTime,
+		false);
+	
 }
