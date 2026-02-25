@@ -22,6 +22,13 @@ public:
 	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
 	virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
 	virtual void PostAttributeChange(const FGameplayAttribute& Attribute, float OldValue, float NewValue) override;
+	
+	// 사망 처리용 함수
+	void HandleDeath();
+	
+	// 피격 효과 처리용 함수
+	void HandleHitReaction(const float DamageValue);
+	
 	// 체력
 	UPROPERTY(BlueprintReadOnly, Category = "Character|Health")
 	FGameplayAttributeData Health;
