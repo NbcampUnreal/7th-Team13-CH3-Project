@@ -56,11 +56,11 @@ protected:
     UPROPERTY()
     TObjectPtr<UWeaponAttributeSet> WeaponAttributeSet;
 
-    /** [추가] 게임 시작 시 기본으로 장착할 보조무기(권총) 태그 */
+    /** 게임 시작 시 기본으로 장착할 보조무기(권총) 태그 */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat | Init")
     FGameplayTag DefaultSecondaryWeaponTag;
 
-    /** [추가] 만약 시작부터 주무기를 들려주고 싶다면 추가 (현재는 기획상 비워둠) */
+    /** 만약 시작부터 주무기를 들려주고 싶다면 추가 (현재는 기획상 비워둠) */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat | Init")
     FGameplayTag DefaultPrimaryWeaponTag;
 

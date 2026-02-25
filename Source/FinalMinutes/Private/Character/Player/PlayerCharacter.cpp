@@ -34,25 +34,19 @@ UAbilitySystemComponent* APlayerCharacter::GetAbilitySystemComponent() const
 void APlayerCharacter::BeginPlay()
 {
     Super::BeginPlay();
-
     FollowCamera = FindComponentByClass<UCameraComponent>();
-    InitializeAbilitySystem(); // ASC 초기화
+    InitializeAbilitySystem();
 
-    // [수정] 슬롯 기반 장착 로직
-    if (CombatComponent)
+    // 약간의 지연 후 장착 (서브시스템 로딩 대기)
+    FTimerHandle TimerHandle;
+    GetWorldTimerManager().SetTimer(TimerHandle, [this]()
     {
-        // 1. 보조무기(권총) 먼저 장착
-        if (DefaultSecondaryWeaponTag.IsValid())
+        if (CombatComponent)
         {
-            CombatComponent->EquipWeapon(DefaultSecondaryWeaponTag);
+            if (DefaultSecondaryWeaponTag.IsValid()) CombatComponent->EquipWeapon(DefaultSecondaryWeaponTag);
+            if (DefaultPrimaryWeaponTag.IsValid()) CombatComponent->EquipWeapon(DefaultPrimaryWeaponTag);
         }
-
-        // 2. 만약 시작 주무기가 설정되어 있다면 장착 (보통은 비어있음)
-        if (DefaultPrimaryWeaponTag.IsValid())
-        {
-            CombatComponent->EquipWeapon(DefaultPrimaryWeaponTag);
-        }
-    }
+    }, 0.1f, false);
 
     GiveDefaultAbilities();
 }
@@ -85,7 +79,7 @@ void APlayerCharacter::InitializeAbilitySystem()
 
     AbilitySystemComponent->RegisterGameplayTagEvent(
         ZoomTag, // 어떤 태그 감시?
-        EGameplayTagEventType::NewOrRemoved // 새로 생기거나 제거될때 신호를 준다.
+        EGameplayTagEventType::AnyCountChange // 새로 생기거나 제거될때 신호를 준다.
     ).AddUObject(this, &APlayerCharacter::OnZoomTagChanged); // 신호오면 알려줄 함수
 
     // 캐릭터는 스태미너가 계속해서 찬다.
@@ -396,6 +390,10 @@ void APlayerCharacter::OnZoomTagChanged(const FGameplayTag CallbackTag, int32 Ne
 {
     // NewCount는 이 줌 태그를 몇개 가지고 있는가 숫자, 즉 1이면 줌, 0이면 줌 아닌상태
     bIsZooming = (NewCount > 0);
+    
+    // 이 로그가 안 찍히면 태그 이름이 틀렸거나 바인딩이 안 된 것입니다.
+    UE_LOG(LogTemp, Warning, TEXT("Zoom Tag Changed! New Count: %d, bIsZooming: %s"), 
+        NewCount, bIsZooming ? TEXT("True") : TEXT("False"));
 }
 
 void APlayerCharacter::Tick(float DeltaTime)
@@ -407,14 +405,26 @@ void APlayerCharacter::Tick(float DeltaTime)
         float TargetFOV = bIsZooming ? 45.0f : 90.0f;
         float CurrentFOV = FollowCamera->FieldOfView;
 
+        // [디버그 로그] 화면 왼쪽 상단에 변수 상태를 실시간으로 찍습니다.
+        if (GEngine)
+        {
+            GEngine->AddOnScreenDebugMessage(2, 0.0f, FColor::Green, 
+                FString::Printf(TEXT("Camera Found! bIsZooming: %s, FOV: %f"), 
+                bIsZooming ? TEXT("True") : TEXT("False"), CurrentFOV));
+        }
+
         if (!FMath::IsNearlyEqual(CurrentFOV, TargetFOV, 0.1f))
         {
             float NewFOV = FMath::FInterpTo(CurrentFOV, TargetFOV, DeltaTime, 10.0f);
             FollowCamera->SetFieldOfView(NewFOV);
         }
-        else if (CurrentFOV != TargetFOV)
+    }
+    else
+    {
+        // 카메라를 아예 못 찾고 있는 경우 빨간색 로그 출력
+        if (GEngine)
         {
-            FollowCamera->SetFieldOfView(TargetFOV);
+            GEngine->AddOnScreenDebugMessage(2, 0.0f, FColor::Red, TEXT("CRITICAL: FollowCamera is NULL!"));
         }
     }
 }

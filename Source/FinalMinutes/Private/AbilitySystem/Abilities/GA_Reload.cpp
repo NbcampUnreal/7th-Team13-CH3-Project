@@ -49,7 +49,7 @@ void UGA_Reload::ActivateAbility(
 
     // 3. 재장전 애니메이션 및 이벤트 대기 설정
     SetupReloadTasks(ASC, PlayerCharacter);
-    
+
     // 재장전 관련 시각/청각 효과 실행
     CurrentWeapon->ExecuteWeaponEffects(EWeaponActionType::Reload);
 }
@@ -74,7 +74,8 @@ void UGA_Reload::SetupReloadTasks(UAbilitySystemComponent* ASC, APlayerCharacter
     }
 
     // 2. 재장전 완료 이벤트 대기 Task (애니메이션 특정 시점에 탄환 장전)
-    UAbilityTask_WaitGameplayEvent* WaitEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(FName("Event.Montage.Reload")));
+    UAbilityTask_WaitGameplayEvent* WaitEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
+        this, FGameplayTag::RequestGameplayTag(FName("Event.Montage.Reload")));
     if (WaitEventTask)
     {
         WaitEventTask->EventReceived.AddDynamic(this, &UGA_Reload::OnReloadGameplayEvent);
@@ -82,7 +83,8 @@ void UGA_Reload::SetupReloadTasks(UAbilitySystemComponent* ASC, APlayerCharacter
     }
 
     // 3. 몽타주 재생 Task
-    UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, SelectedMontage);
+    UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
+        this, NAME_None, SelectedMontage);
     if (MontageTask)
     {
         MontageTask->OnBlendOut.AddDynamic(this, &UGA_Reload::OnMontageEnded);

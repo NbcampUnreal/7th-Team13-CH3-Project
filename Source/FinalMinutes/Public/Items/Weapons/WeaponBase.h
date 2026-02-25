@@ -47,7 +47,7 @@ protected:
 public:
     /** 현재 이 무기가 손에 들려야 하는 상태인지 여부 (CombatComponent에서 설정) */
     bool bIsActiveWeapon = false;
-    
+
     /** 무기가 개별적으로 기억하는 현재 탄약 수치 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")
     int32 CurrentAmmoCount = 0;

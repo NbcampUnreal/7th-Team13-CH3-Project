@@ -1,127 +1,49 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Character/Components/CombatComponent.h"
+
+// 엔진 및 프레임워크 헤더
 #include "AbilitySystemComponent.h"
-#include "GameplayTagContainer.h"
-#include "AbilitySystem/Attributes/WeaponAttributeSet.h"
 #include "Character/Player/PlayerCharacter.h"
+
+// 무기 시스템 관련 헤더
+#include "AbilitySystem/Attributes/WeaponAttributeSet.h"
 #include "Items/Weapons/WeaponBase.h"
 #include "Items/Weapons/WeaponDataAsset.h"
 #include "Subsystems/WeaponRegistrySubsystem.h"
 
 UCombatComponent::UCombatComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+    // 최적화를 위해 컴포넌트 틱은 비활성화합니다.
+    PrimaryComponentTick.bCanEverTick = false;
 }
 
 void UCombatComponent::BeginPlay()
 {
-	Super::BeginPlay();
+    Super::BeginPlay();
+
+    // 소유자 캐릭터를 캐싱하여 이후 매 프레임 형변환 비용을 줄입니다.
     OwnerCharacter = Cast<APlayerCharacter>(GetOwner());
 }
 
-void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType,
-                                     FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-}
-
-UAbilitySystemComponent* UCombatComponent::GetOwnerASC() const
-{
-    // OwnerCharacter가 불완전한 타입이 아니어야 GetAbilitySystemComponent() 호출 가능
-    return OwnerCharacter ? OwnerCharacter->GetAbilitySystemComponent() : nullptr;
-}
-
-class AWeaponBase* UCombatComponent::GetWeaponBySlot(EWeaponSlot Slot) const
+/** * [조회] 슬롯에 따른 무기 포인터를 반환합니다. 
+ */
+AWeaponBase* UCombatComponent::GetWeaponBySlot(const EWeaponSlot Slot) const
 {
     switch (Slot)
     {
-    case EWeaponSlot::Primary:   return PrimaryWeapon;
+    case EWeaponSlot::Primary: return PrimaryWeapon;
     case EWeaponSlot::Secondary: return SecondaryWeapon;
-    default:                     return nullptr;
+    default: return nullptr;
     }
 }
 
+/** * [핵심 로직 1] 무기 장착 (Equip)
+ * 새로운 무기를 스폰하고 알맞은 슬롯에 배치합니다.
+ */
 void UCombatComponent::EquipWeapon(FGameplayTag Tag)
 {
-    /*if (!OwnerCharacter || !Tag.IsValid()) return;
-
-    // 장착할 무기의 상세 정보 불러오기
-    UWeaponRegistrySubsystem* Registry = GetWorld()->GetGameInstance()->GetSubsystem<UWeaponRegistrySubsystem>();
-    UWeaponDataAsset* WeaponDataAsset = Registry ? Registry->GetWeaponDataByTag(Tag) : nullptr;
-    if (!WeaponDataAsset) return;
-
-    // 무기 슬롯
-    EWeaponSlot TargetSlot = WeaponDataAsset->WeaponData.DefaultSlot;
-
-
-    // 1. [Save] 동일 슬롯에 이미 무기가 있다면 탄약 저장 후 교체 준비
-    if (AWeaponBase* ExistingWeapon = GetWeaponBySlot(TargetSlot))
-    {
-        // 지워질 무기가 현재 들고 있던 무기라면 탄수 백업
-        if (ActiveWeapon == ExistingWeapon)
-        {
-            if (UWeaponAttributeSet* WeaponAS = const_cast<UWeaponAttributeSet*>(GetOwnerASC()->GetSet<UWeaponAttributeSet>()))
-            {
-                ExistingWeapon->SetCurrentAmmoCount(FMath::RoundToInt(WeaponAS->GetCurrentAmmo()));
-            }
-            ActiveWeapon = nullptr;
-        }
-        ExistingWeapon->DetachFromCharacter();
-        /*ExistingWeapon->Destroy();#1#
-    }
-    
-    // 1. [Save] 현재 들고 있는 무기가 있다면 탄약 저장 후 해제
-    /*if (ActiveWeapon && CurrentSlot == TargetSlot)
-    {
-        if (UWeaponAttributeSet* WeaponAS = const_cast<UWeaponAttributeSet*>(GetOwnerASC()->GetSet<UWeaponAttributeSet>()))
-        {
-            ActiveWeapon->SetCurrentAmmoCount(FMath::RoundToInt(WeaponAS->GetCurrentAmmo()));
-        }
-        ActiveWeapon->DetachFromCharacter();
-    }#1#
-
-    // 2. 신규 무기 스폰
-    FActorSpawnParameters SpawnParams;
-    SpawnParams.Owner = OwnerCharacter;
-    SpawnParams.Instigator = OwnerCharacter;
-    AWeaponBase* NewWeapon = GetWorld()->SpawnActor<AWeaponBase>(AWeaponBase::StaticClass(), FTransform::Identity, SpawnParams);
-    if (!NewWeapon) return;
-
-    // 3. 인벤토리 슬롯 할당
-    if (TargetSlot == EWeaponSlot::Primary) PrimaryWeapon = NewWeapon;
-    else if (TargetSlot == EWeaponSlot::Secondary) SecondaryWeapon = NewWeapon;
-
-    // 4. 활성화 여부 결정
-    bool bShouldBecomeActive = (ActiveWeapon == nullptr || CurrentSlot == TargetSlot);
-
-    if (bShouldBecomeActive)
-    {
-        // 기존에 다른 슬롯 무기를 들고 있었다면 백업 후 숨김
-        if (ActiveWeapon)
-        {
-            if (UWeaponAttributeSet* WeaponAS = const_cast<UWeaponAttributeSet*>(GetOwnerASC()->GetSet<UWeaponAttributeSet>()))
-            {
-                ActiveWeapon->SetCurrentAmmoCount(FMath::RoundToInt(WeaponAS->GetCurrentAmmo()));
-            }
-            ActiveWeapon->DetachFromCharacter();
-            ActiveWeapon->SetActorHiddenInGame(true);
-        }
-
-        ActiveWeapon = NewWeapon;
-        CurrentSlot = TargetSlot;
-        NewWeapon->bIsActiveWeapon = true;
-    }
-    else
-    {
-        NewWeapon->bIsActiveWeapon = false;
-    }
-
-    // 5. 무기 초기화 (이 안에서 활성 여부에 따라 AttributeSet을 건드릴지 결정함)
-    NewWeapon->InitializeAttributes();
-    NewWeapon->InitializeWeapon(Tag, OwnerCharacter);*/
-    
+    if (!OwnerCharacter) OwnerCharacter = Cast<APlayerCharacter>(GetOwner());
     if (!OwnerCharacter || !Tag.IsValid()) return;
 
     UWeaponRegistrySubsystem* Registry = GetWorld()->GetGameInstance()->GetSubsystem<UWeaponRegistrySubsystem>();
@@ -131,40 +53,45 @@ void UCombatComponent::EquipWeapon(FGameplayTag Tag)
     EWeaponSlot TargetSlot = WeaponDataAsset->WeaponData.DefaultSlot;
     UWeaponAttributeSet* WeaponAS = const_cast<UWeaponAttributeSet*>(GetOwnerASC()->GetSet<UWeaponAttributeSet>());
 
-    // 1. 기존 슬롯 무기 제거 전 탄약 데이터 백업
-    if (AWeaponBase* ExistingWeapon = GetWeaponBySlot(TargetSlot))
+    // --- 1. 기존 무기 제거 (있을 때만 수행) ---
+    AWeaponBase* ExistingWeapon = GetWeaponBySlot(TargetSlot);
+    if (ExistingWeapon) // if (!ExistingWeapon) return; 을 삭제했습니다.
     {
         if (ActiveWeapon == ExistingWeapon && WeaponAS)
         {
-            // 현재 쓰고 있던 무기라면 현재 ASC 값을 무기 액터에 저장
             ExistingWeapon->CurrentAmmoCount = FMath::RoundToInt(WeaponAS->GetCurrentAmmo());
-            ActiveWeapon = nullptr;
         }
         ExistingWeapon->DetachFromCharacter();
         ExistingWeapon->Destroy();
     }
 
-    // 2. 신규 무기 생성
+    // --- 2. 신규 무기 생성 ---
     FActorSpawnParameters SpawnParams;
     SpawnParams.Owner = OwnerCharacter;
+    SpawnParams.Instigator = OwnerCharacter; // 총알 발사 시 주인을 알기 위해 추가
+
+    // AWeaponBase 클래스를 스폰 (메시는 나중에 InitializeWeapon에서 로드됨)
     AWeaponBase* NewWeapon = GetWorld()->SpawnActor<AWeaponBase>(AWeaponBase::StaticClass(), FTransform::Identity, SpawnParams);
-    
+    if (!NewWeapon) return;
+
     if (TargetSlot == EWeaponSlot::Primary) PrimaryWeapon = NewWeapon;
     else SecondaryWeapon = NewWeapon;
 
-    // 3. 활성화 여부 결정
+    // --- 3. 상태 결정 (Active/Inactive) ---
+    // 첫 무기이거나, 현재 들고 있는 슬롯과 같은 슬롯에 장착할 때 Active가 됨
     bool bShouldBecomeActive = (ActiveWeapon == nullptr || CurrentSlot == TargetSlot);
-    
+
     if (bShouldBecomeActive)
     {
-        // 이미 다른 무기를 들고 있었다면 해당 무기 데이터 백업
-        if (ActiveWeapon && WeaponAS)
+        // 기존 활성 무기가 있었다면 저장하고 숨김
+        if (ActiveWeapon && WeaponAS) 
         {
             ActiveWeapon->CurrentAmmoCount = FMath::RoundToInt(WeaponAS->GetCurrentAmmo());
             ActiveWeapon->DetachFromCharacter();
             ActiveWeapon->SetActorHiddenInGame(true);
+            ActiveWeapon->bIsActiveWeapon = false;
         }
-        
+
         ActiveWeapon = NewWeapon;
         CurrentSlot = TargetSlot;
         NewWeapon->bIsActiveWeapon = true;
@@ -172,84 +99,65 @@ void UCombatComponent::EquipWeapon(FGameplayTag Tag)
     else
     {
         NewWeapon->bIsActiveWeapon = false;
+        NewWeapon->SetActorHiddenInGame(true);
     }
 
-    // 4. 무기 초기화 (InitializeAttributes 내부에서 Active 여부에 따라 0/0 방지 로직 실행)
+    // --- 4. 무기 초기화 및 부착 ---
     NewWeapon->InitializeWeapon(Tag, OwnerCharacter);
     NewWeapon->InitializeAttributes();
 }
 
-void UCombatComponent::PerformTrace()
-{
-}
-
+/** * [핵심 로직 2] 무기 교체 (Swap)
+ * 현재 무기의 상태를 저장하고 타겟 무기의 상태를 불러옵니다.
+ */
 void UCombatComponent::SwapToSlot(EWeaponSlot TargetSlot)
 {
-    /*if (CurrentSlot == TargetSlot) return;
-    AWeaponBase* TargetWeapon = GetWeaponBySlot(TargetSlot);
-    if (!TargetWeapon) return;
-
-    UAbilitySystemComponent* ASC = GetOwnerASC();
-    UWeaponAttributeSet* WeaponAS = ASC ? const_cast<UWeaponAttributeSet*>(ASC->GetSet<UWeaponAttributeSet>()) : nullptr;
-
-    // 1. [Save] 기존 무기의 현재 탄약을 무기 액터에 저장
-    if (ActiveWeapon && WeaponAS)
-    {
-        ActiveWeapon->SetCurrentAmmoCount(FMath::RoundToInt(WeaponAS->GetCurrentAmmo()));
-        ActiveWeapon->DetachFromCharacter();
-        ActiveWeapon->SetActorHiddenInGame(true);
-    }
-
-    // 2. 무기 교체
-    ActiveWeapon = TargetWeapon;
-    CurrentSlot = TargetSlot;
-
-    // 3. [Load] 새 무기가 기억하던 탄약을 ASC Attribute에 주입
-    if (ActiveWeapon && WeaponAS)
-    {
-        ActiveWeapon->bIsActiveWeapon = true;
-        ActiveWeapon->SetActorHiddenInGame(false);
-        ActiveWeapon->AttachToCharacter();
-
-        // 저장되어 있던 탄수와 최대 탄수를 ASC에 즉시 반영
-        const FWeaponData& Data = ActiveWeapon->GetCurrentDataAsset()->WeaponData;
-        WeaponAS->SetMaxAmmo(Data.DefaultMaxAmmo);
-        WeaponAS->SetCurrentAmmo(ActiveWeapon->CurrentAmmoCount);
-    }*/
-    
+    // 동일한 슬롯으로의 교체는 무시합니다.
     if (CurrentSlot == TargetSlot) return;
+
     AWeaponBase* TargetWeapon = GetWeaponBySlot(TargetSlot);
-    if (!TargetWeapon) return;
+    if (!TargetWeapon) return; // 타겟 슬롯이 비어있으면 교체 불가
 
     UWeaponAttributeSet* WeaponAS = const_cast<UWeaponAttributeSet*>(GetOwnerASC()->GetSet<UWeaponAttributeSet>());
     if (!WeaponAS) return;
 
-    // 1. [SAVE] 기존 무기의 실시간 탄약 수치를 무기 액터로 저장
-    if (ActiveWeapon)
-    {
-        ActiveWeapon->CurrentAmmoCount = FMath::RoundToInt(WeaponAS->GetCurrentAmmo());
-        ActiveWeapon->DetachFromCharacter();
-        ActiveWeapon->SetActorHiddenInGame(true);
-    }
+    // 1. [SAVE] 현재 활성 무기의 실시간 탄약 정보를 액터로 백업합니다.
+    if (!ActiveWeapon) return;
+    ActiveWeapon->CurrentAmmoCount = FMath::RoundToInt(WeaponAS->GetCurrentAmmo());
+    ActiveWeapon->DetachFromCharacter();
+    ActiveWeapon->SetActorHiddenInGame(true);
 
-    // 2. 슬롯 교체
+    // 2. [SWITCH] 슬롯 및 포인터 전환
     ActiveWeapon = TargetWeapon;
     CurrentSlot = TargetSlot;
 
-    // 3. [LOAD] 새 무기가 이전에 저장해둔 탄약 수치를 전역 AttributeSet에 주입
+    // 3. [LOAD] 새 무기를 시각화하고 저장된 탄약 데이터를 캐릭터 스탯(GAS)에 주입합니다.
     ActiveWeapon->bIsActiveWeapon = true;
     ActiveWeapon->SetActorHiddenInGame(false);
     ActiveWeapon->AttachToCharacter();
 
     const FWeaponData& Data = ActiveWeapon->GetCurrentDataAsset()->WeaponData;
-    // 이 시점에서 0/0 문제를 해결하기 위해 강제 주입합니다.
+    // 0/0 표시 문제를 방지하기 위해 MaxAmmo부터 설정 후 CurrentAmmo를 로드합니다.
     WeaponAS->SetMaxAmmo(Data.DefaultMaxAmmo);
     WeaponAS->SetCurrentAmmo(static_cast<float>(ActiveWeapon->CurrentAmmoCount));
 }
 
+/** * [유틸리티] 슬롯 토글 (단일 키 대응)
+ */
 void UCombatComponent::ToggleWeaponSwap()
 {
     EWeaponSlot TargetSlot = (CurrentSlot == EWeaponSlot::Primary) ? EWeaponSlot::Secondary : EWeaponSlot::Primary;
     SwapToSlot(TargetSlot);
 }
 
+/** * [유틸리티] 소유자 ASC 조회 
+ */
+UAbilitySystemComponent* UCombatComponent::GetOwnerASC() const
+{
+    return OwnerCharacter ? OwnerCharacter->GetAbilitySystemComponent() : nullptr;
+}
+
+void UCombatComponent::PerformTrace()
+{
+    // 사격 판정 로직 구현 공간
+}
