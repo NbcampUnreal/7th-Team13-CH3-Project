@@ -2,10 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+#include "Components/CapsuleComponent.h"
 #include "AMonsterCharacter.generated.h"
 
 class UAbilitySystemComponent;
 class UAbilitySystemInterface;
+class UFloatingPawnMovement;
 class UCharacterAttributeSet;
 
 UCLASS()
@@ -21,6 +23,15 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "GAS")
 	TObjectPtr<class UAbilitySystemComponent> ASC;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Collision")
+	TObjectPtr<UCapsuleComponent> CapsuleComp;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Movement")
+	TObjectPtr<UFloatingPawnMovement> MovementComp;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement")
+	FRotator RotationRate;
 	
 	UPROPERTY()
 	TObjectPtr<UCharacterAttributeSet> AttributeSet;

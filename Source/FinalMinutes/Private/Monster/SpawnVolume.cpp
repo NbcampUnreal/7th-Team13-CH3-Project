@@ -18,7 +18,7 @@ ASpawnVolume::ASpawnVolume()
 void ASpawnVolume::BeginPlay()
 {
 	Super::BeginPlay();
-    
+	
 	// 확률 스폰을 원하면 SpawnRandomMonster를 호출하게 변경
 	GetWorld()->GetTimerManager().SetTimer(
 	   SpawnTimer, 
@@ -33,7 +33,9 @@ void ASpawnVolume::SpawnRandomMonster()
 {
 	if (FMonsterSpawnRow* SelectedRow = GetRandomMonster())
 	{
-		if (UClass* ActualClass = SelectedRow->MonsterCalss.Get())
+		UClass* ActualClass = SelectedRow->MonsterClass.LoadSynchronous();
+		
+		if (ActualClass)
 		{
 			SpawnMonster(ActualClass);
 		}
@@ -52,7 +54,7 @@ FMonsterSpawnRow* ASpawnVolume::GetRandomMonster() const
 	float TotalChance = 0.0f;
 	for (const FMonsterSpawnRow* Row : AllRows)
 	{
-		if (Row) TotalChance += Row->Spawnchance;
+		if (Row) TotalChance += Row->SpawnChance;
 	}
 
 	const float RandValue = FMath::FRand() * TotalChance;
@@ -60,7 +62,7 @@ FMonsterSpawnRow* ASpawnVolume::GetRandomMonster() const
 
 	for (FMonsterSpawnRow* Row : AllRows)
 	{
-		AccumulateChance += Row->Spawnchance;
+		AccumulateChance += Row->SpawnChance;
 		if (RandValue <= AccumulateChance)
 		{
 			return Row;
@@ -72,7 +74,10 @@ FMonsterSpawnRow* ASpawnVolume::GetRandomMonster() const
 
 void ASpawnVolume::SpawnMonster(TSubclassOf<AActor> MonsterClass)
 {
-	if (!MonsterClass || !GetWorld()) return;
+	if (!MonsterClass || !GetWorld())
+	{
+		return;
+	}
 	
 	FVector SpawnLocation = SpawnBox->GetComponentLocation();
 
@@ -82,9 +87,10 @@ void ASpawnVolume::SpawnMonster(TSubclassOf<AActor> MonsterClass)
 	SpawnParams.Owner = this;
 	SpawnParams.Instigator = GetInstigator();
 	
-	GetWorld()->SpawnActor<AActor>(
+	AActor* NewActor = GetWorld()->SpawnActor<AActor>(
 		MonsterClass,
 		SpawnLocation,
 		SpawnRotation,
-		SpawnParams);
+		SpawnParams
+		);
 }
