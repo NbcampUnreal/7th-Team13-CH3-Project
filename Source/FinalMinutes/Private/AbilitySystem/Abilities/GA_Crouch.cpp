@@ -17,6 +17,7 @@ UGA_Crouch::UGA_Crouch()
 	
 	// 이태그가 있으면 실행안함 (앉아있을때 또 앉을 수 없음)
 	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsCrouching")));
+	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.Death")));
 
 	// 소유태그 / 실행중 어떤 태그를 가질지
 	ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsCrouching")));
