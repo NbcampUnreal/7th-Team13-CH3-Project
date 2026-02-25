@@ -28,17 +28,26 @@ void UGA_Crouch::ActivateAbility(
 	const FGameplayAbilityActivationInfo ActivationInfo,
 	const FGameplayEventData* TriggerEventData)
 {
-	// 스킬 사용을 위한 조건 체크 , 쿨타임, 코스트다 있는지
+	APlayerCharacter* Character = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
+	if (!Character)
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
+	
+	UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
+	if (!MyASC)
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
+	
 	if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
 	{
 		// Commit 실패 (스태미너 부족, Cooldown 중 등)
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;
 	}
-	APlayerCharacter* Character = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
-	if (!Character) return;
-	UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
-	if (!MyASC) return;
 	
 	Character->GetCapsuleComponent()->SetCapsuleHalfHeight(60.f);
 	Character->GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -48.f));
@@ -57,8 +66,11 @@ void UGA_Crouch::ActivateAbility(
 		this, 
 		FGameplayTag::RequestGameplayTag(FName("State.Crouch.End"))
 	);
-	if (!WaitCrouchEventTask) return;
-	
+	if (!WaitCrouchEventTask)
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
 	// 이벤트 델리게이트, 앉기가 끝나면 OnCrouchExitRequested호출해달라
 	WaitCrouchEventTask->EventReceived.AddDynamic(this, &UGA_Crouch::OnCrouchExitRequested);
 	// Task 활성화 (감시자 작동)

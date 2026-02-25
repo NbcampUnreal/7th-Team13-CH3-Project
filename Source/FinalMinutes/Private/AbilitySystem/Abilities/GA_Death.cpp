@@ -18,6 +18,12 @@ void UGA_Death::ActivateAbility(
 	const FGameplayAbilityActivationInfo ActivationInfo, 
 	const FGameplayEventData* TriggerEventData)
 {
+	if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
+	
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 	
 	if (!TriggerEventData)
@@ -45,7 +51,12 @@ void UGA_Death::ActivateAbility(
 		SelectedMontage,
 		1.0f
 		);
-	if (!PlayMontageTask) return;
+	
+	if (!PlayMontageTask)
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
 
 	PlayMontageTask->OnCompleted.AddDynamic(this, &UGA_Death::OnMontageEnded);
 	PlayMontageTask->OnInterrupted.AddDynamic(this, &UGA_Death::OnMontageEnded);

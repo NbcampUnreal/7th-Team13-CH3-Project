@@ -34,9 +34,11 @@ void UGA_Sprint::ActivateAbility(
 	}
 
 	UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
-	if (!MyASC) return;
-	if (!SprintEffectClass) return;
-	if (!SprintStaminaEffectClass) return;
+	if (!MyASC || !SprintEffectClass || !SprintStaminaEffectClass)
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
 	
 	// 기존 이펙트에 스태미너 깎는 로직 추가
 	FGameplayEffectContextHandle EffectContext = MyASC->MakeEffectContext();
@@ -67,7 +69,11 @@ void UGA_Sprint::ActivateAbility(
 		FGameplayTag::RequestGameplayTag(FName("Event.Montage.Sprint"))
 	);
 
-	if (!WaitStopTask) return;
+	if (!WaitStopTask)
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
 	// 신호가 오면 어빌리티 종료 함수 연결
 	WaitStopTask->EventReceived.AddDynamic(this, &UGA_Sprint::OnSprintStopReceived);
 	WaitStopTask->ReadyForActivation();
@@ -96,25 +102,27 @@ void UGA_Sprint::EndAbility(
 	bool bWasCancelled)
 {
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
-	if (!ASC) return;
 	
-	// 어빌리티 종료시 GE(속도 증가 효과)제거
-	if (ActiveSprintEffectHandle.IsValid())
+	if (ASC)
 	{
-		ASC->RemoveActiveGameplayEffect(ActiveSprintEffectHandle);
-		ActiveSprintEffectHandle.Invalidate();
-	}
+		// 어빌리티 종료시 GE(속도 증가 효과)제거
+		if (ActiveSprintEffectHandle.IsValid())
+		{
+			ASC->RemoveActiveGameplayEffect(ActiveSprintEffectHandle);
+			ActiveSprintEffectHandle.Invalidate();
+		}
 
-	if (ActiveSprintStaminaEffectHandle.IsValid())
-	{
-		ASC->RemoveActiveGameplayEffect(ActiveSprintStaminaEffectHandle);
-		ActiveSprintStaminaEffectHandle.Invalidate();
-	}
+		if (ActiveSprintStaminaEffectHandle.IsValid())
+		{
+			ASC->RemoveActiveGameplayEffect(ActiveSprintStaminaEffectHandle);
+			ActiveSprintStaminaEffectHandle.Invalidate();
+		}
 
-	if (StaminaChangeDelegateHandle.IsValid())
-	{
-		ASC->GetGameplayAttributeValueChangeDelegate(UCharacterAttributeSet::GetStaminaAttribute()).Remove(StaminaChangeDelegateHandle);
+		if (StaminaChangeDelegateHandle.IsValid())
+		{
+			ASC->GetGameplayAttributeValueChangeDelegate(UCharacterAttributeSet::GetStaminaAttribute()).Remove(StaminaChangeDelegateHandle);
+		}
 	}
-
+	
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
