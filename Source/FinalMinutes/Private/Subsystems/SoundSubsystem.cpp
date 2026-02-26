@@ -1,20 +1,18 @@
 #include "FinalMinutes/Public/Subsystems/SoundSubsystem.h"
-#include "GameplayTagContainer.h"
 
-void USoundSubsystem::PlaySoundTag(FGameplayTag SoundTag, FVector Location)
-{
-	//디버깅용
-	UE_LOG(LogTemp, Warning, TEXT("여따가 소리가 나옴: %s"), *Location.ToString());
-	//어따 소리가 나옴 : X..Y..Z..
-	
-	//태그 확인
-	//if(SoundTag.MatchesTag(FGameplayTag::RequestGameplayTag("Sound.Weapon.Fire")))
-	//UGameplayStatic::PlaySoundAtLocation(여기에 뭘넣어야하지) - > 태그가 발사라면 수행
-	
-}
+#include "Components/AudioComponent.h"
+#include "Kismet/GameplayStatics.h"
 
-void USoundSubsystem::PlayBGM(FGameplayTag BGMTag)
+void USoundSubsystem::PlayBGMByPhase(USoundBase* NewSound)
 {
-	//디버깅용
-	UE_LOG(LogTemp, Warning, TEXT("워후!브금이당!: [%s]"),*BGMTag.ToString());
+	if (!NewSound) return;
+	
+	//이미 음악이 나오고 있다면 끄기
+	if (BackgroundMusicComponent && BackgroundMusicComponent->IsPlaying())
+	{
+		BackgroundMusicComponent->Stop();
+	}
+	
+	//새 음액 재생
+	BackgroundMusicComponent = UGameplayStatics::SpawnSound2D(GetWorld(), NewSound);
 }

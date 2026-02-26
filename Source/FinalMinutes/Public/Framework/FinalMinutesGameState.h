@@ -31,6 +31,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GameState")
 	void SetLoadedData(int32 LoadedKillCount, float LoadedTime);
 	
+	//시간당 페이즈로 나눠 브금을 바꾸는 이벤트 함수
+	UFUNCTION(BlueprintImplementableEvent, Category = "Audio")
+	void ChangeBGM(int32 PhaseIndex);
+	
 	//UI에서 접근 할 최고 생존 시간
 	UPROPERTY(BlueprintReadOnly, Category = "Data")
 	float BestSurviveTime = 0.0f;
@@ -41,6 +45,19 @@ public:
 	
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnKillCountChanged OnKillCountChanged;
+	
+	//현재 재생중인 BGM 페이즈를 기억할 변수 ( 0= 재생x, 1=초반,2=중반,3=후반)
+	int32 CurrentBGMPhase = 0;
+
+	//블루프린트에서 음악을 쓰게하는 변수 3개
+	UPROPERTY(EditAnywhere, Category = "BGM")
+	class USoundBase* BGM_Phase1;
+
+	UPROPERTY(EditAnywhere, Category = "BGM")
+	class USoundBase* BGM_Phase2;
+
+	UPROPERTY(EditAnywhere, Category = "BGM")
+	class USoundBase* BGM_Phase3;
 
 private:
 	int32 KillCount = 0;

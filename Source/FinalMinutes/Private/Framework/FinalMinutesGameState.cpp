@@ -1,5 +1,6 @@
 #include "Framework/FinalMinutesGameState.h"
 #include "Framework/FinalMinutesGameMode.h"
+#include "Subsystems/SoundSubsystem.h"
 
 AFinalMinutesGameState::AFinalMinutesGameState()
 {
@@ -40,6 +41,35 @@ void AFinalMinutesGameState::Tick(float DeltaSeconds)
 		if (GM)
 		{
 			GM->GameClear();
+		}
+		return;
+	}
+	//현재 시간에 따른 새로운 페이즈 계산
+	int32 TargetPhase = 0;
+	//3분카레
+	if (GameTime < 180.0f) TargetPhase = 1;
+	//3분에서 7분
+	else if (GameTime < 420.0f) TargetPhase = 2;
+	//7분에서 10분
+	else if (GameTime < 600.0f) TargetPhase = 3;
+
+	//페이즈가 바뀌었을 때만 서브시스템 호출
+	if (TargetPhase != CurrentBGMPhase)
+	{
+		CurrentBGMPhase = TargetPhase;
+    
+		USoundSubsystem* SoundSS = GetGameInstance()->GetSubsystem<USoundSubsystem>();
+		if (SoundSS)
+		{
+			USoundBase* SelectedSound = nullptr;
+			if(CurrentBGMPhase == 1) SelectedSound = BGM_Phase1;
+			else if(CurrentBGMPhase == 2) SelectedSound = BGM_Phase2;
+			else if(CurrentBGMPhase == 3) SelectedSound = BGM_Phase3;
+
+			if (SelectedSound)
+			{
+				SoundSS->PlayBGMByPhase(SelectedSound);
+			}
 		}
 	}
 }
