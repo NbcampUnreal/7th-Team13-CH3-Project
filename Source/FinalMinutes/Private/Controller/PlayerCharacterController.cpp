@@ -2,22 +2,36 @@
 #include "EnhancedInputSubsystems.h"
 
 APlayerCharacterController::APlayerCharacterController()
-	: InputMappingContext(nullptr)
+	: InputMappingContext(nullptr),
+	  MoveAction(nullptr),
+	  JumpAction(nullptr),
+	  LookAction(nullptr),
+	  SprintAction(nullptr),
+	  CrouchAction(nullptr),
+	  ProneAction(nullptr),
+	  RollAction(nullptr),
+	  EquipAction(nullptr),
+	  UnEquipAction(nullptr),
+	  ReloadAction(nullptr),
+	  FireAction(nullptr),
+	  InteractAction(nullptr)
 {
 }
 
 void APlayerCharacterController::BeginPlay()
 {
 	Super::BeginPlay();
-	ULocalPlayer* LocalPlayer = GetLocalPlayer();
-	if (!LocalPlayer) return;
-	UEnhancedInputLocalPlayerSubsystem* SubSystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
-	if (!SubSystem) return;
-	if (InputMappingContext)
-	{
-		SubSystem->AddMappingContext(InputMappingContext, 0);	
-	}
 	
+	if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* SubSystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+		{
+			if (InputMappingContext)
+			{
+				SubSystem->AddMappingContext(InputMappingContext, 0);	
+			}
+		}
+	}
 }
 
 

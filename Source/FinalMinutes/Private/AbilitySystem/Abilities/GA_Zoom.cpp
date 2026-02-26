@@ -30,8 +30,11 @@ void UGA_Zoom::ActivateAbility(
     }
 
     UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
-	if (!MyASC) return;
-    if (!ZoomEffectClass) return;
+	if (!MyASC || !ZoomEffectClass)
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
 	// Effect Context 세팅 및 Spec 생성
 	FGameplayEffectContextHandle EffectContext = MyASC->MakeEffectContext();
 	EffectContext.AddSourceObject(GetAvatarActorFromActorInfo());
@@ -45,7 +48,11 @@ void UGA_Zoom::ActivateAbility(
     // 줌은 버튼을 떼면 종료되므로 WaitInputRelease 사용
     UAbilityTask_WaitInputRelease* WaitReleaseTask = UAbilityTask_WaitInputRelease::WaitInputRelease(this);
 
-    if (!WaitReleaseTask) return;
+    if (!WaitReleaseTask)
+    {
+    	EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+	    return;
+    }
 	// 신호가 오면 어빌리티 종료 함수 연결
 	WaitReleaseTask->OnRelease.AddDynamic(this, &UGA_Zoom::OnInputReleased);
 	WaitReleaseTask->ReadyForActivation();

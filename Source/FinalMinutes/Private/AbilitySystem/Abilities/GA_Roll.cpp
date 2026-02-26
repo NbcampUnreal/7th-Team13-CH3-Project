@@ -46,7 +46,11 @@ void UGA_Roll::ActivateAbility(
 			1.0f // 재생 속도
 		);
 
-	if (!PlayMontageTask) return;
+	if (!PlayMontageTask)
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
 	// Montage 콜백 연결
 	PlayMontageTask->OnCompleted.AddDynamic(this, &UGA_Roll::OnMontageEnded);
 	PlayMontageTask->OnCancelled.AddDynamic(this, &UGA_Roll::OnMontageEnded);
@@ -62,7 +66,11 @@ void UGA_Roll::ActivateAbility(
 			FGameplayTag::RequestGameplayTag(FName("Event.Montage.Roll"))
 		);
 
-	if (!WaitEventTask) return;
+	if (!WaitEventTask)
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
 	WaitEventTask->EventReceived.AddDynamic(this, &UGA_Roll::OnRollGameplayEvent);
 	WaitEventTask->ReadyForActivation();
 }
@@ -76,11 +84,11 @@ void UGA_Roll::OnRollGameplayEvent(FGameplayEventData EventData)
 	if (!MyASC) return;
 	
 	// 컨텍스트 생성, 효과가 어디서부터 나타났는지, 추후에 데미지 계산이나 로그 시스템에서 누가 사용한지 알 수 있음
-	FGameplayEffectContextHandle EffectContext = GetAbilitySystemComponentFromActorInfo()->MakeEffectContext();
+	FGameplayEffectContextHandle EffectContext = MyASC->MakeEffectContext();
 	EffectContext.AddSourceObject(Character);
 
 	// 실제로 적용될 효과를 작성, GE클래스
-	FGameplayEffectSpecHandle SpecHandle = GetAbilitySystemComponentFromActorInfo()->MakeOutgoingSpec(
+	FGameplayEffectSpecHandle SpecHandle = MyASC->MakeOutgoingSpec(
 		RollEffectClass,
 		1.0f, // Level
 		EffectContext

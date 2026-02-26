@@ -7,8 +7,8 @@
 
 class UAbilitySystemComponent;
 class UAbilitySystemInterface;
-class UFloatingPawnMovement;
 class UCharacterAttributeSet;
+class UFloatingPawnMovement;
 
 UCLASS()
 class FINALMINUTES_API AAMonsterCharacter : public APawn
@@ -34,7 +34,7 @@ protected:
 	FRotator RotationRate;
 	
 	UPROPERTY()
-	TObjectPtr<UCharacterAttributeSet> AttributeSet;
+	TObjectPtr<class UCharacterAttributeSet> MonsterAttributeSet;
 	
 	UPROPERTY()
 	class UAbilitySystemComponent* AbilitySystemComponent;
