@@ -49,8 +49,8 @@ AProjectileBullet::AProjectileBullet()
     ProjectileMovement->bShouldBounce = false;
 
     // 네트워크 복제 설정 (멀티플레이어 대응)
-    bReplicates = true;
-    SetReplicateMovement(true);
+    /*bReplicates = true;
+    SetReplicateMovement(true);*/
 }
 
 void AProjectileBullet::BeginPlay()
@@ -113,13 +113,8 @@ void AProjectileBullet::OnHit(
     Destroy();
 }
 
-/**
- * [Flow 3] 매 프레임 이동 궤적을 시각적으로 추적합니다. (디버그 및 피드백용)
- */
-void AProjectileBullet::Tick(float DeltaTime)
+void AProjectileBullet::DrawDebugTrajectory()
 {
-    Super::Tick(DeltaTime);
-
     // 서버에서는 디버그 라인을 그릴 필요가 없으므로 클라이언트/에디터 환경에서만 실행합니다.
     if (GetNetMode() == NM_DedicatedServer) return;
 
@@ -139,4 +134,14 @@ void AProjectileBullet::Tick(float DeltaTime)
 
     // 다음 프레임을 위해 현재 위치를 업데이트합니다.
     LastLocation = CurrentLocation;
+}
+
+/**
+ * [Flow 3] 매 프레임 이동 궤적을 시각적으로 추적합니다. (디버그 및 피드백용)
+ */
+void AProjectileBullet::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
+
+    DrawDebugTrajectory();
 }

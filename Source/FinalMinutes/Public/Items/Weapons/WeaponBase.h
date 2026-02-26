@@ -1,16 +1,16 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "ActiveGameplayEffectHandle.h"
 #include "GameplayTagContainer.h"
 #include "GameFramework/Actor.h"
 #include "WeaponBase.generated.h"
 
+struct FStreamableHandle;
 enum class EWeaponActionType : uint8;
 class UWeaponAttributeSet;
 class UWeaponDataAsset;
 class USkeletalMeshComponent;
-class UGameplayEffect;
+class UAbilitySystemComponent;
 
 UCLASS()
 class FINALMINUTES_API AWeaponBase : public AActor
@@ -20,40 +20,54 @@ class FINALMINUTES_API AWeaponBase : public AActor
 public:
     AWeaponBase();
 
-    /** 무기 초기화 및 비동기 메시 로딩 시작 */
+    /** 무기 초기 데이터 설정 및 에셋 로딩 시작 */
     void InitializeWeapon(FGameplayTag InWeaponTag, AActor* InOwner);
 
-    /** 데이터 테이블의 수치를 기반으로 GAS 어트리뷰트 초기화 */
+    /** 현재 탄약 수치 및 GAS 어트리뷰트 동기화 */
     void InitializeAttributes();
 
-    /** 사운드 및 VFX 실행 */
+    /** 특정 액션(사격/재장전)에 따른 사운드 및 이펙트 실행 */
     void ExecuteWeaponEffects(EWeaponActionType ActionType);
 
-    /** 캐릭터 손 소켓에 부착 및 태그 부여 */
+    /** 캐릭터 손 소켓에 부착 및 관련 태그 부여 */
     void AttachToCharacter();
 
-    /** 캐릭터 손에서 분리 및 태그 제거 */
+    /** 캐릭터 손에서 분리 및 관련 태그 제거 */
     void DetachFromCharacter();
 
-    // Getter
+    // -- Getters & Setters --
     FORCEINLINE UWeaponDataAsset* GetCurrentDataAsset() const { return CurrentDataAsset; }
     FORCEINLINE USkeletalMeshComponent* GetWeaponMesh() const { return WeaponMesh; }
+    void SetCurrentAmmoCount(int32 InAmmo) { CurrentAmmoCount = InAmmo; }
     FVector GetMuzzleLocation() const;
 
 protected:
-    /** 메시 로딩 완료 콜백 - 활성화 플래그에 따라 부착 여부 결정 */
+    /** 메시 비동기 로딩 완료 후 호출되는 콜백 */
     virtual void OnWeaponMeshLoaded(FGameplayTag InWeaponTag);
 
+private:
+    /** 내부 로직 분리: 메시 로딩 시작 */
+    void StartAsyncMeshLoad(FGameplayTag InWeaponTag);
+
+    /** 내부 로직 분리: 소유자 ASC 가져오기 */
+    UAbilitySystemComponent* GetOwnerASC() const;
+
+    /** 내부 로직 분리: 장착 태그 관리 */
+    void UpdateOwnerGameplayTag(bool bAddTag);
+
+    /** 내부 로직 분리: 사운드 재생 */
+    void PlayActionSound(EWeaponActionType ActionType);
+
+    /** 내부 로직 분리: VFX 재생 */
+    void SpawnActionEffects();
+
 public:
-    /** 현재 이 무기가 손에 들려야 하는 상태인지 여부 (CombatComponent에서 설정) */
+    /** 현재 무기 활성화 여부 (장착 상태) */
     bool bIsActiveWeapon = false;
 
-    /** 무기가 개별적으로 기억하는 현재 탄약 수치 */
+    /** 무기가 개별적으로 보유한 현재 탄약 수 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")
     int32 CurrentAmmoCount = 0;
-
-    // 현재 탄수 수동 설정 (CombatComponent에서 사용)
-    void SetCurrentAmmoCount(int32 InAmmo) { CurrentAmmoCount = InAmmo; }
 
 protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -65,9 +79,6 @@ protected:
     UPROPERTY(Transient)
     TWeakObjectPtr<AActor> WeaponOwner;
 
-    /** 무기 스탯 초기화용 GE 클래스 (SetByCaller 활용) */
-    UPROPERTY(EditDefaultsOnly, Category = "GAS")
-    TSubclassOf<UGameplayEffect> InitStatEffectClass;
-
-    FActiveGameplayEffectHandle WeaponStatEffectHandle;
+    /** 비동기 로딩 핸들 */
+    TSharedPtr<FStreamableHandle> WeaponMeshLoadHandle;
 };

@@ -390,10 +390,6 @@ void APlayerCharacter::OnZoomTagChanged(const FGameplayTag CallbackTag, int32 Ne
 {
     // NewCount는 이 줌 태그를 몇개 가지고 있는가 숫자, 즉 1이면 줌, 0이면 줌 아닌상태
     bIsZooming = (NewCount > 0);
-    
-    // 이 로그가 안 찍히면 태그 이름이 틀렸거나 바인딩이 안 된 것입니다.
-    UE_LOG(LogTemp, Warning, TEXT("Zoom Tag Changed! New Count: %d, bIsZooming: %s"), 
-        NewCount, bIsZooming ? TEXT("True") : TEXT("False"));
 }
 
 void APlayerCharacter::Tick(float DeltaTime)
@@ -404,27 +400,11 @@ void APlayerCharacter::Tick(float DeltaTime)
     {
         float TargetFOV = bIsZooming ? 45.0f : 90.0f;
         float CurrentFOV = FollowCamera->FieldOfView;
-
-        // [디버그 로그] 화면 왼쪽 상단에 변수 상태를 실시간으로 찍습니다.
-        if (GEngine)
-        {
-            GEngine->AddOnScreenDebugMessage(2, 0.0f, FColor::Green, 
-                FString::Printf(TEXT("Camera Found! bIsZooming: %s, FOV: %f"), 
-                bIsZooming ? TEXT("True") : TEXT("False"), CurrentFOV));
-        }
-
+        
         if (!FMath::IsNearlyEqual(CurrentFOV, TargetFOV, 0.1f))
         {
             float NewFOV = FMath::FInterpTo(CurrentFOV, TargetFOV, DeltaTime, 10.0f);
             FollowCamera->SetFieldOfView(NewFOV);
-        }
-    }
-    else
-    {
-        // 카메라를 아예 못 찾고 있는 경우 빨간색 로그 출력
-        if (GEngine)
-        {
-            GEngine->AddOnScreenDebugMessage(2, 0.0f, FColor::Red, TEXT("CRITICAL: FollowCamera is NULL!"));
         }
     }
 }

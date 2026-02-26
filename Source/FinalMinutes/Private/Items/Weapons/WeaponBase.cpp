@@ -6,13 +6,15 @@
 #include "Kismet/GameplayStatics.h"
 #include "Subsystems/WeaponRegistrySubsystem.h"
 #include "NiagaraFunctionLibrary.h"
+#include "Engine/AssetManager.h"
+#include "Engine/StreamableManager.h"
 
 AWeaponBase::AWeaponBase()
 {
     WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
     RootComponent = WeaponMesh;
 
-    // 무기 기본 충돌 설정 (캐릭터와 부딪힘 방지)
+    // 무기 기본 충돌 설정
     WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     WeaponMesh->SetSimulatePhysics(false);
 }
@@ -20,122 +22,167 @@ AWeaponBase::AWeaponBase()
 void AWeaponBase::InitializeWeapon(FGameplayTag InWeaponTag, AActor* InOwner)
 {
     WeaponOwner = InOwner;
-    UWeaponRegistrySubsystem* Registry = GetGameInstance()->GetSubsystem<UWeaponRegistrySubsystem>();
-    CurrentDataAsset = Registry ? Registry->GetWeaponDataByTag(InWeaponTag) : nullptr;
 
-    if (CurrentDataAsset)
+    // 레지스트리 서브시스템에서 데이터 에셋 획득
+    UWeaponRegistrySubsystem* Registry = GetGameInstance()->GetSubsystem<UWeaponRegistrySubsystem>();
+    if (!Registry) return;
+
+    CurrentDataAsset = Registry->GetWeaponDataByTag(InWeaponTag);
+    if (!CurrentDataAsset) return;
+
+    StartAsyncMeshLoad(InWeaponTag);
+}
+
+void AWeaponBase::StartAsyncMeshLoad(FGameplayTag InWeaponTag)
+{
+    FSoftObjectPath MeshPath = CurrentDataAsset->WeaponData.WeaponMesh.ToSoftObjectPath();
+    FStreamableManager& Streamable = UAssetManager::GetStreamableManager();
+
+    // 진행 중인 로딩 취소 후 새로 시작
+    if (WeaponMeshLoadHandle.IsValid() && WeaponMeshLoadHandle->IsLoadingInProgress())
     {
-        // 메시 로딩 로직 (비동기 등 기존 로직 유지)
-        OnWeaponMeshLoaded(InWeaponTag);
+        WeaponMeshLoadHandle->CancelHandle();
     }
+
+    WeaponMeshLoadHandle = Streamable.RequestAsyncLoad(
+        MeshPath,
+        FStreamableDelegate::CreateUObject(this, &AWeaponBase::OnWeaponMeshLoaded, InWeaponTag)
+    );
 }
 
 void AWeaponBase::OnWeaponMeshLoaded(FGameplayTag InWeaponTag)
 {
-    if (!CurrentDataAsset) return;
+    if (!CurrentDataAsset || !WeaponMeshLoadHandle.IsValid()) return;
 
-    // [수정] .Get() 대신 .LoadSynchronous()를 사용해야 합니다.
-    // Soft Pointer는 이름 그대로 '부드러운' 참조일 뿐이므로, 실제 데이터가 필요할 땐 로드해야 합니다.
-    USkeletalMesh* LoadedMesh = CurrentDataAsset->WeaponData.WeaponMesh.LoadSynchronous();
+    USkeletalMesh* LoadedMesh = Cast<USkeletalMesh>(WeaponMeshLoadHandle->GetLoadedAsset());
+    if (!LoadedMesh)
+    {
+        WeaponMeshLoadHandle.Reset();
+        return;
+    }
 
-    if (LoadedMesh)
+    WeaponMesh->SetSkeletalMesh(LoadedMesh);
+
+    if (!bIsActiveWeapon)
     {
-        WeaponMesh->SetSkeletalMesh(LoadedMesh);
-        
-        if (bIsActiveWeapon)
-        {
-            SetActorHiddenInGame(false);
-            AttachToCharacter();
-        }
-        else
-        {
-            SetActorHiddenInGame(true);
-        }
-        
-        UE_LOG(LogTemp, Log, TEXT("WeaponBase: Mesh Loaded and Attached for %s"), *InWeaponTag.ToString());
+        SetActorHiddenInGame(true);
+        WeaponMeshLoadHandle.Reset();
+        return;
     }
-    else
-    {
-        UE_LOG(LogTemp, Error, TEXT("WeaponBase: Failed to Load SkeletalMesh for %s"), *InWeaponTag.ToString());
-    }
+
+    SetActorHiddenInGame(false);
+    AttachToCharacter();
+    WeaponMeshLoadHandle.Reset();
 }
 
 void AWeaponBase::AttachToCharacter()
 {
-    IAbilitySystemInterface* ASCHolder = Cast<IAbilitySystemInterface>(WeaponOwner.Get());
-    if (ASCHolder && ASCHolder->GetAbilitySystemComponent())
-    {
-        // 장착 태그 부여 (중첩 방지를 위해 하나만 부여)
-        ASCHolder->GetAbilitySystemComponent()->AddLooseGameplayTag(CurrentDataAsset->WeaponData.WeaponTag);
-    }
+    UpdateOwnerGameplayTag(true);
+
+    if (!WeaponOwner.IsValid() || !CurrentDataAsset) return;
 
     USkeletalMeshComponent* ParentMesh = WeaponOwner->FindComponentByClass<USkeletalMeshComponent>();
-    if (ParentMesh)
-    {
-        AttachToComponent(ParentMesh, FAttachmentTransformRules::SnapToTargetIncludingScale,
-                          CurrentDataAsset->WeaponData.HandSocketName);
-        WeaponMesh->SetRelativeTransform(CurrentDataAsset->WeaponData.WeaponMeshOffset);
-    }
+    if (!ParentMesh) return;
+
+    AttachToComponent(
+        ParentMesh,
+        FAttachmentTransformRules::SnapToTargetIncludingScale,
+        CurrentDataAsset->WeaponData.HandSocketName);
+
+    WeaponMesh->SetRelativeTransform(CurrentDataAsset->WeaponData.WeaponMeshOffset);
 }
 
 void AWeaponBase::DetachFromCharacter()
 {
-    IAbilitySystemInterface* ASCHolder = Cast<IAbilitySystemInterface>(WeaponOwner.Get());
-    if (ASCHolder && ASCHolder->GetAbilitySystemComponent())
-    {
-        // 태그 제거
-        ASCHolder->GetAbilitySystemComponent()->RemoveLooseGameplayTag(CurrentDataAsset->WeaponData.WeaponTag);
-    }
+    UpdateOwnerGameplayTag(false);
     DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+}
+
+void AWeaponBase::UpdateOwnerGameplayTag(bool bAddTag)
+{
+    UAbilitySystemComponent* ASC = GetOwnerASC();
+    if (!ASC || !CurrentDataAsset) return;
+
+    if (bAddTag)
+    {
+        ASC->AddLooseGameplayTag(CurrentDataAsset->WeaponData.WeaponTag);
+    }
+    else
+    {
+        ASC->RemoveLooseGameplayTag(CurrentDataAsset->WeaponData.WeaponTag);
+    }
 }
 
 void AWeaponBase::ExecuteWeaponEffects(EWeaponActionType ActionType)
 {
     if (!CurrentDataAsset) return;
-    const FWeaponData& Data = CurrentDataAsset->WeaponData;
 
-    // Fire/Reload 시 사운드 및 VFX 재생
+    PlayActionSound(ActionType);
+    SpawnActionEffects();
+}
+
+void AWeaponBase::PlayActionSound(EWeaponActionType ActionType)
+{
+    const FWeaponData& Data = CurrentDataAsset->WeaponData;
     USoundBase* TargetSound = (ActionType == EWeaponActionType::Fire)
                                   ? Data.FireSound.LoadSynchronous()
                                   : Data.ReloadSound.LoadSynchronous();
-    if (TargetSound)
-    {
-        UGameplayStatics::PlaySoundAtLocation(this, TargetSound, GetMuzzleLocation());
-    }
 
-    if (UNiagaraSystem* VFX = Data.MuzzleFlash.LoadSynchronous())
-    {
-        UNiagaraFunctionLibrary::SpawnSystemAttached(VFX, WeaponMesh, Data.MuzzleSocketName, FVector::ZeroVector,
-                                                     FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true);
-    }
+    if (!TargetSound) return;
+    UGameplayStatics::PlaySoundAtLocation(this, TargetSound, GetMuzzleLocation());
+}
+
+void AWeaponBase::SpawnActionEffects()
+{
+    const FWeaponData& Data = CurrentDataAsset->WeaponData;
+    UNiagaraSystem* VFX = Data.MuzzleFlash.LoadSynchronous();
+    if (!VFX) return;
+
+    UNiagaraFunctionLibrary::SpawnSystemAttached(
+        VFX,
+        WeaponMesh,
+        Data.MuzzleSocketName,
+        FVector::ZeroVector,
+        FRotator::ZeroRotator,
+        EAttachLocation::SnapToTarget,
+        true);
 }
 
 void AWeaponBase::InitializeAttributes()
 {
     if (!CurrentDataAsset) return;
 
-    // 1. 무기 자체가 태생적으로 가져야 할 탄약 수치를 데이터 에셋에서 가져와 저장합니다.
+    // 1. 탄약 수치 초기화 (공통)
     CurrentAmmoCount = CurrentDataAsset->WeaponData.DefaultMaxAmmo;
 
-    // 2. 만약 이 무기가 '손에 들린 상태'라면 캐릭터의 실시간 스탯(AttributeSet)도 즉시 업데이트합니다.
-    if (bIsActiveWeapon && WeaponOwner.IsValid())
-    {
-        if (IAbilitySystemInterface* ASCHolder = Cast<IAbilitySystemInterface>(WeaponOwner.Get()))
-        {
-            UAbilitySystemComponent* ASC = ASCHolder->GetAbilitySystemComponent();
-            if (UWeaponAttributeSet* WeaponAS = const_cast<UWeaponAttributeSet*>(ASC->GetSet<UWeaponAttributeSet>()))
-            {
-                // 여기서 0/0 현상을 방지하기 위해 직접 값을 밀어넣습니다.
-                WeaponAS->SetMaxAmmo(CurrentDataAsset->WeaponData.DefaultMaxAmmo);
-                WeaponAS->SetCurrentAmmo(CurrentDataAsset->WeaponData.DefaultMaxAmmo);
-            }
-        }
-    }
+    // 2. 활성화 상태가 아니거나 주인이 없으면 중단
+    if (!bIsActiveWeapon) return;
+
+    UAbilitySystemComponent* ASC = GetOwnerASC();
+    if (!ASC) return;
+
+    // 3. 어트리뷰트 셋 확인 및 값 설정
+    UWeaponAttributeSet* WeaponAS = const_cast<UWeaponAttributeSet*>(ASC->GetSet<UWeaponAttributeSet>());
+    if (!WeaponAS) return;
+
+    WeaponAS->SetMaxAmmo(CurrentDataAsset->WeaponData.DefaultMaxAmmo);
+    WeaponAS->SetCurrentAmmo(CurrentDataAsset->WeaponData.DefaultMaxAmmo);
+}
+
+UAbilitySystemComponent* AWeaponBase::GetOwnerASC() const
+{
+    if (!WeaponOwner.IsValid()) return nullptr;
+
+    IAbilitySystemInterface* ASCHolder = Cast<IAbilitySystemInterface>(WeaponOwner.Get());
+    return ASCHolder ? ASCHolder->GetAbilitySystemComponent() : nullptr;
 }
 
 FVector AWeaponBase::GetMuzzleLocation() const
 {
-    return (WeaponMesh && CurrentDataAsset)
-               ? WeaponMesh->GetSocketLocation(CurrentDataAsset->WeaponData.MuzzleSocketName)
-               : GetActorLocation();
+    if (!WeaponMesh || !CurrentDataAsset)
+    {
+        return GetActorLocation();
+    }
+
+    return WeaponMesh->GetSocketLocation(CurrentDataAsset->WeaponData.MuzzleSocketName);
 }
