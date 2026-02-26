@@ -12,6 +12,9 @@ class FINALMINUTES_API APlayerHUD : public AHUD
 {
 	GENERATED_BODY()
 	
+public:
+	UPlayerStatusWidget* GetMainHUDWidget();
+	
 protected:
 	virtual void BeginPlay() override;
 
@@ -23,10 +26,9 @@ private:
 	void TryCreateWidgetFromPawn(APawn* NewPawn);
 	void CreateAndInit(UAbilitySystemComponent* ASC);
 	
-private:
 	UPROPERTY(EditDefaultsOnly, Category="UI")
-	TSubclassOf<UPlayerStatusWidget> StatusWidgetClass;
+	TSubclassOf<UPlayerStatusWidget> MainHUDWidgetClass;
 
 	UPROPERTY()
-	TObjectPtr<UPlayerStatusWidget> StatusWidget;
+	TObjectPtr<UPlayerStatusWidget> MainHUDWidget; 
 };
