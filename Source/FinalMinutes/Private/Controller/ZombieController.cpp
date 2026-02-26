@@ -2,7 +2,7 @@
 
 AZombieController::AZombieController()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 }
 
 

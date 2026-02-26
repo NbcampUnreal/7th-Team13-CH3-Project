@@ -6,7 +6,7 @@
 #include "Monster/AMonsterCharacter.h"
 #include "Perception/AIPerceptionComponent.h"
 
-const FName AAIBaseController::TargetKey(TEXT("Target"));
+const FName AAIBaseController::TargetKey(TEXT("TargetActor"));
 const FName AAIBaseController::StateKey(TEXT("MonsterStats"));
 
 AAIBaseController::AAIBaseController()
@@ -23,12 +23,13 @@ void AAIBaseController::OnPossess(APawn* InPawn)
 	
 	if (BTAsset)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("!!! BT STARTED !!!"));
 		RunBehaviorTree(BTAsset);
 	}
 	
-	if (AAMonsterCharacter* PossessedMonster = Cast<AAMonsterCharacter>(InPawn))
+	if (InPawn)
 	{
-		PossessedMonster->bUseControllerRotationYaw = false;
+		InPawn->bUseControllerRotationYaw = false;
 	}
 	
 	GetWorldTimerManager().SetTimer(
@@ -56,10 +57,11 @@ void AAIBaseController::BeginPlay()
 void AAIBaseController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
+	
 	APawn* MyPawn = GetPawn();
 	if (MyPawn && !TargetRotation.IsNearlyZero())
 	{
+		
 		FRotator CurrentRot = MyPawn->GetActorRotation();
 		FRotator SmoothRot = FMath::RInterpTo(CurrentRot, TargetRotation, DeltaTime, 10.0f);
 		
@@ -82,11 +84,13 @@ void AAIBaseController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Sti
 
 	if (Stimulus.WasSuccessfullySensed())
 	{
-		BlackboardComp->SetValueAsObject(TEXT("TargetActor"), Actor);
+		GetWorldTimerManager().PauseTimer(RandomMoveTimer);
+		BlackboardComp->SetValueAsObject(TargetKey, Actor);
 	}
 	else
 	{
-		BlackboardComp->ClearValue(TEXT("TargetActor"));
+		BlackboardComp->ClearValue(TargetKey);
+		GetWorldTimerManager().UnPauseTimer(RandomMoveTimer);
 	}
 }
 
@@ -107,8 +111,6 @@ void AAIBaseController::MoveToRandomLocation()
 	
 	if (bFound)
 	{
-		MoveToLocation(RandomLocation.Location);
-		
 		FVector Direction = (RandomLocation.Location - GetPawn()->GetActorLocation()).GetSafeNormal();
 		if (!Direction.IsNearlyZero())
 		{
@@ -116,6 +118,8 @@ void AAIBaseController::MoveToRandomLocation()
 			TargetRotation.Pitch = 0.f;
 			TargetRotation.Roll = 0.f;
 		}
+		
+		MoveToLocation(RandomLocation.Location);
 	}
 }
 
