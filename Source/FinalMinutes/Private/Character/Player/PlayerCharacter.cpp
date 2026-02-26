@@ -47,6 +47,11 @@ void APlayerCharacter::BeginPlay()
     CrouchTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsCrouching"));
     RollTag  = FGameplayTag::RequestGameplayTag(FName("State.Player.IsRolling"));
 
+    DefaultSecondaryWeaponTag = FGameplayTag::RequestGameplayTag(FName("Weapon.Type.Pistol"));
+    
+    // 실제 게임할 때는 이 줄은 주석 처리
+    // DefaultPrimaryWeaponTag = FGameplayTag::RequestGameplayTag(FName("Weapon.Type.Rifle"));
+    
     // 약간의 지연 후 장착 (서브시스템 로딩 대기)
     FTimerHandle TimerHandle;
     GetWorldTimerManager().SetTimer(TimerHandle, [this]()
