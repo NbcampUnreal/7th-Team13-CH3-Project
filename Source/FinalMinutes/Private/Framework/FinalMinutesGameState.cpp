@@ -17,10 +17,8 @@ void AFinalMinutesGameState::BeginPlay()
 	OnKillCountChanged.Broadcast(KillCount);
 	
 	//테스트용 시간
-	GameTime = 590.0f;
+	//GameTime = 590.0f;
 	
-	//디버깅용
-	UE_LOG(LogTemp, Warning, TEXT("게임 시작됨"));
 }
 
 void AFinalMinutesGameState::Tick(float DeltaSeconds)

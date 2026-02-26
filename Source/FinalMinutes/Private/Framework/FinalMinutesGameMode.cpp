@@ -19,7 +19,13 @@ AFinalMinutesGameMode::AFinalMinutesGameMode()
 void AFinalMinutesGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-	GameStart();
+	//ui만 조작 가능하게 마우스 소환
+	if (APlayerController* PC = UGameplayStatics::GetPlayerController(this,0))
+	{
+		//마우스 커서 키고
+		PC->SetShowMouseCursor(true);
+		PC->SetInputMode(FInputModeUIOnly()); // UI만 클릭 가능하게
+	}
 }
 
 void AFinalMinutesGameMode::GameStart()
@@ -32,6 +38,13 @@ void AFinalMinutesGameMode::GameStart()
 		&AFinalMinutesGameMode::GameClear, 
 		TimeLimit, 
 		false);
+	
+	//Start 버튼 누른 후 마우스 다시 커서 해제 에임모드 ON
+	if (APlayerController* PC = UGameplayStatics::GetPlayerController(this,0))
+	{
+		PC->SetShowMouseCursor(false); //마우스 숨기기
+		PC->SetInputMode(FInputModeGameOnly());//게임 조작만 가능하게
+	}
 }
 
 void AFinalMinutesGameMode::GamePause(bool bIsPause)
