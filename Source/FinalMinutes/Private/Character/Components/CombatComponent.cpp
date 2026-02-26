@@ -27,28 +27,10 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
-void UCombatComponent::Fire()
-{
-	// ASC를 통해 입력 태그를 전달하여 GA_Fire 실행
-    if (UAbilitySystemComponent* ASC = GetOwnerASC())
-    {
-        // 1. 실행하고자 하는 어빌리티가 가진 태그를 컨테이너에 담습니다.
-        FGameplayTag FireTag = FGameplayTag::RequestGameplayTag(TEXT("Weapon.State.Fire"));
-        FGameplayTagContainer TagContainer(FireTag);
-
-        // 2. 해당 태그를 가진 어빌리티를 찾아 실행을 시도합니다.
-        ASC->TryActivateAbilitiesByTag(TagContainer);
-    }
-}
-
 UAbilitySystemComponent* UCombatComponent::GetOwnerASC() const
 {
     // OwnerCharacter가 불완전한 타입이 아니어야 GetAbilitySystemComponent() 호출 가능
     return OwnerCharacter ? OwnerCharacter->GetAbilitySystemComponent() : nullptr;
-}
-
-void UCombatComponent::Reload()
-{
 }
 
 void UCombatComponent::EquipWeapon(FGameplayTag Tag)
@@ -97,20 +79,13 @@ void UCombatComponent::EquipWeapon(FGameplayTag Tag)
             ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetCurrentAmmoAttribute(), WeaponData->WeaponData.DefaultMaxAmmo);
             
             FGameplayAbilitySpec FireSpec(FireAbilityClass);
-            // 입력 태그 매핑
-            FireSpec.DynamicAbilityTags.AddTag(FGameplayTag::RequestGameplayTag(TEXT("Weapon.State.Fire")));
-            
-            FGameplayAbilitySpecHandle Handle = ASC->GiveAbility(FireSpec);
         }
     }
 }
 
 void UCombatComponent::SwapWeapon()
 {
-}
-
-void UCombatComponent::ToggleZoom()
-{
+    
 }
 
 void UCombatComponent::PerformTrace()

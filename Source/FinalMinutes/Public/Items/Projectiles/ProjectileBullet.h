@@ -14,28 +14,29 @@ class UStaticMeshComponent;
 UCLASS()
 class FINALMINUTES_API AProjectileBullet : public AActor
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-	AProjectileBullet();
-	
-	/** 발사 시 무기(GA)에서 호출하여 데미지 스펙과 속도를 주입함 */
+    AProjectileBullet();
+
+    /** 발사 시 무기(GA)에서 호출하여 데미지 스펙과 속도를 주입함 */
     virtual void InitializeProjectile(const FGameplayEffectSpecHandle& InSpecHandle, float InSpeed);
 
 protected:
-	virtual void BeginPlay() override;
-	virtual void Tick(float DeltaTime) override;
-	
-	// 이전 프레임의 위치를 저장
+    virtual void BeginPlay() override;
+    virtual void Tick(float DeltaTime) override;
+
+    // 이전 프레임의 위치를 저장
     FVector LastLocation;
 
     // 디버그 라인 지속 시간
     UPROPERTY(EditDefaultsOnly, Category = "Debug")
     float DebugLineDuration = 10.0f;
-	
-	/** 실제 충돌 처리 */
+
+    /** 실제 충돌 처리 */
     UFUNCTION()
-    virtual void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+    virtual void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp,
+                       FVector NormalImpulse, const FHitResult& Hit);
 
 protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")

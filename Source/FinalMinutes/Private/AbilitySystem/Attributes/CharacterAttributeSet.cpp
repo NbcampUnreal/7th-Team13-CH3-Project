@@ -85,13 +85,46 @@ void UCharacterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModC
         const float NewHealth = FMath::Clamp(GetHealth() - DamageValue, 0.0f, GetMaxHealth());
         SetHealth(NewHealth);
         
-        // GameplayCue에 넘길 파라미터
-        FGameplayCueParameters Parameters;
-        Parameters.RawMagnitude = DamageValue;
-        
-        // 태그를 가진 Cue를 실행
-        const FGameplayTag DamageTag = FGameplayTag::RequestGameplayTag(FName("GameplayCue.Character.Damaged"));
-        GetOwningAbilitySystemComponent()->ExecuteGameplayCue(DamageTag, Parameters);
+        // 데미지를 받고서 피가 0이상이면 피격효과 
+        HandleHitReaction(DamageValue);
+
+        // 피가 0 이하면 사망로직
+        if (NewHealth <= 0) HandleDeath();
     }
+}
+
+void UCharacterAttributeSet::HandleDeath()
+{
+    UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
+    if (!ASC) return;
+    FGameplayEventData Payload;
+    Payload.EventTag = FGameplayTag::RequestGameplayTag(FName("Event.Montage.Death"));
+    
+    if (ASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsCrouching"))))
+    {
+        Payload.EventMagnitude = 1.0f;
+    }
+    else if (ASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning"))))
+    {
+        Payload.EventMagnitude = 2.0f;
+    }
+    else
+    {
+        Payload.EventMagnitude = 0.0f;
+    }
+    ASC->HandleGameplayEvent(Payload.EventTag, &Payload);
+}
+
+void UCharacterAttributeSet::HandleHitReaction(const float DamageValue)
+{
+    // GameplayCue에 넘길 파라미터
+    FGameplayCueParameters Parameters;
+    Parameters.RawMagnitude = DamageValue;
+    
+    // 태그를 가진 Cue를 실행
+    const FGameplayTag DamageTag = FGameplayTag::RequestGameplayTag(FName("GameplayCue.Character.Damaged"));
+    UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
+    if (!ASC) return;
+    ASC->ExecuteGameplayCue(DamageTag, Parameters);
 }
 
