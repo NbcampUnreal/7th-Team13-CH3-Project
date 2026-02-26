@@ -10,6 +10,15 @@ void APlayerHUD::BeginPlay()
 
 	APlayerController* PC = GetOwningPlayerController();
 	if (!PC) return;
+	
+	if (MainHUDWidgetClass && !MainHUDWidget)
+	{
+		MainHUDWidget = CreateWidget<UPlayerStatusWidget>(PC, MainHUDWidgetClass);
+		if (MainHUDWidget)
+		{
+			MainHUDWidget->AddToViewport();
+		}
+	}
 
 	// 이미 Pawn이 있으면 바로 위젯 생성/ASC 연결
 	TryCreateWidgetFromPawn(PC->GetPawn());
@@ -26,8 +35,6 @@ void APlayerHUD::OnPawnChanged(APawn* NewPawn)
 
 void APlayerHUD::TryCreateWidgetFromPawn(APawn* NewPawn)
 {
-	if (StatusWidget) return;          // 중복 생성 방지
-	if (!StatusWidgetClass) return;
 	if (!NewPawn) return;
 
 	APlayerCharacter* PlayerChar = Cast<APlayerCharacter>(NewPawn);
@@ -41,12 +48,37 @@ void APlayerHUD::TryCreateWidgetFromPawn(APawn* NewPawn)
 
 void APlayerHUD::CreateAndInit(UAbilitySystemComponent* ASC)
 {
+	if (!ASC) return;
+	if (!MainHUDWidgetClass) return;
+	
 	APlayerController* PC = GetOwningPlayerController();
 	if (!PC) return;
 
-	StatusWidget = CreateWidget<UPlayerStatusWidget>(PC, StatusWidgetClass);
-	if (!StatusWidget) return;
+	if (!MainHUDWidget)
+	{
+		MainHUDWidget = CreateWidget<UPlayerStatusWidget>(PC, MainHUDWidgetClass);
+		if (!MainHUDWidget) return;
 
-	StatusWidget->AddToViewport();
-	StatusWidget->InitWithASC(ASC);
+		MainHUDWidget->AddToViewport();
+	}
+
+	// Pawn/ASC가 바뀔 때마다 항상 다시 연결
+	MainHUDWidget->InitWithASC(ASC);
+}
+
+UPlayerStatusWidget* APlayerHUD::GetMainHUDWidget()
+{
+	if (!MainHUDWidget)
+	{
+		APlayerController* PC = GetOwningPlayerController();
+		if (PC && MainHUDWidgetClass)
+		{
+			MainHUDWidget = CreateWidget<UPlayerStatusWidget>(PC, MainHUDWidgetClass);
+			if (MainHUDWidget)
+			{
+				MainHUDWidget->AddToViewport();
+			}
+		}
+	}
+	return MainHUDWidget;
 }

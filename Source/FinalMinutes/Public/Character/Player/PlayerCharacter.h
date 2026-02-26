@@ -15,6 +15,8 @@ class UInputAction;
 class UCameraComponent;
 class USpringArmComponent;
 class UGameplayEffect;
+class UInventoryComponent;
+class UPlayerStatusWidget;
 
 UCLASS()
 class FINALMINUTES_API APlayerCharacter : public ACharacter, public IAbilitySystemInterface
@@ -75,6 +77,12 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat | Init")
     FGameplayTag DefaultPrimaryWeaponTag;
 
+    UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+    FGameplayTag DefaultWeaponTag;
+public:
+    // 우리가 만든 인벤토리 컴포넌트를 담을 변수!
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    UInventoryComponent* InventoryComponent;
 protected:
 #pragma region 이동
     UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
@@ -201,7 +209,21 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "Abilities")
     TSubclassOf<UGameplayEffect> StaminaRegenEffectClass;
 #pragma endregion
+#pragma region 인벤토리
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS|Input")
+    UInputAction* IA_Inventory;
+
+    void ToggleInventoryInput();
+#pragma endregion	
 
 public:
     virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+protected:
+    virtual void PossessedBy(AController* NewController) override;
+
+    UPROPERTY()
+    TObjectPtr<UPlayerStatusWidget> MainHUD = nullptr;
+
+    void CacheMainHUD();
 };
