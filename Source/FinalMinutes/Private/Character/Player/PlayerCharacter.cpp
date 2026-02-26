@@ -38,6 +38,14 @@ void APlayerCharacter::BeginPlay()
     FollowCamera = FindComponentByClass<UCameraComponent>();
     // ASC초기화
     InitializeAbilitySystem();
+    
+    ReloadTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsReloading"));
+    // 기존에 AttackTag 있어서 다른 이름으로 사용
+    AttackingTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsAttacking"));
+    ProneTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning"));
+    DeathTag = FGameplayTag::RequestGameplayTag(FName("State.Player.Death"));
+    CrouchTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsCrouching"));
+    RollTag  = FGameplayTag::RequestGameplayTag(FName("State.Player.IsRolling"));
 
     if (CombatComponent && DefaultWeaponTag.IsValid())
     {
@@ -166,23 +174,30 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
     }
 }
 
+bool APlayerCharacter::CanMove() const
+{
+    if (!AbilitySystemComponent) return false;
+    static FGameplayTagContainer MoveBlockTags;
+    
+    if (MoveBlockTags.IsEmpty())
+    {
+        MoveBlockTags.AddTag(ReloadTag);
+        MoveBlockTags.AddTag(DeathTag);
+    }
+    
+    if (AbilitySystemComponent->HasAnyMatchingGameplayTags(MoveBlockTags)) return false;
+    
+    const bool bIsAttacking = AbilitySystemComponent->HasMatchingGameplayTag(AttackingTag);
+    const bool bIsProning = AbilitySystemComponent->HasMatchingGameplayTag(ProneTag);
+    if (bIsAttacking && bIsProning) return false;
+    return true;
+}
+
+
 void APlayerCharacter::Move(const FInputActionValue& value)
 {
-    if (!AbilitySystemComponent) return;
     if (!Controller) return;
-
-    // 장전 중, 엎드린상태에서 공격중에는 움직일 수 없음
-    FGameplayTag ReloadingTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsReloading"));
-    FGameplayTag AttackingTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsAttacking"));
-    FGameplayTag ProneTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning"));
-    FGameplayTag DeathTag = FGameplayTag::RequestGameplayTag(FName("State.Player.Death"));
-
-    const bool bIsReloading = AbilitySystemComponent->HasMatchingGameplayTag(ReloadingTag);
-    const bool bIsAttacking = AbilitySystemComponent->HasMatchingGameplayTag(AttackingTag);
-    const bool bIsProning   = AbilitySystemComponent->HasMatchingGameplayTag(ProneTag);
-    const bool bIsDeath   = AbilitySystemComponent->HasMatchingGameplayTag(DeathTag);
-    
-    if (bIsReloading || (bIsAttacking && bIsProning) || bIsDeath) return;
+    if (!CanMove()) return;
     
     const FVector2D MoveInput = value.Get<FVector2D>();
 
@@ -202,10 +217,8 @@ void APlayerCharacter::Move(const FInputActionValue& value)
 void APlayerCharacter::OnCrouch(const FInputActionValue& Value)
 {
     if (!AbilitySystemComponent) return;
-    FGameplayTag CrouchStateTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsCrouching"));
-
     // 현재 앉은 상태 태그가 있는지 확인
-    if (!AbilitySystemComponent->HasMatchingGameplayTag(CrouchStateTag))
+    if (!AbilitySystemComponent->HasMatchingGameplayTag(CrouchTag))
     {
         // 태그가 없다면 -> 앉기 실행
         FGameplayTagContainer AbilityTags;
@@ -224,9 +237,7 @@ void APlayerCharacter::OnCrouch(const FInputActionValue& Value)
 void APlayerCharacter::OnProne(const FInputActionValue& Value)
 {
     if (!AbilitySystemComponent) return;
-    FGameplayTag ProneStateTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning"));
-
-    if (!AbilitySystemComponent->HasMatchingGameplayTag(ProneStateTag))
+    if (!AbilitySystemComponent->HasMatchingGameplayTag(ProneTag))
     {
         FGameplayTagContainer AbilityTags;
         AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Prone")));
@@ -235,8 +246,8 @@ void APlayerCharacter::OnProne(const FInputActionValue& Value)
     else
     {
         FGameplayEventData Payload;
-        AbilitySystemComponent->HandleGameplayEvent(FGameplayTag::RequestGameplayTag(FName("State.Prone.End")),
-                                                    &Payload);
+        AbilitySystemComponent->HandleGameplayEvent
+        (FGameplayTag::RequestGameplayTag(FName("State.Prone.End")), &Payload);
     }
 }
 
@@ -244,10 +255,8 @@ void APlayerCharacter::OnRoll(const FInputActionValue& Value)
 {
     if (!AbilitySystemComponent) return;
     // 이미 구르는 중인지 확인
-    FGameplayTag RollingTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsRolling"));
-
     // 구르는 중이 아닐 때만 구를수 있게
-    if (!AbilitySystemComponent->HasMatchingGameplayTag(RollingTag))
+    if (!AbilitySystemComponent->HasMatchingGameplayTag(RollTag))
     {
         FGameplayTagContainer AbilityTags;
         AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Roll")));
@@ -261,8 +270,6 @@ void APlayerCharacter::OnReload(const FInputActionValue& Value)
 {
     if (!AbilitySystemComponent) return;
     // 이미 장전 중인지 확인
-    FGameplayTag ReloadTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsReloading"));
-
     // 장전중이 아닐때만 장전 가능하게
     if (!AbilitySystemComponent->HasMatchingGameplayTag(ReloadTag))
     {
@@ -291,25 +298,32 @@ void APlayerCharacter::OnAttackEnded(const FInputActionValue& Value)
     AbilitySystemComponent->CancelAbilities(&CancelTags);
 }
 
+bool APlayerCharacter::CanJump() const
+{
+    if (!AbilitySystemComponent) return false;
+    
+    static FGameplayTagContainer JumpBlockTags;
+    
+    if (JumpBlockTags.IsEmpty())
+    {
+        JumpBlockTags.AddTag(ReloadTag);
+        JumpBlockTags.AddTag(AttackingTag);
+        JumpBlockTags.AddTag(ProneTag);
+        JumpBlockTags.AddTag(CrouchTag);
+        JumpBlockTags.AddTag(RollTag);
+    }
+    
+    return !AbilitySystemComponent->HasAnyMatchingGameplayTags(JumpBlockTags);
+}
+
 void APlayerCharacter::StartJump(const FInputActionValue& value)
 {
-    if (!AbilitySystemComponent || AbilitySystemComponent->HasMatchingGameplayTag(
-        FGameplayTag::RequestGameplayTag(FName("State.Player.IsRolling"))))
-    {
-        return;
-    }
-
+    if (!CanJump()) return;
     Jump();
 }
 
 void APlayerCharacter::StopJump(const FInputActionValue& value)
 {
-    if (!AbilitySystemComponent || AbilitySystemComponent->HasMatchingGameplayTag(
-        FGameplayTag::RequestGameplayTag(FName("State.Player.IsRolling"))))
-    {
-        return;
-    }
-
     StopJumping();
 }
 

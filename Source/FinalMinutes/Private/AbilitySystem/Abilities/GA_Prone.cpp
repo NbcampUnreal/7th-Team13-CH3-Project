@@ -17,6 +17,7 @@ UGA_Prone::UGA_Prone()
 	// 이태그가 있으면 실행안함, 현재는 OnProne에서 State.Prone.End을 호출해서 종료하는식이라서 필요없어 보이지만
 	// 이 Blcoked태그가 없으면 연타했을때 이상하게 작동함
 	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning")));
+	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.Death")));
 
 	// 소유태그 / 실행중 어떤 태그를 가질지
 	ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning")));
@@ -43,10 +44,18 @@ void UGA_Prone::ActivateAbility(
 		return;
 	}
 	AActor* Avatar = GetAvatarActorFromActorInfo();
-	if (!Avatar) return;
+	if (!Avatar)
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
 	
 	ACharacter* Character = Cast<ACharacter>(Avatar);
-	if (!Character) return;
+	if (!Character)
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
 
 	// 기존 높이 저장
 	Character->GetCapsuleComponent()->SetCapsuleHalfHeight(30.f);
@@ -68,7 +77,11 @@ void UGA_Prone::ActivateAbility(
 		this, 
 		FGameplayTag::RequestGameplayTag(FName("State.Prone.End"))
 	);
-	if (!WaitProneEventTask) return;
+	if (!WaitProneEventTask)
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
 	
 	// 이벤트 델리게이트
 	WaitProneEventTask->EventReceived.AddDynamic(this, &UGA_Prone::OnProneExitRequested);
@@ -89,8 +102,8 @@ void UGA_Prone::EndAbility(
 	bool bWasCancelled)
 {
 	APlayerCharacter* Character = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
-	if (!Character) return;
-	if (Character->GetMesh() && Character->GetMesh()->GetAnimInstance())
+
+	if (Character && Character->GetMesh() && Character->GetMesh()->GetAnimInstance())
 	{
 		Character->GetMesh()->GetAnimInstance()->Montage_Stop(0.2f, ProneMontage);
 		Character->GetCapsuleComponent()->SetCapsuleSize(34.f, 90.f);
@@ -99,8 +112,7 @@ void UGA_Prone::EndAbility(
 	
 	// 추가 정리작업
 	UAbilitySystemComponent* MyASC = GetAbilitySystemComponentFromActorInfo();
-	if (!MyASC) return;
-	if (ActiveProneEffectHandle.IsValid())
+	if (MyASC && ActiveProneEffectHandle.IsValid())
 	{
 		bool bRemoved = MyASC->RemoveActiveGameplayEffect(ActiveProneEffectHandle);
 		ActiveProneEffectHandle.Invalidate(); // 핸들 초기화
