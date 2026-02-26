@@ -50,5 +50,4 @@ public:
 	//플레이어 마지막 스테미나
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveData", SaveGame)
 	float CurrentStamina = 100.0f;
-
 };
