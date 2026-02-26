@@ -17,6 +17,7 @@ class FINALMINUTES_API UWeaponRegistrySubsystem : public UGameInstanceSubsystem
     GENERATED_BODY()
 
 public:
+    void Initialize(FSubsystemCollectionBase& Collection);
     /** 태그를 통해 무기 데이터 에셋을 검색 (이미 로드되어 있다고 가정하거나 로드 요청) */
     UFUNCTION(BlueprintCallable, Category = "Weapon")
     UWeaponDataAsset* GetWeaponDataByTag(FGameplayTag InTag);

@@ -15,6 +15,8 @@ class UInputAction;
 class UCameraComponent;
 class USpringArmComponent;
 class UGameplayEffect;
+class UInventoryComponent;
+class UPlayerStatusWidget;
 
 UCLASS()
 class FINALMINUTES_API APlayerCharacter : public ACharacter, public IAbilitySystemInterface
@@ -67,9 +69,20 @@ protected:
     UPROPERTY()
     TObjectPtr<UWeaponAttributeSet> WeaponAttributeSet;
 
+    /** 게임 시작 시 기본으로 장착할 보조무기(권총) 태그 */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat | Init")
+    FGameplayTag DefaultSecondaryWeaponTag;
+
+    /** 만약 시작부터 주무기를 들려주고 싶다면 추가 (현재는 기획상 비워둠) */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat | Init")
+    FGameplayTag DefaultPrimaryWeaponTag;
+
     UPROPERTY(EditDefaultsOnly, Category = "Weapon")
     FGameplayTag DefaultWeaponTag;
-
+public:
+    // 우리가 만든 인벤토리 컴포넌트를 담을 변수!
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    UInventoryComponent* InventoryComponent;
 protected:
 #pragma region 이동
     UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
@@ -143,8 +156,16 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
     TObjectPtr<UInputAction> IA_Attack;
 
+    UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
+    TObjectPtr<UInputAction> IA_Weapon1;
+
+    UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
+    TObjectPtr<UInputAction> IA_Weapon2;
+
     void OnAttackStarted(const FInputActionValue& value);
     void OnAttackEnded(const FInputActionValue& value);
+    void OnWeapon1Input();
+    void OnWeapon2Input();
 #pragma endregion
 
 #pragma region 전력질주
@@ -188,7 +209,21 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "Abilities")
     TSubclassOf<UGameplayEffect> StaminaRegenEffectClass;
 #pragma endregion
+#pragma region 인벤토리
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS|Input")
+    UInputAction* IA_Inventory;
+
+    void ToggleInventoryInput();
+#pragma endregion	
 
 public:
     virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+protected:
+    virtual void PossessedBy(AController* NewController) override;
+
+    UPROPERTY()
+    TObjectPtr<UPlayerStatusWidget> MainHUD = nullptr;
+
+    void CacheMainHUD();
 };
