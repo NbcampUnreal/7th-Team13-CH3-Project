@@ -39,6 +39,14 @@ void AFinalMinutesGameMode::GameStart()
 		TimeLimit, 
 		false);
 	
+	//게임 스테이트 불러와서 게임 시작하기
+	AFinalMinutesGameState* GS = GetGameState<AFinalMinutesGameState>();
+	if (GS)
+	{
+		//게임 시작하면 틱 돌기
+		GS->bIsGameStarted = true;
+	}
+	
 	//Start 버튼 누른 후 마우스 다시 커서 해제 에임모드 ON
 	if (APlayerController* PC = UGameplayStatics::GetPlayerController(this,0))
 	{

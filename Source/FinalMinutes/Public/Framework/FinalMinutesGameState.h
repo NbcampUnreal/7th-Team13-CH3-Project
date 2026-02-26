@@ -58,6 +58,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "BGM")
 	class USoundBase* BGM_Phase3;
+	
+	UPROPERTY(BlueprintReadWrite, Category = "GameRules")
+	bool bIsGameStarted = false;
 
 private:
 	int32 KillCount = 0;
