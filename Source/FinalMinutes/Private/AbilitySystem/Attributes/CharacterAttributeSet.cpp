@@ -1,5 +1,6 @@
 #include "AbilitySystem/Attributes/CharacterAttributeSet.h"
 #include "GameplayEffectExtension.h"
+#include "Framework/FinalMinutesGameMode.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -113,6 +114,16 @@ void UCharacterAttributeSet::HandleDeath()
         Payload.EventMagnitude = 0.0f;
     }
     ASC->HandleGameplayEvent(Payload.EventTag, &Payload);
+    
+    //사망 로직이 발동 된 이후 GameOver
+    if (AActor* AvatarActor = GetOwningActor())
+    {
+        AFinalMinutesGameMode* GM = Cast<AFinalMinutesGameMode>(AvatarActor->GetWorld()->GetAuthGameMode());
+        if (GM)
+        {
+            GM->GameOver(); // 사망 즉시 게임 오버 처리
+        }
+    }
 }
 
 void UCharacterAttributeSet::HandleHitReaction(const float DamageValue)
