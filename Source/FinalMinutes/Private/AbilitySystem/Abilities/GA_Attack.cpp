@@ -136,8 +136,8 @@ void UGA_Attack::SpawnProjectile() const
     FRotator ShootRotation = (TargetLocation - MuzzleLocation).Rotation();
 
     // 3. 데미지 정보 생성
-    FGameplayEffectSpecHandle DamageSpec = CreateDamageSpec(PlayerCharacter, CurrentWeapon, WeaponData.DefaultDamage);
-
+    FGameplayEffectSpecHandle DamageEffectSpecHandle = CreateDamageSpec(PlayerCharacter, CurrentWeapon, WeaponData.DefaultDamage);
+    
     // 4. 발사 연출 및 스폰
     CurrentWeapon->ExecuteWeaponEffects(EWeaponActionType::Fire);
 
@@ -149,7 +149,7 @@ void UGA_Attack::SpawnProjectile() const
     if (AProjectileBullet* Bullet = GetWorld()->SpawnActor<AProjectileBullet>(
         WeaponData.ProjectileClass, MuzzleLocation, ShootRotation, SpawnParams))
     {
-        Bullet->InitializeProjectile(DamageSpec, WeaponData.DefaultBulletSpeed);
+        Bullet->InitializeProjectile(DamageEffectSpecHandle, WeaponData.DefaultBulletSpeed);
     }
 }
 
@@ -179,9 +179,10 @@ FGameplayEffectSpecHandle UGA_Attack::CreateDamageSpec(APlayerCharacter* Instiga
     FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(DamageEffectClass, 1.0f, Context);
     if (SpecHandle.IsValid())
     {
-        FGameplayTag DamageTag = FGameplayTag::RequestGameplayTag(FName("Data.Stat.Damage"));
+        FGameplayTag DamageTag = FGameplayTag::RequestGameplayTag(FName("Weapon.Effect.Damage"));
         SpecHandle.Data.Get()->SetSetByCallerMagnitude(DamageTag, Damage);
     }
+    
     return SpecHandle;
 }
 

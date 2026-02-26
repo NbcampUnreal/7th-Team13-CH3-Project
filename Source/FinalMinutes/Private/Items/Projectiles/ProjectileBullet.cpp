@@ -14,6 +14,7 @@
 
 // 디버그 헬퍼
 #include "DrawDebugHelpers.h"
+#include "Interfaces/Damageable.h"
 
 AProjectileBullet::AProjectileBullet()
 {
@@ -94,9 +95,19 @@ void AProjectileBullet::OnHit(
     FVector NormalImpulse,
     const FHitResult& Hit)
 {
-    // 타겟이 유효하고 내가 쏜 사람이 아닐 때만 로직 실행
-    if (!OtherActor || OtherActor == GetInstigator()) return;
+    // 1. 기본 방어 로직
+    // 1. 자기 자신과 발사자 제외 (필수 최소 필터)
+    if (!OtherActor || OtherActor == GetInstigator() || OtherActor == this) return;
 
+    // 2. IDamageable 인터페이스 호출 (IDamageable 구현자라면 누구든)
+    IDamageable* DamageableTarget = Cast<IDamageable>(OtherActor);
+    if (DamageableTarget)
+    {
+        // 타겟인 몬스터에게 맞았다고 알려줌.
+        DamageableTarget->Execute_OnHitReaction(OtherActor, Hit);
+    }
+    
+    // 3. GAS 데이터 적용 (ASC 인터페이스 구현자라면 누구든)
     // 타겟이 GAS를 사용하는 클래스(IAbilitySystemInterface 상속)인지 확인합니다.
     IAbilitySystemInterface* ASCOwner = Cast<IAbilitySystemInterface>(OtherActor);
     if (!ASCOwner) return;
@@ -106,9 +117,7 @@ void AProjectileBullet::OnHit(
 
     // 저장해둔 데미지 효과를 타겟의 ASC에 직접 적용합니다.
     TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
-
-    // TODO: 피격 위치(Hit.ImpactPoint)에 따른 이펙트(혈흔, 스파크 등) 생성
-
+    
     // 충돌 후 총알 액터를 즉시 월드에서 제거합니다.
     Destroy();
 }
