@@ -115,6 +115,7 @@ void AFinalMinutesGameMode::GameOver()
 		PC->SetInputMode(FInputModeGameAndUI());
 	}
 	//패배 UI 가져오기
+	//
 	
 }
 
@@ -132,7 +133,10 @@ void AFinalMinutesGameMode::GameExit()
 		SaveSS->SaveGameData(RealKill, RealTime, SaveSS->CurrentSlotName);
 	}
 	//게임 종료
-	UKismetSystemLibrary::QuitGame(GetWorld(), UGameplayStatics::GetPlayerController(this, 0), EQuitPreference::Quit, true);
+	UKismetSystemLibrary::QuitGame(GetWorld(), UGameplayStatics::GetPlayerController(
+		this,
+		0),
+		EQuitPreference::Quit, false);
 }
 
 void AFinalMinutesGameMode::AdjustTimerAfterLoad(float LoadedTime)
