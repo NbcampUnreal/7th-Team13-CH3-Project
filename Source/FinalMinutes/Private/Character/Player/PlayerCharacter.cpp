@@ -217,6 +217,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
     if (IA_Weapon2)
     {
         EnhancedInput->BindAction(IA_Weapon2, ETriggerEvent::Started, this, &APlayerCharacter::OnWeapon2Input);
+    }
     if (IA_Inventory)
     {
         EnhancedInput->BindAction(IA_Inventory, ETriggerEvent::Started, this, &APlayerCharacter::ToggleInventoryInput);
