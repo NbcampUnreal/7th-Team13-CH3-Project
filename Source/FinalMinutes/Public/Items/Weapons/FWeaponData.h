@@ -17,6 +17,14 @@ enum class EWeaponActionType : uint8
     Equip
 };
 
+UENUM(BlueprintType)
+enum class EWeaponSlot : uint8
+{
+    Primary UMETA(DisplayName = "Primary (Rifle/Shotgun/Sniper/Grenade Launcher)"),
+    Secondary UMETA(DisplayName = "Secondary (Pistol)"),
+    None UMETA(DisplayName = "None")
+};
+
 /**
  * 
  */
@@ -34,6 +42,10 @@ public:
     /** 무기 식별 및 시스템 연동용 태그 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Info")
     FGameplayTag WeaponTag;
+
+    /** 무기가 장착될 기본 슬롯 설정 */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+    EWeaponSlot DefaultSlot = EWeaponSlot::None;
 #pragma endregion
 
 #pragma region 비주얼 및 오디오 에셋
@@ -59,14 +71,6 @@ public:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Audio")
     TSoftObjectPtr<USoundBase> ReloadSound;
-
-
-    /** 애니메이션 몽타주 */
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Animation")
-    TSoftObjectPtr<UAnimMontage> FireMontage;
-
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Animation")
-    TSoftObjectPtr<UAnimMontage> ReloadMontage;
 #pragma endregion
 
 #pragma region 소켓 및 투사체
@@ -90,12 +94,12 @@ public:
 #pragma region 초기 스탯 (AttributeSet 초기화용)
     /** 기본 탄창 크기 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")
-    float DefaultMaxAmmo = 30.0f;
+    int32 DefaultMaxAmmo = 30;
 
     /** 기본 공격력 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")
     float DefaultDamage = 20.0f;
-    
+
     /** 연사 가능 여부 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")
     bool bIsFullAuto = true;

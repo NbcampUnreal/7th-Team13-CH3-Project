@@ -52,10 +52,21 @@ void APlayerCharacter::BeginPlay()
     CrouchTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsCrouching"));
     RollTag  = FGameplayTag::RequestGameplayTag(FName("State.Player.IsRolling"));
 
-    if (CombatComponent && DefaultWeaponTag.IsValid())
+    DefaultSecondaryWeaponTag = FGameplayTag::RequestGameplayTag(FName("Weapon.Type.Pistol"));
+    
+    // 실제 게임할 때는 이 줄은 주석 처리
+    // DefaultPrimaryWeaponTag = FGameplayTag::RequestGameplayTag(FName("Weapon.Type.Rifle"));
+    
+    // 약간의 지연 후 장착 (서브시스템 로딩 대기)
+    FTimerHandle TimerHandle;
+    GetWorldTimerManager().SetTimer(TimerHandle, [this]()
     {
-        CombatComponent->EquipWeapon(DefaultWeaponTag);
-    }
+        if (CombatComponent)
+        {
+            if (DefaultSecondaryWeaponTag.IsValid()) CombatComponent->EquipWeapon(DefaultSecondaryWeaponTag);
+            if (DefaultPrimaryWeaponTag.IsValid()) CombatComponent->EquipWeapon(DefaultPrimaryWeaponTag);
+        }
+    }, 0.1f, false);
 
     GiveDefaultAbilities();
 }
@@ -106,7 +117,7 @@ void APlayerCharacter::InitializeAbilitySystem()
 
     AbilitySystemComponent->RegisterGameplayTagEvent(
         ZoomTag, // 어떤 태그 감시?
-        EGameplayTagEventType::NewOrRemoved // 새로 생기거나 제거될때 신호를 준다.
+        EGameplayTagEventType::AnyCountChange // 새로 생기거나 제거될때 신호를 준다.
     ).AddUObject(this, &APlayerCharacter::OnZoomTagChanged); // 신호오면 알려줄 함수
 
     // 캐릭터는 스태미너가 계속해서 찬다.
@@ -195,6 +206,17 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
         EnhancedInput->BindAction(IA_Zoom, ETriggerEvent::Started, this, &APlayerCharacter::OnZoomStarted);
         EnhancedInput->BindAction(IA_Zoom, ETriggerEvent::Completed, this, &APlayerCharacter::OnZoomEnded);
     }
+    
+    // 1번 키 (주무기)
+    if (IA_Weapon1)
+    {
+        EnhancedInput->BindAction(IA_Weapon1, ETriggerEvent::Started, this, &APlayerCharacter::OnWeapon1Input);
+    }
+
+    // 2번 키 (보조무기)
+    if (IA_Weapon2)
+    {
+        EnhancedInput->BindAction(IA_Weapon2, ETriggerEvent::Started, this, &APlayerCharacter::OnWeapon2Input);
     if (IA_Inventory)
     {
         EnhancedInput->BindAction(IA_Inventory, ETriggerEvent::Started, this, &APlayerCharacter::ToggleInventoryInput);
@@ -325,6 +347,16 @@ void APlayerCharacter::OnAttackEnded(const FInputActionValue& Value)
     AbilitySystemComponent->CancelAbilities(&CancelTags);
 }
 
+void APlayerCharacter::OnWeapon1Input()
+{
+    if (CombatComponent) CombatComponent->SwapToSlot(EWeaponSlot::Primary);
+}
+
+void APlayerCharacter::OnWeapon2Input()
+{
+    if (CombatComponent) CombatComponent->SwapToSlot(EWeaponSlot::Secondary);
+}
+
 bool APlayerCharacter::CanJump() const
 {
     if (!AbilitySystemComponent) return false;
@@ -342,6 +374,7 @@ bool APlayerCharacter::CanJump() const
     
     return !AbilitySystemComponent->HasAnyMatchingGameplayTags(JumpBlockTags);
 }
+
 
 void APlayerCharacter::StartJump(const FInputActionValue& value)
 {
@@ -384,7 +417,7 @@ void APlayerCharacter::Equip(const FInputActionValue& Value)
 
     if (CombatComponent)
     {
-        CombatComponent->EquipWeapon(DefaultWeaponTag);
+        CombatComponent->EquipWeapon(DefaultPrimaryWeaponTag);
     }
 }
 
