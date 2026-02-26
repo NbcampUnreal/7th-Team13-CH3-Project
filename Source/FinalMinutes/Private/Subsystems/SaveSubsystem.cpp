@@ -56,10 +56,10 @@ void USaveSubsystem::SaveGameData(int32 CurrentKillCount, float SurviveTime, FSt
 		return;
 	}
 	
-	if (CombatComp->GetCurrentWeapon() && CombatComp->GetCurrentWeapon()->GetCurrentDataAsset())
+	if (CombatComp->GetActiveWeapon() && CombatComp->GetActiveWeapon()->GetCurrentDataAsset())
 	{
 		//마지막에 장착했던 무기를 저장
-		SaveObject->LastEquipWeapon = CombatComp->GetCurrentWeapon()->GetCurrentDataAsset()->WeaponData.WeaponTag;
+		SaveObject->LastEquipWeapon = CombatComp->GetActiveWeapon()->GetCurrentDataAsset()->WeaponData.WeaponTag;
 	}
 	
 	/*

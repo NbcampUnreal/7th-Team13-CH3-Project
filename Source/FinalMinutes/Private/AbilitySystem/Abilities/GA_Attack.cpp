@@ -17,19 +17,20 @@ UGA_Attack::UGA_Attack()
     // 어빌리티 및 상태 태그 설정
     AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Attack")));
     ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsAttacking")));
-    
+
     // 실행 차단 태그: 장전 중에는 공격 불가
     ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsReloading")));
 }
 
 bool UGA_Attack::CanActivateAbility(
-    const FGameplayAbilitySpecHandle Handle, 
-    const FGameplayAbilityActorInfo* ActorInfo, 
-    const FGameplayTagContainer* SourceTags, 
-    const FGameplayTagContainer* TargetTags, 
+    const FGameplayAbilitySpecHandle Handle,
+    const FGameplayAbilityActorInfo* ActorInfo,
+    const FGameplayTagContainer* SourceTags,
+    const FGameplayTagContainer* TargetTags,
     FGameplayTagContainer* OptionalRelevantTags) const
 {
-    return Super::CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, OptionalRelevantTags) && GetWeaponData() != nullptr;
+    return Super::CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, OptionalRelevantTags) && GetWeaponData()
+        != nullptr;
 }
 
 void UGA_Attack::ActivateAbility(
@@ -97,7 +98,7 @@ void UGA_Attack::PlayRecoilMontage()
 
     // 자세별 몽타주 선택
     UAnimMontage* SelectedMontage = StandRecoilMontage;
-    
+
     if (ASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning"))))
     {
         SelectedMontage = ProneRecoilMontage;
@@ -109,7 +110,8 @@ void UGA_Attack::PlayRecoilMontage()
 
     if (SelectedMontage)
     {
-        UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, SelectedMontage)->ReadyForActivation();
+        UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, SelectedMontage)->
+            ReadyForActivation();
     }
 }
 
@@ -119,7 +121,7 @@ void UGA_Attack::SpawnProjectile() const
     if (!PlayerCharacter) return;
 
     UCombatComponent* CombatComponent = PlayerCharacter->GetCombatComponent();
-    AWeaponBase* CurrentWeapon = CombatComponent ? CombatComponent->GetCurrentWeapon() : nullptr;
+    AWeaponBase* CurrentWeapon = CombatComponent ? CombatComponent->GetActiveWeapon() : nullptr;
     if (!CurrentWeapon || !CurrentWeapon->GetCurrentDataAsset()) return;
 
     const FWeaponData& WeaponData = CurrentWeapon->GetCurrentDataAsset()->WeaponData;
@@ -134,8 +136,8 @@ void UGA_Attack::SpawnProjectile() const
     FRotator ShootRotation = (TargetLocation - MuzzleLocation).Rotation();
 
     // 3. 데미지 정보 생성
-    FGameplayEffectSpecHandle DamageSpec = CreateDamageSpec(PlayerCharacter, CurrentWeapon, WeaponData.DefaultDamage);
-
+    FGameplayEffectSpecHandle DamageEffectSpecHandle = CreateDamageSpec(PlayerCharacter, CurrentWeapon, WeaponData.DefaultDamage);
+    
     // 4. 발사 연출 및 스폰
     CurrentWeapon->ExecuteWeaponEffects(EWeaponActionType::Fire);
 
@@ -144,9 +146,10 @@ void UGA_Attack::SpawnProjectile() const
     SpawnParams.Instigator = PlayerCharacter;
     SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-    if (AProjectileBullet* Bullet = GetWorld()->SpawnActor<AProjectileBullet>(WeaponData.ProjectileClass, MuzzleLocation, ShootRotation, SpawnParams))
+    if (AProjectileBullet* Bullet = GetWorld()->SpawnActor<AProjectileBullet>(
+        WeaponData.ProjectileClass, MuzzleLocation, ShootRotation, SpawnParams))
     {
-        Bullet->InitializeProjectile(DamageSpec, WeaponData.DefaultBulletSpeed);
+        Bullet->InitializeProjectile(DamageEffectSpecHandle, WeaponData.DefaultBulletSpeed);
     }
 }
 
@@ -161,11 +164,13 @@ FVector UGA_Attack::GetTargetLocation(APlayerController* PC) const
     FCollisionQueryParams Params;
     Params.AddIgnoredActor(GetAvatarActorFromActorInfo());
 
-    return GetWorld()->LineTraceSingleByChannel(HitResult, ViewLocation, TraceEnd, ECC_Visibility, Params) 
-           ? HitResult.ImpactPoint : TraceEnd;
+    return GetWorld()->LineTraceSingleByChannel(HitResult, ViewLocation, TraceEnd, ECC_Visibility, Params)
+               ? HitResult.ImpactPoint
+               : TraceEnd;
 }
 
-FGameplayEffectSpecHandle UGA_Attack::CreateDamageSpec(APlayerCharacter* Instigator, AWeaponBase* Weapon, float Damage) const
+FGameplayEffectSpecHandle UGA_Attack::CreateDamageSpec(APlayerCharacter* Instigator, AWeaponBase* Weapon,
+                                                       float Damage) const
 {
     UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
     FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
@@ -174,16 +179,17 @@ FGameplayEffectSpecHandle UGA_Attack::CreateDamageSpec(APlayerCharacter* Instiga
     FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(DamageEffectClass, 1.0f, Context);
     if (SpecHandle.IsValid())
     {
-        FGameplayTag DamageTag = FGameplayTag::RequestGameplayTag(FName("Data.Stat.Damage"));
+        FGameplayTag DamageTag = FGameplayTag::RequestGameplayTag(FName("Weapon.Effect.Damage"));
         SpecHandle.Data.Get()->SetSetByCallerMagnitude(DamageTag, Damage);
     }
+    
     return SpecHandle;
 }
 
 void UGA_Attack::EndAbility(
-    const FGameplayAbilitySpecHandle Handle, 
+    const FGameplayAbilitySpecHandle Handle,
     const FGameplayAbilityActorInfo* ActorInfo,
-    const FGameplayAbilityActivationInfo ActivationInfo, 
+    const FGameplayAbilityActivationInfo ActivationInfo,
     bool bReplicateEndAbility,
     bool bWasCancelled)
 {
@@ -204,6 +210,6 @@ const FWeaponData* UGA_Attack::GetWeaponData() const
     const APlayerCharacter* Player = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
     if (!Player || !Player->GetCombatComponent()) return nullptr;
 
-    const AWeaponBase* Weapon = Player->GetCombatComponent()->GetCurrentWeapon();
+    const AWeaponBase* Weapon = Player->GetCombatComponent()->GetActiveWeapon();
     return (Weapon && Weapon->GetCurrentDataAsset()) ? &Weapon->GetCurrentDataAsset()->WeaponData : nullptr;
 }

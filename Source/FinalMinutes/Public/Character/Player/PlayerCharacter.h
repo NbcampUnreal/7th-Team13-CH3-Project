@@ -67,8 +67,13 @@ protected:
     UPROPERTY()
     TObjectPtr<UWeaponAttributeSet> WeaponAttributeSet;
 
-    UPROPERTY(EditDefaultsOnly, Category = "Weapon")
-    FGameplayTag DefaultWeaponTag;
+    /** 게임 시작 시 기본으로 장착할 보조무기(권총) 태그 */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat | Init")
+    FGameplayTag DefaultSecondaryWeaponTag;
+
+    /** 만약 시작부터 주무기를 들려주고 싶다면 추가 (현재는 기획상 비워둠) */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat | Init")
+    FGameplayTag DefaultPrimaryWeaponTag;
 
 protected:
 #pragma region 이동
@@ -143,8 +148,16 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
     TObjectPtr<UInputAction> IA_Attack;
 
+    UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
+    TObjectPtr<UInputAction> IA_Weapon1;
+
+    UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
+    TObjectPtr<UInputAction> IA_Weapon2;
+
     void OnAttackStarted(const FInputActionValue& value);
     void OnAttackEnded(const FInputActionValue& value);
+    void OnWeapon1Input();
+    void OnWeapon2Input();
 #pragma endregion
 
 #pragma region 전력질주
