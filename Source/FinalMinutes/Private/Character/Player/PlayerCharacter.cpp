@@ -7,6 +7,9 @@
 #include "Character/Components/CombatComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Camera/CameraComponent.h"
+#include "UI/PlayerHUD.h"
+#include "UI/PlayerStatusWidget.h"
+#include "Components/InventoryComponent.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -23,6 +26,8 @@ APlayerCharacter::APlayerCharacter()
     
     CombatComponent = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
     bIsZooming = false;
+    
+    InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
 }
 
 UAbilitySystemComponent* APlayerCharacter::GetAbilitySystemComponent() const
@@ -44,6 +49,24 @@ void APlayerCharacter::BeginPlay()
     }
     
     GiveDefaultAbilities();
+}
+
+void APlayerCharacter::PossessedBy(AController* NewController)
+{
+    Super::PossessedBy(NewController);
+
+    CacheMainHUD();
+}
+
+void APlayerCharacter::CacheMainHUD()
+{
+    APlayerController* PC = Cast<APlayerController>(GetController());
+    if (!PC) return;
+
+    APlayerHUD* HUD = Cast<APlayerHUD>(PC->GetHUD());
+    if (!HUD) return;
+
+    MainHUD = HUD->GetMainHUDWidget();
 }
 
 void APlayerCharacter::GiveDefaultAbilities()
@@ -161,6 +184,10 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
     {
         EnhancedInput->BindAction(IA_Zoom, ETriggerEvent::Started, this, &APlayerCharacter::OnZoomStarted);
         EnhancedInput->BindAction(IA_Zoom, ETriggerEvent::Completed, this, &APlayerCharacter::OnZoomEnded);
+    }
+    if (IA_Inventory)
+    {
+        EnhancedInput->BindAction(IA_Inventory, ETriggerEvent::Started, this, &APlayerCharacter::ToggleInventoryInput);
     }
 }
 
@@ -402,4 +429,20 @@ void APlayerCharacter::OnZoomEnded(const FInputActionValue& Value)
     FGameplayTagContainer AbilityTags;
     AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Zoom")));
     AbilitySystemComponent->CancelAbilities(&AbilityTags);
+}
+
+void APlayerCharacter::ToggleInventoryInput()
+{
+    if (MainHUD)
+    {
+        // MainHUDWidget블루프린트 안에 ToggleInventoryWindow이름을 가진 함수가 있는지 검색합니다.
+        FName const FunctionName = TEXT("ToggleInventoryWindow");
+        
+        // ToggleInventoryWindow함수가 있따면
+        if (UFunction* Function = MainHUD->FindFunction(FunctionName))
+        {
+            // 그 함수를 호출합니다.
+            MainHUD->ProcessEvent(Function, nullptr);
+        }
+    }
 }
