@@ -3,9 +3,11 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "GameplayEffectTypes.h"
+#include "GameplayTagContainer.h"
 #include "PlayerStatusWidget.generated.h"
 
 class UAbilitySystemComponent;
+class UCombatComponent;
 class UProgressBar;
 class UTextBlock;
 
@@ -22,31 +24,39 @@ protected:
 	virtual void NativeDestruct() override;
 	
 private:
-	// 바인딩/해제
+	// Attribute 바인딩/해제
     void BindCallbacks();
     void UnbindCallbacks();
-
+	
+	// CombatComponent 바인딩/해제 (무기 아이콘용)
+	void BindCombatCallbacks();
+	void UnbindCombatCallbacks();
+	
+	UFUNCTION()
+	void HandleActiveWeaponTagChanged(FGameplayTag WeaponTag);
+	
 	// UI 갱신
     void UpdateHealth(float Current);
     void UpdateStamina(float Current);
-
 	void UpdateAmmo(float Current);
 	void UpdateMaxAmmo(float Max);
 	
-	// 델리게이트 핸들러
+	// Attribute 델리게이트 핸들러
     void OnHealthChanged(const FOnAttributeChangeData& Data);
     void OnStaminaChanged(const FOnAttributeChangeData& Data);
-	
 	void OnAmmoChanged(const FOnAttributeChangeData& Data);
 	void OnMaxAmmoChanged(const FOnAttributeChangeData& Data);
 	
     UPROPERTY()
     TObjectPtr<UAbilitySystemComponent> ASC;
 
-	// 델리게이트 핸들
+	// 무기 아이콘 이벤트를 받을 CombatComponent(소유자 캐릭터의 컴포넌트)
+	UPROPERTY()
+	TObjectPtr<UCombatComponent> BoundCombatComp;
+	
+	// Attribute 델리게이트 핸들
     FDelegateHandle HealthChangedHandle;
     FDelegateHandle StaminaChangedHandle;
-	
 	FDelegateHandle AmmoChangedHandle;
 	FDelegateHandle MaxAmmoChangedHandle;
 
@@ -69,4 +79,8 @@ protected:
 
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<class UTextBlock> TXT_MaxAmmo;
+	
+	// 무기 타입 태그가 바뀌었을 때 UI 갱신용
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnActiveWeaponTagChanged(FGameplayTag WeaponTag); 
 };

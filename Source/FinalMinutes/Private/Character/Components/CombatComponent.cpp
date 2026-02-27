@@ -98,6 +98,8 @@ void UCombatComponent::EquipWeapon(FGameplayTag Tag)
         ActiveWeapon = NewWeapon;
         CurrentSlot = TargetSlot;
         NewWeapon->bIsActiveWeapon = true;
+        
+        OnActiveWeaponTagChanged.Broadcast(Tag);
     }
     else
     {
@@ -143,6 +145,8 @@ void UCombatComponent::SwapToSlot(EWeaponSlot TargetSlot)
     // 0/0 표시 문제를 방지하기 위해 MaxAmmo부터 설정 후 CurrentAmmo를 로드합니다.
     WeaponAS->SetMaxAmmo(Data.DefaultMaxAmmo);
     WeaponAS->SetCurrentAmmo(static_cast<float>(ActiveWeapon->CurrentAmmoCount));
+    
+    OnActiveWeaponTagChanged.Broadcast(Data.WeaponTag);
 }
 
 /** * [유틸리티] 슬롯 토글 (단일 키 대응)
