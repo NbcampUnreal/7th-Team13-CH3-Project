@@ -23,7 +23,6 @@ void AAIBaseController::OnPossess(APawn* InPawn)
 	
 	if (BTAsset)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("!!! BT STARTED !!!"));
 		RunBehaviorTree(BTAsset);
 	}
 	
