@@ -5,6 +5,7 @@
 // 엔진 및 프레임워크 헤더
 #include "AbilitySystemComponent.h"
 #include "Character/Player/PlayerCharacter.h"
+#include "GameFramework/PlayerController.h"
 
 // 무기 시스템 관련 헤더
 #include "AbilitySystem/Attributes/WeaponAttributeSet.h"
@@ -14,8 +15,10 @@
 
 UCombatComponent::UCombatComponent()
 {
-    // 최적화를 위해 컴포넌트 틱은 비활성화합니다.
-    PrimaryComponentTick.bCanEverTick = false;
+    // 반동 보간을 위해 Tick사용
+    PrimaryComponentTick.bCanEverTick = true;
+    
+    PrimaryComponentTick.bStartWithTickEnabled = true;
 }
 
 void UCombatComponent::BeginPlay()
@@ -160,4 +163,41 @@ UAbilitySystemComponent* UCombatComponent::GetOwnerASC() const
 void UCombatComponent::PerformTrace()
 {
     // 사격 판정 로직 구현 공간
+}
+
+void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+    Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+    
+    float CurrentTime = GetWorld()->GetTimeSeconds();
+    if (CurrentTime - LastFireTime > RecoilRecoveryDelay)
+    {
+        TargetRecoil = FMath::Vector2DInterpTo(TargetRecoil, FVector2D::ZeroVector, DeltaTime, RecoveryInterpSpeed);
+    }
+    FVector2D NewRecoil = FMath::Vector2DInterpTo(CurrentRecoil, TargetRecoil, DeltaTime, RecoilInterpSpeed);
+    FVector2D RecoilDelta = NewRecoil - CurrentRecoil;
+    CurrentRecoil = NewRecoil;
+    
+    APawn* OwnerPawn = Cast<APawn>(GetOwner());
+    if (!OwnerPawn) return;
+    APlayerController* PlayerController = Cast<APlayerController>(OwnerPawn->GetController());
+    if (!PlayerController) return;
+    
+    PlayerController->AddPitchInput(RecoilDelta.X);
+    PlayerController->AddYawInput(RecoilDelta.Y);
+}
+
+void UCombatComponent::ApplyRecoil()
+{
+    if (!ActiveWeapon) return;
+    
+    const FWeaponData& WeaponData = ActiveWeapon->GetCurrentDataAsset()->WeaponData;
+    float RecoilAmount = WeaponData.DefaultRecoilValue;
+
+    TargetRecoil.X += -RecoilAmount;
+
+    float RandomYaw = FMath::RandRange(-RecoilAmount * 0.2f, RecoilAmount * 0.2f);
+    TargetRecoil.Y += RandomYaw;
+    
+    LastFireTime = GetWorld()->GetTimeSeconds();
 }

@@ -84,4 +84,32 @@ private:
     /** [상태] 현재 캐릭터가 선택 중인 슬롯 상태를 저장합니다. (None, Primary, Secondary) */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat | Inventory", meta = (AllowPrivateAccess = "true"))
     EWeaponSlot CurrentSlot = EWeaponSlot::None;
+protected: 
+    /** 반동관련 */
+    
+    /** 컴포넌트용 Tick함수*/
+    virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+    
+    /** 반동값 저장 벡터 변수*/
+    FVector2D TargetRecoil;
+    FVector2D CurrentRecoil;
+
+    /** 마지막으로 사격한 시간*/
+    float LastFireTime = 0.0f;
+    
+    /** 반동 회복 시간 */ 
+    UPROPERTY(EditAnywhere, Category = "Recoil")
+    float RecoilRecoveryDelay = 0.1f;
+    
+    /** 반동에 의해 총이 흔들리는 속도*/
+    UPROPERTY(EditAnywhere, Category = "Recoil")
+    float RecoilInterpSpeed = 15.0f;
+    
+    /** 총기가 원점으로 복귀하는 속도*/
+    UPROPERTY(EditAnywhere, Category = "Recoil")
+    float RecoveryInterpSpeed = 10.0f;
+    
+public:
+    /** 반동 계산 */
+    void ApplyRecoil();
 };

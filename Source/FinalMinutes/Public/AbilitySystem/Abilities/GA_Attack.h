@@ -8,6 +8,9 @@
  * UGA_Attack
  * 원거리 무기 발사 및 연사 로직을 담당하는 어빌리티입니다.
  */
+
+class UCameraShakeBase;
+
 UCLASS()
 class FINALMINUTES_API UGA_Attack : public UGameplayAbility
 {
@@ -47,7 +50,10 @@ protected:
 
     /** 캐릭터의 자세에 따른 반동 애니메이션 재생 */
     void PlayRecoilMontage();
-
+    
+    /** 실제 반동 적용*/
+    void ApplyRecoil();
+    
     // --- Helper Functions ---
 
     /** 현재 장착 중인 무기의 데이터 에셋 정보를 반환 */
