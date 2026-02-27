@@ -54,6 +54,9 @@ protected:
     /** 실제 반동 적용*/
     void ApplyRecoil();
     
+    /** 사격 시 소음 발생 */
+    void GenerateFiringNoise() const;
+
     // --- Helper Functions ---
 
     /** 현재 장착 중인 무기의 데이터 에셋 정보를 반환 */

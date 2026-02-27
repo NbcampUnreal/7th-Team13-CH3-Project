@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "GameFramework/SaveGame.h"
+#include "Components/InventoryComponent.h"
 #include "FinalMinutesSaveGame.generated.h"
 
 
@@ -50,4 +51,7 @@ public:
 	//플레이어 마지막 스테미나
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveData", SaveGame)
 	float CurrentStamina = 100.0f;
+	
+	UPROPERTY(VisibleAnywhere, Category = "SaveData")
+	TArray<FInventorySlot> SavedInventory;
 };
