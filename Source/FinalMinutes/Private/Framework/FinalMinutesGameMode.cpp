@@ -6,7 +6,7 @@
 #include "Subsystems/SaveSubsystem.h"
 #include "Monster/SpawnVolume.h"
 #include "Kismet/GameplayStatics.h"
-
+#include "Monster/Zombie.h"
 
 
 AFinalMinutesGameMode::AFinalMinutesGameMode()
@@ -103,6 +103,17 @@ void AFinalMinutesGameMode::GameClear()
 		}
 	}
 	
+	//몬스터 없애버리기
+	TArray<AActor*> AllMonsters;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(),AZombie::StaticClass(), AllMonsters);
+	for (AActor* MonsterActor : AllMonsters)
+	{
+		if (MonsterActor)
+		{
+			MonsterActor->Destroy();
+		}
+	}
+	
 	//마우스 조작
 	if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
 	{
@@ -135,6 +146,17 @@ void AFinalMinutesGameMode::GameOver()
 		if (ASpawnVolume* Spawner = Cast<ASpawnVolume>(Actor))
 		{
 			GetWorldTimerManager().ClearTimer(Spawner->SpawnTimer);
+		}
+	}
+	
+	//몬스터 없애버리기
+	TArray<AActor*> AllMonsters;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(),AZombie::StaticClass(), AllMonsters);
+	for (AActor* MonsterActor : AllMonsters)
+	{
+		if (MonsterActor)
+		{
+			MonsterActor->Destroy();
 		}
 	}
 	//마우스 조작
