@@ -7,14 +7,15 @@
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Physics/CharacterPhysicalMaterial.h"
 
 // GAS 및 인터페이스 헤더
 #include "AbilitySystemInterface.h"
 #include "AbilitySystemComponent.h"
+#include "Interfaces/Damageable.h"
 
 // 디버그 헬퍼
 #include "DrawDebugHelpers.h"
-#include "Interfaces/Damageable.h"
 
 AProjectileBullet::AProjectileBullet()
 {
@@ -34,6 +35,7 @@ AProjectileBullet::AProjectileBullet()
     // 물리적 충돌 이벤트를 발생시키고 OnHit 함수를 바인딩합니다.
     CollisionComp->SetNotifyRigidBodyCollision(true);
     CollisionComp->OnComponentHit.AddDynamic(this, &AProjectileBullet::OnHit);
+    CollisionComp->bReturnMaterialOnMove = true;
 
     RootComponent = CollisionComp;
 
@@ -41,6 +43,7 @@ AProjectileBullet::AProjectileBullet()
     BulletMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BulletMesh"));
     BulletMesh->SetupAttachment(RootComponent);
     BulletMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision); // 충돌 간섭 방지
+    BulletMesh->bReturnMaterialOnMove = true;
 
     // 3. 발사체 이동 컴포넌트: 총알의 물리적 거동을 처리합니다.
     ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileComp"));
@@ -71,6 +74,7 @@ void AProjectileBullet::InitializeProjectile(
 {
     // 무기로부터 넘어온 데미지 데이터(GAS Spec)를 저장합니다.
     DamageEffectSpecHandle = InSpecHandle;
+    
     if (!ProjectileMovement) return;
 
     // 무기 데이터 에셋에서 정의된 속도로 물리 엔진 수치를 설정합니다.
@@ -98,7 +102,7 @@ void AProjectileBullet::OnHit(
     // 1. 기본 방어 로직
     // 1. 자기 자신과 발사자 제외 (필수 최소 필터)
     if (!OtherActor || OtherActor == GetInstigator() || OtherActor == this) return;
-
+    
     // 2. IDamageable 인터페이스 호출 (IDamageable 구현자라면 누구든)
     IDamageable* DamageableTarget = Cast<IDamageable>(OtherActor);
     if (DamageableTarget)
@@ -106,18 +110,37 @@ void AProjectileBullet::OnHit(
         // 타겟인 몬스터에게 맞았다고 알려줌.
         DamageableTarget->Execute_OnHitReaction(OtherActor, Hit);
     }
-    
+
     // 3. GAS 데이터 적용 (ASC 인터페이스 구현자라면 누구든)
     // 타겟이 GAS를 사용하는 클래스(IAbilitySystemInterface 상속)인지 확인합니다.
     IAbilitySystemInterface* ASCOwner = Cast<IAbilitySystemInterface>(OtherActor);
+    if (!ASCOwner && OtherActor->GetOwner())
+    {
+        ASCOwner = Cast<IAbilitySystemInterface>(OtherActor->GetOwner());
+    }
     if (!ASCOwner) return;
+    
 
     UAbilitySystemComponent* TargetASC = ASCOwner->GetAbilitySystemComponent();
     if (!TargetASC || !DamageEffectSpecHandle.IsValid()) return;
-
-    // 저장해둔 데미지 효과를 타겟의 ASC에 직접 적용합니다.
-    TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
     
+    UCharacterPhysicalMaterial* CharacterPM = Cast<UCharacterPhysicalMaterial>(Hit.PhysMaterial.Get());
+    if (!CharacterPM) return;
+
+    FGameplayEffectSpec* DamageEffectSpec = DamageEffectSpecHandle.Data.Get();
+
+    // 4. 커스텀 피지컬 머티리얼 검사
+    if (CharacterPM->HitRegionTag.IsValid())
+    {
+        // 재질에 설정된 태그를 DamageEffectSpec에 추가하여 전달
+        DamageEffectSpec->AddDynamicAssetTag(CharacterPM->HitRegionTag);
+        
+        UE_LOG(LogTemp, Warning, TEXT("Hit Registered: %s"), *CharacterPM->HitRegionTag.ToString());
+    }
+
+    // 5. 저장해둔 데미지 효과를 타겟의 ASC에 직접 적용합니다.
+    TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpec);
+
     // 충돌 후 총알 액터를 즉시 월드에서 제거합니다.
     Destroy();
 }
