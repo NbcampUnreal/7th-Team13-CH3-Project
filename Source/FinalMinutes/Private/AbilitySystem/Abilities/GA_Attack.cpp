@@ -74,8 +74,10 @@ void UGA_Attack::HandleFiringLoop()
     // 2. 발사 실행
     if (HasAuthority(&CurrentActivationInfo))
     {
+        ApplyRecoil();
         PlayRecoilMontage();
         SpawnProjectile();
+        GenerateFiringNoise();
     }
 
     // 3. 연사/단발 결정 로직 간소화
@@ -113,6 +115,40 @@ void UGA_Attack::PlayRecoilMontage()
         UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, SelectedMontage)->
             ReadyForActivation();
     }
+}
+
+void UGA_Attack::ApplyRecoil()
+{
+    APlayerCharacter* Player = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
+    if (!Player) return;
+    UCombatComponent* CombatComponent = Player->GetCombatComponent();
+    if (!CombatComponent) return;
+    CombatComponent->ApplyRecoil();
+}
+
+void UGA_Attack::GenerateFiringNoise() const
+{
+    APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
+    if (!PlayerCharacter) return;
+
+    UCombatComponent* CombatComponent = PlayerCharacter->GetCombatComponent();
+    AWeaponBase* CurrentWeapon = CombatComponent ? CombatComponent->GetActiveWeapon() : nullptr;
+    if (!CurrentWeapon || !CurrentWeapon->GetCurrentDataAsset()) return;
+    
+    float SoundRange = CurrentWeapon->GetFinalSoundSize();
+    
+    CurrentWeapon->MakeNoise(SoundRange, PlayerCharacter, CurrentWeapon->GetActorLocation());
+
+    #if !UE_BUILD_SHIPPING
+    DrawDebugSphere(
+        GetWorld(),
+        CurrentWeapon->GetActorLocation(),
+        SoundRange,
+        32,
+        FColor::Orange,
+        false,
+        1.0f);
+    #endif
 }
 
 void UGA_Attack::SpawnProjectile() const

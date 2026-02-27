@@ -3,19 +3,8 @@
 
 AZombie::AZombie()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 	
-}
-
-void AZombie::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
-
-void AZombie::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
 }
 
 

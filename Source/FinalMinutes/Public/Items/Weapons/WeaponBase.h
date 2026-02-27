@@ -40,6 +40,7 @@ public:
     FORCEINLINE USkeletalMeshComponent* GetWeaponMesh() const { return WeaponMesh; }
     void SetCurrentAmmoCount(int32 InAmmo) { CurrentAmmoCount = InAmmo; }
     FVector GetMuzzleLocation() const;
+    float GetFinalSoundSize() const;
 
 protected:
     /** 메시 비동기 로딩 완료 후 호출되는 콜백 */

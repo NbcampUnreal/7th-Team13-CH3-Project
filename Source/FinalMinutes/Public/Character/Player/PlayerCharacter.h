@@ -209,6 +209,7 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "Abilities")
     TSubclassOf<UGameplayEffect> StaminaRegenEffectClass;
 #pragma endregion
+    
 #pragma region 인벤토리
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS|Input")
     UInputAction* IA_Inventory;
@@ -216,6 +217,16 @@ protected:
     void ToggleInventoryInput();
 #pragma endregion	
 
+#pragma region 반동
+    FVector2D TargetRecoil;  // 최종적으로 도달해야 할 목표 반동량
+    FVector2D CurrentRecoil; // 현재 프레임까지 적용된 반동량
+
+    UPROPERTY(EditAnywhere, Category = "Recoil")
+    float RecoilInterpSpeed = 15.0f; // 총이 위로 튀는 속도 (높을수록 빠름)
+
+    UPROPERTY(EditAnywhere, Category = "Recoil")
+    float RecoveryInterpSpeed = 10.0f;
+#pragma endregion 
 public:
     virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 

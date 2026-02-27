@@ -11,6 +11,5 @@ class FINALMINUTES_API AZombieController : public AAIBaseController
 
 public:
 	AZombieController();
-
 	
 };
