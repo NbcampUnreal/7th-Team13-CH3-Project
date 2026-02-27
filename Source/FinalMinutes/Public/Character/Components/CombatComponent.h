@@ -4,8 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "GameplayTagContainer.h"  // 추가
 #include "Items/Weapons/FWeaponData.h" // 슬롯 Enum 포함
 #include "CombatComponent.generated.h"
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnActiveWeaponTagChanged, FGameplayTag, WeaponTag);
 
 // 전방 선언: 컴파일 속도 최적화 및 의존성 최소화
 struct FGameplayTag;
@@ -52,6 +55,10 @@ public:
     /** 단일 키 입력을 통한 주무기/보조무기 간 빠른 전환을 수행합니다. */
     UFUNCTION(BlueprintCallable, Category = "Combat | Actions")
     void ToggleWeaponSwap();
+    
+    // UI/HUD가 구독할 이벤트
+    UPROPERTY(BlueprintAssignable, Category="Combat|UI")
+    FOnActiveWeaponTagChanged OnActiveWeaponTagChanged;
 
 private:
     /** --- [내부 유틸리티] --- */

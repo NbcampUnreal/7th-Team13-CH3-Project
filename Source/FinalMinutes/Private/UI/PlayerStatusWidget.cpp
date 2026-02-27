@@ -4,9 +4,15 @@
 #include "Components/TextBlock.h"
 #include "AbilitySystem/Attributes/CharacterAttributeSet.h"
 #include "AbilitySystem/Attributes/WeaponAttributeSet.h"
+#include "Character/Player/PlayerCharacter.h"
+#include "Character/Components/CombatComponent.h"
 
 void UPlayerStatusWidget::InitWithASC(UAbilitySystemComponent* InASC)
 {
+	// 기존 바인딩 해제 후 다시 연결 (중복 호출 방지)
+	UnbindCombatCallbacks();
+	UnbindCallbacks();
+
 	ASC = InASC;
 	if (!ASC) return;
 
@@ -19,7 +25,7 @@ void UPlayerStatusWidget::InitWithASC(UAbilitySystemComponent* InASC)
 	if (WAS)
 	{
 		UpdateAmmo(WAS->GetCurrentAmmo());
-		UpdateMaxAmmo(WAS->GetMaxAmmo()); // 혹시 몰라서 최대 값도 불러옴
+		UpdateMaxAmmo(WAS->GetMaxAmmo());
 	}
 
 	// Max는 고정이므로 1회만 저장
@@ -31,6 +37,51 @@ void UPlayerStatusWidget::InitWithASC(UAbilitySystemComponent* InASC)
 	UpdateStamina(CAS->GetStamina());
 
 	BindCallbacks(); // 델리게이트 바인딩
+	BindCombatCallbacks(); // 무기 변경 이벤트 바인딩
+}
+// CombatComponent 델리게이트 바인딩
+void UPlayerStatusWidget::BindCombatCallbacks()
+{
+	if (!ASC) return;
+
+	// ASC의 Avatar(캐릭터)를 통해 CombatComponent 찾기
+	AActor* Avatar = ASC->GetAvatarActor();
+	APlayerCharacter* PlayerChar = Cast<APlayerCharacter>(Avatar);
+	if (!PlayerChar) return;
+
+	UCombatComponent* CC = PlayerChar->FindComponentByClass<UCombatComponent>();
+	if (!CC) return;
+
+	// 이미 같은 컴포넌트에 바인딩 돼있으면 중복 방지
+	if (BoundCombatComp == CC) return;
+
+	// 다른 컴포넌트에 바인딩돼 있었다면 해제
+	if (BoundCombatComp)
+	{
+		BoundCombatComp->OnActiveWeaponTagChanged.RemoveAll(this);
+		BoundCombatComp = nullptr;
+	}
+
+	BoundCombatComp = CC;
+	BoundCombatComp->OnActiveWeaponTagChanged.AddDynamic(
+		this, &UPlayerStatusWidget::HandleActiveWeaponTagChanged
+	);
+}
+
+// CombatComponent 델리게이트 해제
+void UPlayerStatusWidget::UnbindCombatCallbacks()
+{
+	if (BoundCombatComp)
+	{
+		BoundCombatComp->OnActiveWeaponTagChanged.RemoveAll(this);
+		BoundCombatComp = nullptr;
+	}
+}
+
+// 무기 태그 변경 시 이벤트 수신 → BP 이벤트 호출
+void UPlayerStatusWidget::HandleActiveWeaponTagChanged(FGameplayTag WeaponTag)
+{
+	OnActiveWeaponTagChanged(WeaponTag); // BP에서 아이콘 바꾸는 이벤트
 }
 
 // 델리게이트에 함수 등록(AddUObject)
@@ -59,6 +110,7 @@ void UPlayerStatusWidget::BindCallbacks()
 // 위젯이 사라질 때 델리게이트 연결 해제
 void UPlayerStatusWidget::NativeDestruct()
 {
+	UnbindCombatCallbacks();
 	UnbindCallbacks();
 	Super::NativeDestruct();
 }
