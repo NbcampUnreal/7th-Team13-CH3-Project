@@ -74,6 +74,7 @@ void UGA_Attack::HandleFiringLoop()
     // 2. 발사 실행
     if (HasAuthority(&CurrentActivationInfo))
     {
+        ApplyRecoil();
         PlayRecoilMontage();
         SpawnProjectile();
         GenerateFiringNoise();
@@ -114,6 +115,15 @@ void UGA_Attack::PlayRecoilMontage()
         UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, SelectedMontage)->
             ReadyForActivation();
     }
+}
+
+void UGA_Attack::ApplyRecoil()
+{
+    APlayerCharacter* Player = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
+    if (!Player) return;
+    UCombatComponent* CombatComponent = Player->GetCombatComponent();
+    if (!CombatComponent) return;
+    CombatComponent->ApplyRecoil();
 }
 
 void UGA_Attack::GenerateFiringNoise() const

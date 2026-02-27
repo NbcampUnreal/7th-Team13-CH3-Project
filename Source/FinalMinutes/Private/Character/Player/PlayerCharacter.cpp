@@ -231,7 +231,7 @@ bool APlayerCharacter::CanMove() const
     
     if (MoveBlockTags.IsEmpty())
     {
-        MoveBlockTags.AddTag(ReloadTag);
+        // MoveBlockTags.AddTag(ReloadTag);
         MoveBlockTags.AddTag(DeathTag);
     }
     
@@ -334,7 +334,7 @@ void APlayerCharacter::OnAttackStarted(const FInputActionValue& Value)
     if (!AbilitySystemComponent) return;
     FGameplayTagContainer AttackTag;
     AttackTag.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Attack")));
-    
+
     AbilitySystemComponent->TryActivateAbilitiesByTag(AttackTag);
 }
 
