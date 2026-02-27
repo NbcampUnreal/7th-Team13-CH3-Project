@@ -5,6 +5,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Subsystems/SaveSubsystem.h"
 #include "Monster/SpawnVolume.h"
+#include "Kismet/GameplayStatics.h"
 
 
 
@@ -76,7 +77,6 @@ void AFinalMinutesGameMode::GamePause(bool bIsPause)
 			PC->SetInputMode(FInputModeGameOnly());
 		}
 	}
-	//일시정시UI 함수
 }
 
 void AFinalMinutesGameMode::GameClear()
@@ -91,6 +91,17 @@ void AFinalMinutesGameMode::GameClear()
 		SaveSS->SaveGameData(RealKill, TimeLimit, SaveSS->CurrentSlotName);
 	}
 	//몬스터 소환 끝
+	TArray<AActor*> SpawnVolumes;
+	
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ASpawnVolume::StaticClass(), SpawnVolumes);
+
+	for (AActor* Actor : SpawnVolumes)
+	{
+		if (ASpawnVolume* Spawner = Cast<ASpawnVolume>(Actor))
+		{
+			GetWorldTimerManager().ClearTimer(Spawner->SpawnTimer);
+		}
+	}
 	
 	//마우스 조작
 	if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
@@ -115,7 +126,17 @@ void AFinalMinutesGameMode::GameOver()
 		SaveSS->SaveGameData(RealKill, RealTime, SaveSS->CurrentSlotName);
 	}
 	//몬스터 소환 끝
+	TArray<AActor*> SpawnVolumes;
 	
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ASpawnVolume::StaticClass(), SpawnVolumes);
+
+	for (AActor* Actor : SpawnVolumes)
+	{
+		if (ASpawnVolume* Spawner = Cast<ASpawnVolume>(Actor))
+		{
+			GetWorldTimerManager().ClearTimer(Spawner->SpawnTimer);
+		}
+	}
 	//마우스 조작
 	if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
 	{
@@ -123,8 +144,6 @@ void AFinalMinutesGameMode::GameOver()
 		PC->SetInputMode(FInputModeGameAndUI());
 	}
 	//패배 UI 가져오기
-	//
-	
 }
 
 void AFinalMinutesGameMode::GameExit()
@@ -160,11 +179,5 @@ void AFinalMinutesGameMode::AdjustTimerAfterLoad(float LoadedTime)
 	//기존에 돌아가던 타이머 관할 핸들러 취소시키기
 	GetWorldTimerManager().ClearTimer(TimerHandle);
 	//남은 시간만큼 예약해버리기 
-	GetWorldTimerManager().SetTimer(
-		TimerHandle,
-		this,
-		&AFinalMinutesGameMode::GameClear,
-		RemainingTime,
-		false);
-	
+	GetWorldTimerManager().SetTimer(TimerHandle,this,&AFinalMinutesGameMode::GameClear,RemainingTime,false);
 }
