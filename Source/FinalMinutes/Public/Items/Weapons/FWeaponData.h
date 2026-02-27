@@ -119,6 +119,10 @@ public:
     /** 사격 시 발생하는 기본 소음 범위 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")
     float DefaultSoundSize = 1000.0f;
+    
+    /** 소음기 장착 시 소음 감소율 (예) 0.3f = 30%로 감소 */
+    UPROPERTY(EditAnywhere, Category = "Combat|Mod")
+    float SuppressorSoundMultiplier = 1.0f;
 
     /** 무기별 기본 반동 세기 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")

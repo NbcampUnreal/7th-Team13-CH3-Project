@@ -186,3 +186,13 @@ FVector AWeaponBase::GetMuzzleLocation() const
 
     return WeaponMesh->GetSocketLocation(CurrentDataAsset->WeaponData.MuzzleSocketName);
 }
+
+float AWeaponBase::GetFinalSoundSize() const
+{
+    if (!CurrentDataAsset) return 0.0f;
+    
+    float FinalSoundSize = CurrentDataAsset->WeaponData.DefaultSoundSize;
+    FinalSoundSize *= CurrentDataAsset->WeaponData.SuppressorSoundMultiplier;
+    
+    return FinalSoundSize;
+}
