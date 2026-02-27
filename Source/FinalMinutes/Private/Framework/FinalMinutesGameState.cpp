@@ -77,7 +77,7 @@ void AFinalMinutesGameState::AddKill(FGameplayTag MonsterTag)
 {
 	KillCount++;
 	OnKillCountChanged.Broadcast(KillCount);
-	//디버깅용
+	//디버깅용 필수과제에 로그 찍히는거 있음 디버깅 완료하면 문구 수정해주기!!!!
 	UE_LOG(LogTemp, Warning, TEXT("킬 카운트 테스트 : %d"), KillCount);
 }
 	
