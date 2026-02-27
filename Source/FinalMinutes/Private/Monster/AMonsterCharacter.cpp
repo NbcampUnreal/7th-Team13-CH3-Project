@@ -1,6 +1,7 @@
 ﻿#include "Monster/AMonsterCharacter.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystem/Attributes/CharacterAttributeSet.h"
+#include "GameplayEffectExtension.h"
 #include "GameFramework/FloatingPawnMovement.h"
 #include "AbilitySystemInterface.h"
 #include "GameplayTagContainer.h"
@@ -9,7 +10,7 @@ AAMonsterCharacter::AAMonsterCharacter()
 {
 	// ASC
 	ASC = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("ASC"));
-	MonsterAttributeSet = CreateDefaultSubobject<UCharacterAttributeSet>(TEXT("MonsterAttributeSet"));
+	AttributeSet = CreateDefaultSubobject<UCharacterAttributeSet>(TEXT("AttributeSet"));
 	
 	// Capsule
 	CapsuleComp = CreateDefaultSubobject<UCapsuleComponent>(TEXT("CapsuleComp"));
@@ -24,7 +25,24 @@ AAMonsterCharacter::AAMonsterCharacter()
 	MovementComp->Acceleration = 100.f;
 }
 
+void AAMonsterCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	if (ASC)
+	{
+		// 바인딩
+		ASC->InitAbilityActorInfo(this, this);
+	}
+}
+
 UAbilitySystemComponent* AAMonsterCharacter::GetAbilitySystemComponent() const
 {
 	return ASC;
 }
+
+void AAMonsterCharacter::OnHitReaction_Implementation(const FHitResult& Hit)
+{
+	
+}
+

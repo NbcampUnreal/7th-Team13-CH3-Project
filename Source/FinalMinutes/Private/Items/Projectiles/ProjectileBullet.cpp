@@ -110,11 +110,32 @@ void AProjectileBullet::OnHit(
     // 3. GAS 데이터 적용 (ASC 인터페이스 구현자라면 누구든)
     // 타겟이 GAS를 사용하는 클래스(IAbilitySystemInterface 상속)인지 확인합니다.
     IAbilitySystemInterface* ASCOwner = Cast<IAbilitySystemInterface>(OtherActor);
-    if (!ASCOwner) return;
+    if (!ASCOwner)
+    {
+        UE_LOG(LogTemp, Error, TEXT("OnHit: %s does NOT have IAbilitySystemInterface!"), *OtherActor->GetName());
+        return;
+    }
 
     UAbilitySystemComponent* TargetASC = ASCOwner->GetAbilitySystemComponent();
-    if (!TargetASC || !DamageEffectSpecHandle.IsValid()) return;
+    if (!TargetASC)
+    {
+        UE_LOG(LogTemp, Error, TEXT("OnHit: Target ASC is NULL!"));
+        return;
+    }
 
+    if (!DamageEffectSpecHandle.IsValid())
+    {
+        UE_LOG(LogTemp, Error, TEXT("OnHit: DamageEffectSpecHandle is INVALID!"));
+        return;
+    }
+    
+    // [Step 3] 실제 전달된 데미지 값 확인
+    // "Data.Damage" 부분은 무기 담당자가 설정한 실제 태그명으로 교체해야 합니다.
+    FGameplayTag DamageTag = FGameplayTag::RequestGameplayTag(FName("Weapon.Effect.Damage"));
+    float Magnitude = DamageEffectSpecHandle.Data.Get()->GetSetByCallerMagnitude(DamageTag, false, -1.0f);
+    
+    UE_LOG(LogTemp, Warning, TEXT("OnHit: Target: %s / Damage Magnitude: %f"), *OtherActor->GetName(), Magnitude);
+    
     // 저장해둔 데미지 효과를 타겟의 ASC에 직접 적용합니다.
     TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
     
