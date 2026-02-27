@@ -47,6 +47,9 @@ protected:
 
     /** 캐릭터의 자세에 따른 반동 애니메이션 재생 */
     void PlayRecoilMontage();
+    
+    /** 사격 시 소음 발생 */
+    void GenerateFiringNoise() const;
 
     // --- Helper Functions ---
 
