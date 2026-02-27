@@ -231,7 +231,6 @@ bool APlayerCharacter::CanMove() const
     
     if (MoveBlockTags.IsEmpty())
     {
-        // MoveBlockTags.AddTag(ReloadTag);
         MoveBlockTags.AddTag(DeathTag);
     }
     
@@ -277,10 +276,19 @@ void APlayerCharacter::OnCrouch(const FInputActionValue& Value)
     }
     else
     {
+        static FGameplayTagContainer CrouchBlockTags;
+    
+        if (CrouchBlockTags.IsEmpty())
+        {
+            CrouchBlockTags.AddTag(ReloadTag);
+        }
+    
+        if (AbilitySystemComponent->HasAnyMatchingGameplayTags(CrouchBlockTags)) return;
         // 태그가 있다면 -> 앉기 이벤트 전송
         FGameplayEventData Payload;
-        AbilitySystemComponent->HandleGameplayEvent(FGameplayTag::RequestGameplayTag(FName("State.Crouch.End")),
-                                                    &Payload);
+        AbilitySystemComponent->HandleGameplayEvent(
+            FGameplayTag::RequestGameplayTag(FName("State.Crouch.End")),
+            &Payload);
     }
 }
 
@@ -295,6 +303,14 @@ void APlayerCharacter::OnProne(const FInputActionValue& Value)
     }
     else
     {
+        static FGameplayTagContainer ProneBlockTags;
+    
+        if (ProneBlockTags.IsEmpty())
+        {
+            ProneBlockTags.AddTag(ReloadTag);
+        }
+    
+        if (AbilitySystemComponent->HasAnyMatchingGameplayTags(ProneBlockTags)) return;
         FGameplayEventData Payload;
         AbilitySystemComponent->HandleGameplayEvent
         (FGameplayTag::RequestGameplayTag(FName("State.Prone.End")), &Payload);
