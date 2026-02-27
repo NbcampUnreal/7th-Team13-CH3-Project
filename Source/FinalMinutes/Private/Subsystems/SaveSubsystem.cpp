@@ -8,6 +8,7 @@
 #include "FinalMinutes/Public/Items/Weapons/WeaponDataAsset.h"
 #include "FinalMinutes/Public/Items/Weapons/WeaponBase.h"
 #include "Framework/FinalMinutesGameMode.h"
+#include "Components/InventoryComponent.h"
 
 void USaveSubsystem::SaveGameData(int32 CurrentKillCount, float SurviveTime, FString SlotName)
 {
@@ -62,7 +63,11 @@ void USaveSubsystem::SaveGameData(int32 CurrentKillCount, float SurviveTime, FSt
 		SaveObject->LastEquipWeapon = CombatComp->GetActiveWeapon()->GetCurrentDataAsset()->WeaponData.WeaponTag;
 	}
 	
-	//무기 여러개 저장하는 로직 만들기(인벤토리 기능 만들어지면)
+	//무기 여러개 저장하는 로직 만들기
+	if (UInventoryComponent* InvComp = Player->FindComponentByClass<UInventoryComponent>())
+	{
+		SaveObject->SavedInventory = InvComp->Items;
+	}
 	
 	//로컬에 저장
 	UGameplayStatics::SaveGameToSlot(SaveObject, SlotName, 0);
@@ -117,7 +122,13 @@ void USaveSubsystem::LoadGameData(FString SlotName)
 	}
 	
 	//무기 여러개 로드하는 로직 만들기 (인벤토리 기능 만들어 지면)
-	
+	if (UInventoryComponent* InvComp = Player->FindComponentByClass<UInventoryComponent>())
+	{
+		// 아이템 배열을...인벤토리에 덮어써버리기
+		InvComp->Items = LoadObject->SavedInventory;
+		// 델리게이트 신호 보내기
+		InvComp->OnInventoryUpdated.Broadcast();
+	}
 	//무기 장착
 	Player->GetCombatComponent()->EquipWeapon(LoadObject->LastEquipWeapon);
 }
