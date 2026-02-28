@@ -17,7 +17,7 @@ void AFinalMinutesGameState::BeginPlay()
 	OnKillCountChanged.Broadcast(KillCount);
 	
 	//테스트용 시간
-	GameTime = 178.0f;
+	 //GameTime = 178.0f;
 	
 }
 

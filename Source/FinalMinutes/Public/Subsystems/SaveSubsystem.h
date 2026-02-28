@@ -21,4 +21,7 @@ public:
 	// 유저가 현재 플레이 중인 슬롯
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveData")
 	FString CurrentSlotName;
+	
+	UPROPERTY(BlueprintReadWrite, Category = "SaveSystem")
+	bool bIsLoadingGame = false;
 };

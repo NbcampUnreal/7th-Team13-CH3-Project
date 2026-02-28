@@ -198,8 +198,17 @@ void AFinalMinutesGameMode::AdjustTimerAfterLoad(float LoadedTime)
 		GameClear(); 
 		return;
 	}
+	TimeLimit = RemainingTime;
 	//기존에 돌아가던 타이머 관할 핸들러 취소시키기
 	GetWorldTimerManager().ClearTimer(TimerHandle);
+	if (RemainingTime > 0)
+	{
+		GetWorldTimerManager().SetTimer(TimerHandle, this, &AFinalMinutesGameMode::GameClear, RemainingTime, false);
+	}
+	else
+	{
+		GameClear();
+	}
 	//남은 시간만큼 예약해버리기 
 	GetWorldTimerManager().SetTimer(TimerHandle,this,&AFinalMinutesGameMode::GameClear,RemainingTime,false);
 }
