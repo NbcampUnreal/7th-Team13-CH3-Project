@@ -99,7 +99,7 @@ void APlayerCharacter::GiveDefaultAbilities()
     // DefaultAbilities 배열 순회하며 부여
     for (TSubclassOf<UGameplayAbility>& AbilityClass : DefaultAbilities)
     {
-        if (!AbilityClass) return;
+        if (!AbilityClass) continue;
         // Ability Spec 생성
         FGameplayAbilitySpec AbilitySpec(AbilityClass, 1, INDEX_NONE, this);
 
