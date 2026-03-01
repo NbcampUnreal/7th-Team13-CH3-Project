@@ -227,6 +227,29 @@ protected:
     UPROPERTY(EditAnywhere, Category = "Recoil")
     float RecoveryInterpSpeed = 10.0f;
 #pragma endregion 
+    
+#pragma region 일시정지
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+    FString IAPausePath = TEXT("/Game/FinalMinutes/Inputs/IA_Pause.IA_Pause");
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+    FString PauseMenuPath = TEXT("/Game/FinalMinutes/UI/WBP_Menu.WBP_Menu_C");
+    
+    UPROPERTY()
+    class UInputAction* IA_Pause;
+
+    // 에디터에서 WBP_PauseMenu를 할당할 클래스 변수
+    UPROPERTY()
+    TSubclassOf<class UUserWidget> PauseMenuClass;
+
+    // 현재 생성된 위젯을 저장해둘 변수 (중복 생성 방지용)
+    UPROPERTY()
+    class UUserWidget* PauseMenuInstance;
+
+    // P 누르면 실행될 함수
+    void TogglePause();
+#pragma endregion	
+    
 public:
     virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 

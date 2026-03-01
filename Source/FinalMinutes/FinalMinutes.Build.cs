@@ -22,7 +22,8 @@ public class FinalMinutes : ModuleRules
 			"UMG",
 			"GameplayAbilities",
 			"GameplayTags",
-			"Niagara"
+			"Niagara",
+			"PhysicsCore"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "GameplayAbilities", "GameplayTags", "GameplayTasks" });

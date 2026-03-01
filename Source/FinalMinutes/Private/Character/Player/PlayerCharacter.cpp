@@ -10,6 +10,7 @@
 #include "UI/PlayerHUD.h"
 #include "UI/PlayerStatusWidget.h"
 #include "Components/InventoryComponent.h"
+#include "Framework/FinalMinutesGameMode.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -222,6 +223,17 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
     {
         EnhancedInput->BindAction(IA_Inventory, ETriggerEvent::Started, this, &APlayerCharacter::ToggleInventoryInput);
     }
+    
+    if (!IA_Pause)
+    {
+        IA_Pause = LoadObject<UInputAction>(nullptr, *IAPausePath);
+    }
+    
+    if (IA_Pause)
+    {
+        EnhancedInput->BindAction(IA_Pause, ETriggerEvent::Started, this, &APlayerCharacter::TogglePause);
+    }
+
 }
 
 bool APlayerCharacter::CanMove() const
@@ -231,7 +243,6 @@ bool APlayerCharacter::CanMove() const
     
     if (MoveBlockTags.IsEmpty())
     {
-        // MoveBlockTags.AddTag(ReloadTag);
         MoveBlockTags.AddTag(DeathTag);
     }
     
@@ -277,10 +288,19 @@ void APlayerCharacter::OnCrouch(const FInputActionValue& Value)
     }
     else
     {
+        static FGameplayTagContainer CrouchBlockTags;
+    
+        if (CrouchBlockTags.IsEmpty())
+        {
+            CrouchBlockTags.AddTag(ReloadTag);
+        }
+    
+        if (AbilitySystemComponent->HasAnyMatchingGameplayTags(CrouchBlockTags)) return;
         // 태그가 있다면 -> 앉기 이벤트 전송
         FGameplayEventData Payload;
-        AbilitySystemComponent->HandleGameplayEvent(FGameplayTag::RequestGameplayTag(FName("State.Crouch.End")),
-                                                    &Payload);
+        AbilitySystemComponent->HandleGameplayEvent(
+            FGameplayTag::RequestGameplayTag(FName("State.Crouch.End")),
+            &Payload);
     }
 }
 
@@ -295,6 +315,14 @@ void APlayerCharacter::OnProne(const FInputActionValue& Value)
     }
     else
     {
+        static FGameplayTagContainer ProneBlockTags;
+    
+        if (ProneBlockTags.IsEmpty())
+        {
+            ProneBlockTags.AddTag(ReloadTag);
+        }
+    
+        if (AbilitySystemComponent->HasAnyMatchingGameplayTags(ProneBlockTags)) return;
         FGameplayEventData Payload;
         AbilitySystemComponent->HandleGameplayEvent
         (FGameplayTag::RequestGameplayTag(FName("State.Prone.End")), &Payload);
@@ -492,6 +520,39 @@ void APlayerCharacter::ToggleInventoryInput()
         {
             // 그 함수를 호출합니다.
             MainHUD->ProcessEvent(Function, nullptr);
+        }
+    }
+}
+
+void APlayerCharacter::TogglePause()
+{
+    AFinalMinutesGameMode* GM = Cast<AFinalMinutesGameMode>(GetWorld()->GetAuthGameMode());
+
+    //이미 메뉴가 켜져 있다면 지우고 일시정지 풀기
+    if (PauseMenuInstance && PauseMenuInstance->IsInViewport())
+    {
+        PauseMenuInstance->RemoveFromParent();
+        PauseMenuInstance = nullptr;
+
+        if (GM) GM->GamePause(false);
+        return; 
+    }
+
+    //위젯 클래스가 없다면 문자열 경로로 로드
+    if (!PauseMenuClass)
+    {
+        PauseMenuClass = LoadClass<UUserWidget>(nullptr, *PauseMenuPath);
+    }
+
+    //로드에 성공했다면 화면에 띄우고 게임 멈추기
+    if (PauseMenuClass)
+    {
+        PauseMenuInstance = CreateWidget<UUserWidget>(GetWorld(), PauseMenuClass);
+        if (PauseMenuInstance)
+        {
+            PauseMenuInstance->AddToViewport();
+            
+            if (GM) GM->GamePause(true);
         }
     }
 }
