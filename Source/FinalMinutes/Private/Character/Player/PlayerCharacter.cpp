@@ -313,6 +313,13 @@ void APlayerCharacter::OnProne(const FInputActionValue& Value)
 void APlayerCharacter::OnRoll(const FInputActionValue& Value)
 {
     if (!AbilitySystemComponent) return;
+    
+    // 제자리 구르기 방지
+    if (GetCharacterMovement()->GetCurrentAcceleration().IsNearlyZero())
+    {
+        return;
+    }
+    
     // 이미 구르는 중인지 확인
     // 구르는 중이 아닐 때만 구를수 있게
     if (!AbilitySystemComponent->HasMatchingGameplayTag(RollTag))
