@@ -21,10 +21,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data")
 	UTexture2D* Thumbnail; // 인벤토리에서 보여줄 아이템 썸네일
 	
-	// 아이템을 만들고 주석을 풉니다.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data")
 	TSubclassOf<ABaseItem> ItemActorClass; // 아이템의 설계도, 아이템 드롭에서 사용
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data")
 	int32 MaxStack = 1;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Spawn")
+	float SpawnWeight = 1.f; // 스폰 가중치
 };
