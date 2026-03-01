@@ -11,6 +11,7 @@
 #include "UI/PlayerStatusWidget.h"
 #include "Components/InventoryComponent.h"
 #include "Framework/FinalMinutesGameMode.h"
+#include "Items/BaseItem.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -490,6 +491,7 @@ void APlayerCharacter::Tick(float DeltaTime)
             FollowCamera->SetFieldOfView(TargetFOV);
         }
     }
+    UpdateItemOutline();
 }
 
 void APlayerCharacter::OnZoomStarted(const FInputActionValue& Value)
@@ -555,4 +557,34 @@ void APlayerCharacter::TogglePause()
             if (GM) GM->GamePause(true);
         }
     }
+}
+
+void APlayerCharacter::UpdateItemOutline()
+{
+    APlayerController* PC = Cast<APlayerController>(GetController());
+    if (!PC) return;
+
+    FVector CamLoc;
+    FRotator CamRot;
+    PC->GetPlayerViewPoint(CamLoc, CamRot);
+
+    const FVector Start = CamLoc;
+    const FVector End   = Start + CamRot.Vector() * InteractDistance;
+
+    FHitResult Hit;
+    FCollisionQueryParams Params(SCENE_QUERY_STAT(InteractTrace), false, this);
+
+    const bool bHit = GetWorld()->LineTraceSingleByChannel(
+        Hit, Start, End, ECC_Visibility, Params
+    );
+
+    ABaseItem* NewItem = bHit ? Cast<ABaseItem>(Hit.GetActor()) : nullptr;
+    ABaseItem* OldItem = FocusedItem.Get();
+
+    if (NewItem == OldItem) return;
+
+    if (OldItem) OldItem->SetOutline(false);
+    if (NewItem) NewItem->SetOutline(true);
+
+    FocusedItem = NewItem;
 }

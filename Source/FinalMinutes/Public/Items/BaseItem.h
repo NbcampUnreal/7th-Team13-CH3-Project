@@ -23,4 +23,10 @@ public:
 	// ItemID를 저장할 변수, 내가 누구인지 알려주는 값
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data")
 	FName ItemID;
+	
+	UFUNCTION(BlueprintCallable, Category="Outline")
+	void SetOutline(bool bEnable);
+
+	UPROPERTY(EditDefaultsOnly, Category="Outline")
+	int32 OutlineStencilValue = 1;
 };
