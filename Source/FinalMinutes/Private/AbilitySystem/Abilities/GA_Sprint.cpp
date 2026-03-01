@@ -8,15 +8,6 @@ UGA_Sprint::UGA_Sprint()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 
-	AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Sprint")));
-	
-	// 이태그가 있으면 실행안함 
-	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsSprinting")));
-	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsCrouching")));
-	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning")));
-
-	// 소유태그 / 실행중 어떤 태그를 가질지
-	ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsSprinting")));
 }
 
 void UGA_Sprint::ActivateAbility(

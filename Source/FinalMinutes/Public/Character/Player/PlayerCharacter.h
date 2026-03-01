@@ -28,6 +28,7 @@ public:
     virtual void Tick(float DeltaTime) override;
     virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
     virtual void InitializeAbilitySystem();
+    // virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
 
     FORCEINLINE class UCombatComponent* GetCombatComponent() const { return CombatComponent; }
 
@@ -47,15 +48,42 @@ protected:
 #pragma endregion
 
 #pragma region Tag
+    UPROPERTY(EditAnywhere, Category = "GAS | State Tags")
     FGameplayTag ReloadTag;
-    FGameplayTag AttackingTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | State Tags")
+    FGameplayTag AttackTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | State Tags")
     FGameplayTag ProneTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | State Tags")
     FGameplayTag DeathTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | State Tags")
     FGameplayTag CrouchTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | State Tags")
     FGameplayTag RollTag;
     
+    UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
+    FGameplayTag JumpAbilityTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
+    FGameplayTag CrouchAbilityTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
+    FGameplayTag ProneAbilityTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
+    FGameplayTag RollAbilityTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
+    FGameplayTag ReloadAbilityTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
+    FGameplayTag AttackAbilityTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
+    FGameplayTag SprintAbilityTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
+    FGameplayTag InteractAbilityTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
+    FGameplayTag ZoomAbilityTag;
+    
+    UPROPERTY(EditAnywhere, Category = "GAS | Block Tags")
+    FGameplayTagContainer MoveBlockTags;
+    
     bool CanMove() const;
-    bool CanJump() const;
 #pragma endregion
 protected:
     virtual void BeginPlay() override;
@@ -106,8 +134,8 @@ protected:
 
     UFUNCTION()
     void StartJump(const FInputActionValue& value);
-    UFUNCTION()
-    void StopJump(const FInputActionValue& value);
+    // UFUNCTION()
+    // void StopJump(const FInputActionValue& value);
 #pragma endregion
 
 #pragma region 장비장착
@@ -249,7 +277,6 @@ protected:
     // P 누르면 실행될 함수
     void TogglePause();
 #pragma endregion	
-    
 public:
     virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
