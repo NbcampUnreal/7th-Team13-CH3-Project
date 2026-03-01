@@ -104,10 +104,7 @@ void APlayerCharacter::InitializeAbilitySystem()
 {
     if (!AbilitySystemComponent) return;
     AbilitySystemComponent->InitAbilityActorInfo(this, this);
-
-    // Zoom 태그용 델리게이트 바인딩
-    FGameplayTag ZoomTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsZooming"));
-
+    
     AbilitySystemComponent->RegisterGameplayTagEvent(
         ZoomTag, // 어떤 태그 감시?
         EGameplayTagEventType::AnyCountChange // 새로 생기거나 제거될때 신호를 준다.

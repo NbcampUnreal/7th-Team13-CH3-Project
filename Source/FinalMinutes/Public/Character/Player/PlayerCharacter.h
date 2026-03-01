@@ -60,6 +60,8 @@ protected:
     FGameplayTag CrouchTag;
     UPROPERTY(EditAnywhere, Category = "GAS | State Tags")
     FGameplayTag RollTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | State Tags")
+    FGameplayTag ZoomTag;
     
     UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
     FGameplayTag JumpAbilityTag;
