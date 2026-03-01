@@ -74,22 +74,25 @@ void UGA_Interact::ActivateAbility(
     if (bHit && HitResult.GetActor())
     {
         AActor* HitActor = HitResult.GetActor();
-        ABaseItem* HitItem = Cast<ABaseItem>(HitActor);
-        
         // 상호작용 대상 로그 찍어보기
         UE_LOG(LogTemp, Warning, TEXT("상호작용 대상 이름: %s"), *HitActor->GetName());
-
-        const bool bAdded = InventoryComponent->AddItem(HitItem->ItemID);
-
-        if (bAdded)
+        
+        ABaseItem* HitItem = Cast<ABaseItem>(HitActor);
+        
+        if (HitItem)
         {
-            HitItem->Destroy();
-        }
-        else
-        {
-            if (GEngine)
+            const bool bAdded = InventoryComponent->AddItem(HitItem->ItemID);
+
+            if (bAdded)
             {
-                GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("인벤토리가 가득 찼습니다!"));
+                HitItem->Destroy();
+            }
+            else
+            {
+                if (GEngine)
+                {
+                    GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("인벤토리가 가득 찼습니다!"));
+                }
             }
         }
     }
