@@ -28,9 +28,7 @@ void UAN_FootStep::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* A
     QueryParams.AddIgnoredActor(Owner);
     // 맞은 물체의 물리재질정보를 가져오겠다 true
     QueryParams.bReturnPhysicalMaterial = true;
-    // 복잡한 콜리전도 체크
-    QueryParams.bTraceComplex = true;
-
+    
     // 라인트레이스
     bool bHit = Owner->GetWorld()->LineTraceSingleByChannel(
         HitResult, Start, End, ECollisionChannel::ECC_Visibility, QueryParams
@@ -40,19 +38,6 @@ void UAN_FootStep::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* A
     {
         UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Owner);
         if (!ASC) return;
-        
-        UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s / Hit Component: %s"), 
-        *HitResult.GetActor()->GetName(), 
-        *HitResult.Component->GetName());
-
-        if (HitResult.PhysMaterial.IsValid())
-        {
-            UE_LOG(LogTemp, Warning, TEXT("PhysMat: %s"), *HitResult.PhysMaterial->GetName());
-        }
-        else
-        {
-            UE_LOG(LogTemp, Error, TEXT("PhysMat is INVALID!"));
-        }
         
         FGameplayCueParameters Params;
         // 맞은 위치
