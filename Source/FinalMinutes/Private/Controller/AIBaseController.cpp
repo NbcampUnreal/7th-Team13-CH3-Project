@@ -1,13 +1,12 @@
 ﻿#include "Controller/AIBaseController.h"
-#include "BehaviorTree/BehaviorTree.h"
-#include "GameFramework/FloatingPawnMovement.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "NavigationSystem.h"
-#include "Monster/AMonsterCharacter.h"
 #include "Perception/AIPerceptionComponent.h"
+#include "Perception/AISense_Hearing.h"
+#include "Perception/AISense_Sight.h"
 
 const FName AAIBaseController::TargetKey(TEXT("TargetActor"));
 const FName AAIBaseController::StateKey(TEXT("MonsterStats"));
+const FName AAIBaseController::NoiseKey(TEXT("NoiseLocation"));
 
 AAIBaseController::AAIBaseController()
 {
@@ -15,6 +14,12 @@ AAIBaseController::AAIBaseController()
 	
 	AIPerceptionComp = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AIPerceptionComp"));
 	
+	if (AIPerceptionComp)
+	{
+		AIPerceptionComp->OnTargetPerceptionUpdated.AddDynamic(
+			this,
+			&AAIBaseController::OnTargetPerceptionUpdated);
+	}
 }
 
 void AAIBaseController::OnPossess(APawn* InPawn)
@@ -26,7 +31,7 @@ void AAIBaseController::OnPossess(APawn* InPawn)
 		RunBehaviorTree(BTAsset);
 	}
 	
-	if (InPawn)
+	/*if (InPawn)
 	{
 		InPawn->bUseControllerRotationYaw = false;
 	}
@@ -38,19 +43,7 @@ void AAIBaseController::OnPossess(APawn* InPawn)
 		3.0f,
 		true,
 		1.0f
-	);
-}
-
-void AAIBaseController::BeginPlay()
-{
-	Super::BeginPlay();
-	
-	if (AIPerceptionComp)
-	{
-		AIPerceptionComp->OnTargetPerceptionUpdated.AddDynamic(
-			this,
-			&AAIBaseController::OnTargetPerceptionUpdated);
-	}
+	);*/
 }
 
 void AAIBaseController::Tick(float DeltaTime)
@@ -81,18 +74,36 @@ void AAIBaseController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Sti
 		return;
 	}
 
-	if (Stimulus.WasSuccessfullySensed())
+	if (Stimulus.Type == UAISense::GetSenseID<UAISense_Sight>())
 	{
-		GetWorldTimerManager().PauseTimer(RandomMoveTimer);
-		BlackboardComp->SetValueAsObject(TargetKey, Actor);
+		if (Stimulus.WasSuccessfullySensed())
+		{
+			if (Actor->ActorHasTag(TEXT("Player")))
+			{
+				BlackboardComp->SetValueAsObject(TargetKey, Actor);
+				BlackboardComp->ClearValue(NoiseKey);
+			}
+		}
+		else
+		{
+			BlackboardComp->ClearValue(TargetKey);
+		}
+		return;
 	}
-	else
+	
+	if (Stimulus.Type == UAISense::GetSenseID<UAISense_Hearing>())
 	{
-		BlackboardComp->ClearValue(TargetKey);
-		GetWorldTimerManager().UnPauseTimer(RandomMoveTimer);
+		if (Stimulus.WasSuccessfullySensed())
+		{
+			BlackboardComp->SetValueAsVector(
+				NoiseKey,
+				Stimulus.StimulusLocation);
+		}
+		return;
 	}
 }
 
+/*
 void AAIBaseController::MoveToRandomLocation()
 {
 	APawn* MyPawn = GetPawn();
@@ -121,6 +132,7 @@ void AAIBaseController::MoveToRandomLocation()
 		MoveToLocation(RandomLocation.Location);
 	}
 }
+*/
 
 
 
