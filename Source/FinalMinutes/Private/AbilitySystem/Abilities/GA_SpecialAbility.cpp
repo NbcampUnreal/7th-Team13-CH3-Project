@@ -7,6 +7,7 @@ UGA_SpecialAbility::UGA_SpecialAbility()
 {
     InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
     SlowRate = 0.2f;
+    SlowRateForPlayer = 2.0f;
 }
 
 void UGA_SpecialAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
@@ -20,7 +21,7 @@ void UGA_SpecialAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle
         EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
         return;
     }
-    ApplyTime(SlowRate, 2.0f);
+    ApplyTime(SlowRate, SlowRateForPlayer);
 
     if (StaminaDrainGEClass)
     {

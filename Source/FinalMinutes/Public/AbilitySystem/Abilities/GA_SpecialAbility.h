@@ -29,7 +29,12 @@ protected:
 	/** 시간 계수 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Time")
 	float SlowRate;
+	
+	/** 사람할테 적용될 배수 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Time")
+	float SlowRateForPlayer;
 
+	/** 적용할 Cue*/
 	UPROPERTY(EditAnywhere, Category = "GAS | Cue")
 	FGameplayTag SpecialAbilityCueTag;
 
@@ -44,5 +49,6 @@ protected:
 	
 	FDelegateHandle StaminaChangeDelegateHandle;
 private:
+	/** 시간 적용 함수*/
 	void ApplyTime(float GlobalFactor, float PlayerFactor);
 };
