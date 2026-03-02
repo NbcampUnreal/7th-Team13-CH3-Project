@@ -3,6 +3,7 @@
 #include "Framework/FinalMinutesGameMode.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Framework/FinalMinutesGameState.h"
 
 UCharacterAttributeSet::UCharacterAttributeSet()
 {
@@ -96,32 +97,56 @@ void UCharacterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModC
 
 void UCharacterAttributeSet::HandleDeath()
 {
+    AActor* AvatarActor = GetOwningActor();
     UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
+    
     if (!ASC) return;
+    
     FGameplayEventData Payload;
     Payload.EventTag = FGameplayTag::RequestGameplayTag(FName("Event.Montage.Death"));
     
-    if (ASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsCrouching"))))
+    // 플레이어인 경우 : 기존의 자세별 사망 모션 실행
+    if (AvatarActor->ActorHasTag(FName("Player")))
     {
-        Payload.EventMagnitude = 1.0f;
-    }
-    else if (ASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning"))))
-    {
-        Payload.EventMagnitude = 2.0f;
+        if (ASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsCrouching"))))
+        {
+            Payload.EventMagnitude = 1.0f;
+        }
+        else if (ASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning"))))
+        {
+            Payload.EventMagnitude = 2.0f;
+        }
+        else
+        {
+            Payload.EventMagnitude = 0.0f;
+        } 
     }
     else
     {
-        Payload.EventMagnitude = 0.0f;
+        //킬카운트 증가
+        AFinalMinutesGameState* GS = GetWorld()->GetGameState<AFinalMinutesGameState>();
+        if (GS) GS->AddKill();
+        // 몬스터 사망 모션 재생(일단은 액터 삭제만 진행)
+        if (AvatarActor)
+        {
+            AvatarActor->Destroy();
+        }
+        return;
     }
     ASC->HandleGameplayEvent(Payload.EventTag, &Payload);
     
-    //사망 로직이 발동 된 이후 GameOver
-    if (AActor* AvatarActor = GetOwningActor())
+    // 사망 로직이 발동 된 이후 GameOver
+    if (AvatarActor)
     {
-        AFinalMinutesGameMode* GM = Cast<AFinalMinutesGameMode>(AvatarActor->GetWorld()->GetAuthGameMode());
-        if (GM)
+        if (AvatarActor->ActorHasTag(FName("Player")))
         {
-            GM->GameOver(); // 사망 즉시 게임 오버 처리
+            AFinalMinutesGameMode* GM = Cast<AFinalMinutesGameMode>(AvatarActor->GetWorld()->GetAuthGameMode());
+            if (GM) GM->GameOver();
+        }
+        else
+        {
+            // 시체가 10초 뒤 사라지도록 설정
+            AvatarActor->SetLifeSpan(10.0f);
         }
     }
 }
