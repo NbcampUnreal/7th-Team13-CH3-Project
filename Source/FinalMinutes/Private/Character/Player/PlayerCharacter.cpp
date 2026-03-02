@@ -222,6 +222,10 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
         EnhancedInput->BindAction(IA_Pause, ETriggerEvent::Started, this, &APlayerCharacter::TogglePause);
     }
 
+    if (IA_SpecialAbility)
+    {
+        EnhancedInput->BindAction(IA_SpecialAbility, ETriggerEvent::Started, this, &APlayerCharacter::OnSpecialAbility);
+    }
 }
 
 bool APlayerCharacter::CanMove() const
@@ -518,5 +522,21 @@ void APlayerCharacter::TogglePause()
             
             if (GM) GM->GamePause(true);
         }
+    }
+}
+
+void APlayerCharacter::OnSpecialAbility()
+{
+    if (!AbilitySystemComponent) return;
+    FGameplayTagContainer AbilityTags;
+    AbilityTags.AddTag(SAAbilityTag);
+    
+    if (AbilitySystemComponent->HasMatchingGameplayTag(SATag))
+    {
+        AbilitySystemComponent->CancelAbilities(&AbilityTags);
+    }
+    else
+    {
+        AbilitySystemComponent->TryActivateAbilitiesByTag(AbilityTags);
     }
 }

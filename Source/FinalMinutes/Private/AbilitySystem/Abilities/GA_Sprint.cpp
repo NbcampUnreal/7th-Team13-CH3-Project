@@ -7,7 +7,6 @@
 UGA_Sprint::UGA_Sprint()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-
 }
 
 void UGA_Sprint::ActivateAbility(
@@ -44,7 +43,7 @@ void UGA_Sprint::ActivateAbility(
 	FGameplayEffectSpecHandle StaminaSpecHandle = MyASC->MakeOutgoingSpec(SprintStaminaEffectClass, 1.0f, EffectContext);
 	if (StaminaSpecHandle.IsValid())
 	{
-		FGameplayTag CostTag = FGameplayTag::RequestGameplayTag(FName("Player.Stats.Stamina"));
+		FGameplayTag CostTag = FGameplayTag::RequestGameplayTag(FName(TEXT("Player.Stats.Stamina")));
 		StaminaSpecHandle.Data.Get()->SetSetByCallerMagnitude(CostTag, -1.0f);
 		
 		ActiveSprintStaminaEffectHandle = MyASC->ApplyGameplayEffectSpecToSelf(*StaminaSpecHandle.Data.Get());

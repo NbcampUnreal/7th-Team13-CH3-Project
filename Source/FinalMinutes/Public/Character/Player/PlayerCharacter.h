@@ -62,6 +62,8 @@ protected:
     FGameplayTag RollTag;
     UPROPERTY(EditAnywhere, Category = "GAS | State Tags")
     FGameplayTag ZoomTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | State Tags")
+    FGameplayTag SATag;
     
     UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
     FGameplayTag JumpAbilityTag;
@@ -81,6 +83,8 @@ protected:
     FGameplayTag InteractAbilityTag;
     UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
     FGameplayTag ZoomAbilityTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
+    FGameplayTag SAAbilityTag;
     
     UPROPERTY(EditAnywhere, Category = "GAS | Block Tags")
     FGameplayTagContainer MoveBlockTags;
@@ -279,6 +283,13 @@ protected:
     // P 누르면 실행될 함수
     void TogglePause();
 #pragma endregion	
+    
+#pragma region 특수능력
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS|Input")
+    UInputAction* IA_SpecialAbility;
+    
+    void OnSpecialAbility();
+#pragma endregion
 public:
     virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
