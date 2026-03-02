@@ -583,8 +583,19 @@ void APlayerCharacter::UpdateItemOutline()
 
     if (NewItem == OldItem) return;
 
-    if (OldItem) OldItem->SetOutline(false);
-    if (NewItem) NewItem->SetOutline(true);
+    // 이전 아이템: 아웃라인 끄고 + 위젯 숨기기
+    if (OldItem)
+    {
+        OldItem->SetOutline(false);
+        OldItem->SetPromptVisible(false);
+    }
+
+    // 새 아이템: 아웃라인 켜고 + 위젯 보이기
+    if (NewItem)
+    {
+        NewItem->SetOutline(true);
+        NewItem->SetPromptVisible(true);
+    };
 
     FocusedItem = NewItem;
 }
