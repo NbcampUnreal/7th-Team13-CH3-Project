@@ -1,7 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-
-#include "Items/Projectiles/ProjectileBullet.h"
+﻿#include "Items/Projectiles/ProjectileBullet.h"
 
 // 엔진 및 컴포넌트 헤더
 #include "Components/SphereComponent.h"
@@ -102,7 +99,7 @@ void AProjectileBullet::OnHit(
     // 1. 기본 방어 로직
     // 1. 자기 자신과 발사자 제외 (필수 최소 필터)
     if (!OtherActor || OtherActor == GetInstigator() || OtherActor == this) return;
-    
+
     // 2. IDamageable 인터페이스 호출 (IDamageable 구현자라면 누구든)
     IDamageable* DamageableTarget = Cast<IDamageable>(OtherActor);
     if (DamageableTarget)
@@ -110,37 +107,53 @@ void AProjectileBullet::OnHit(
         // 타겟인 몬스터에게 맞았다고 알려줌.
         DamageableTarget->Execute_OnHitReaction(OtherActor, Hit);
     }
-
+    
     // 3. GAS 데이터 적용 (ASC 인터페이스 구현자라면 누구든)
     // 타겟이 GAS를 사용하는 클래스(IAbilitySystemInterface 상속)인지 확인합니다.
     IAbilitySystemInterface* ASCOwner = Cast<IAbilitySystemInterface>(OtherActor);
-    if (!ASCOwner && OtherActor->GetOwner())
+    if (!ASCOwner)
     {
-        ASCOwner = Cast<IAbilitySystemInterface>(OtherActor->GetOwner());
+        UE_LOG(LogTemp, Error, TEXT("OnHit: %s does NOT have IAbilitySystemInterface!"), *OtherActor->GetName());
+        return;
     }
-    if (!ASCOwner) return;
-    
 
     UAbilitySystemComponent* TargetASC = ASCOwner->GetAbilitySystemComponent();
-    if (!TargetASC || !DamageEffectSpecHandle.IsValid()) return;
-    
-    UCharacterPhysicalMaterial* CharacterPM = Cast<UCharacterPhysicalMaterial>(Hit.PhysMaterial.Get());
-    if (!CharacterPM) return;
-
-    FGameplayEffectSpec* DamageEffectSpec = DamageEffectSpecHandle.Data.Get();
-
-    // 4. 커스텀 피지컬 머티리얼 검사
-    if (CharacterPM->HitRegionTag.IsValid())
+    if (!TargetASC)
     {
-        // 재질에 설정된 태그를 DamageEffectSpec에 추가하여 전달
-        DamageEffectSpec->AddDynamicAssetTag(CharacterPM->HitRegionTag);
-        
-        UE_LOG(LogTemp, Warning, TEXT("Hit Registered: %s"), *CharacterPM->HitRegionTag.ToString());
+        UE_LOG(LogTemp, Error, TEXT("OnHit: Target ASC is NULL!"));
+        return;
     }
 
-    // 5. 저장해둔 데미지 효과를 타겟의 ASC에 직접 적용합니다.
-    TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpec);
-
+    if (!DamageEffectSpecHandle.IsValid())
+    {
+        UE_LOG(LogTemp, Error, TEXT("OnHit: DamageEffectSpecHandle is INVALID!"));
+        return;
+    }
+    
+    // [Step 3] 실제 전달된 데미지 값 확인
+    // "Data.Damage" 부분은 무기 담당자가 설정한 실제 태그명으로 교체해야 합니다.
+    if (FGameplayEffectSpec* Spec = DamageEffectSpecHandle.Data.Get())
+    {
+        // 1. 부위 판별용 태그 변수
+        FGameplayTag HitRegionTag;
+        
+        // 2. 물리적 충돌 정보(Hit.BoneName)를 확인하여 태그 결정
+        if (Hit.BoneName.ToString().Contains(TEXT("head")))
+        {
+            HitRegionTag = FGameplayTag::RequestGameplayTag(FName("Damage.HitRegion.Head"));
+        }
+        else
+        {
+            // 머리가 아니면 기본적으로 몸통(Body)으로 간주
+            HitRegionTag = FGameplayTag::RequestGameplayTag(FName("Damage.HitRegion.Body"));
+        }
+        
+        // 3. Spec에 이 태그를 추가해서 전달
+        Spec->AddDynamicAssetTag(HitRegionTag);
+    }
+    // 저장해둔 데미지 효과를 타겟의 ASC에 직접 적용합니다.
+    TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
+    
     // 충돌 후 총알 액터를 즉시 월드에서 제거합니다.
     Destroy();
 }

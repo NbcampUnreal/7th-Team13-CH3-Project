@@ -8,6 +8,7 @@
 #include "Items/Weapons/FWeaponData.h"
 #include "Items/Weapons/WeaponBase.h"
 #include "Items/Weapons/WeaponDataAsset.h"
+#include "Perception/AISense_Hearing.h"
 
 UGA_Attack::UGA_Attack()
 {
@@ -129,21 +130,14 @@ void UGA_Attack::GenerateFiringNoise() const
     UCombatComponent* CombatComponent = PlayerCharacter->GetCombatComponent();
     AWeaponBase* CurrentWeapon = CombatComponent ? CombatComponent->GetActiveWeapon() : nullptr;
     if (!CurrentWeapon || !CurrentWeapon->GetCurrentDataAsset()) return;
-    
-    float SoundRange = CurrentWeapon->GetFinalSoundSize();
-    
-    CurrentWeapon->MakeNoise(SoundRange, PlayerCharacter, CurrentWeapon->GetActorLocation());
 
-    #if !UE_BUILD_SHIPPING
-    DrawDebugSphere(
-        GetWorld(),
-        CurrentWeapon->GetActorLocation(),
-        SoundRange,
-        32,
-        FColor::Orange,
-        false,
-        1.0f);
-    #endif
+    UAISense_Hearing::ReportNoiseEvent(
+            GetWorld(),
+            PlayerCharacter->GetActorLocation(),
+            1.0f,
+            PlayerCharacter,
+            3000.0f
+         ); 
 }
 
 void UGA_Attack::SpawnProjectile() const

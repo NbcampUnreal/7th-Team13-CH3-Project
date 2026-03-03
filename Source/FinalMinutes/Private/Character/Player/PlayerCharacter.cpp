@@ -564,8 +564,9 @@ void APlayerCharacter::UpdateItemOutline()
         NewItem->SetOutline(true);
         NewItem->SetPromptVisible(true);
     };
-
     FocusedItem = NewItem;
+}
+
 void APlayerCharacter::OnSpecialAbility()
 {
     if (!AbilitySystemComponent) return;
