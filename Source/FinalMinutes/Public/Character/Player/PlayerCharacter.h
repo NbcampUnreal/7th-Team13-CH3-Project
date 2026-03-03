@@ -17,6 +17,7 @@ class USpringArmComponent;
 class UGameplayEffect;
 class UInventoryComponent;
 class UPlayerStatusWidget;
+class ABaseItem;
 
 UCLASS()
 class FINALMINUTES_API APlayerCharacter : public ACharacter, public IAbilitySystemInterface
@@ -26,8 +27,11 @@ class FINALMINUTES_API APlayerCharacter : public ACharacter, public IAbilitySyst
 public:
     APlayerCharacter();
     virtual void Tick(float DeltaTime) override;
+    ABaseItem* GetFocusedItem() const { return FocusedItem.Get(); }
+    
     virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
     virtual void InitializeAbilitySystem();
+    // virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
 
     FORCEINLINE class UCombatComponent* GetCombatComponent() const { return CombatComponent; }
 
@@ -47,15 +51,48 @@ protected:
 #pragma endregion
 
 #pragma region Tag
+    UPROPERTY(EditAnywhere, Category = "GAS | State Tags")
     FGameplayTag ReloadTag;
-    FGameplayTag AttackingTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | State Tags")
+    FGameplayTag AttackTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | State Tags")
     FGameplayTag ProneTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | State Tags")
     FGameplayTag DeathTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | State Tags")
     FGameplayTag CrouchTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | State Tags")
     FGameplayTag RollTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | State Tags")
+    FGameplayTag ZoomTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | State Tags")
+    FGameplayTag SATag;
+    
+    UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
+    FGameplayTag JumpAbilityTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
+    FGameplayTag CrouchAbilityTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
+    FGameplayTag ProneAbilityTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
+    FGameplayTag RollAbilityTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
+    FGameplayTag ReloadAbilityTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
+    FGameplayTag AttackAbilityTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
+    FGameplayTag SprintAbilityTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
+    FGameplayTag InteractAbilityTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
+    FGameplayTag ZoomAbilityTag;
+    UPROPERTY(EditAnywhere, Category = "GAS | Ability Tags")
+    FGameplayTag SAAbilityTag;
+    
+    UPROPERTY(EditAnywhere, Category = "GAS | Block Tags")
+    FGameplayTagContainer MoveBlockTags;
     
     bool CanMove() const;
-    bool CanJump() const;
 #pragma endregion
 protected:
     virtual void BeginPlay() override;
@@ -106,8 +143,8 @@ protected:
 
     UFUNCTION()
     void StartJump(const FInputActionValue& value);
-    UFUNCTION()
-    void StopJump(const FInputActionValue& value);
+    // UFUNCTION()
+    // void StopJump(const FInputActionValue& value);
 #pragma endregion
 
 #pragma region 장비장착
@@ -203,6 +240,11 @@ protected:
 
     UFUNCTION()
     void Interact(const FInputActionValue& value);
+    
+    void UpdateItemOutline();
+
+    UPROPERTY(EditDefaultsOnly, Category="Interact|Outline")
+    float InteractDistance = 700.f;
 #pragma endregion
 
 #pragma region 스태미너
@@ -250,6 +292,12 @@ protected:
     void TogglePause();
 #pragma endregion	
     
+#pragma region 특수능력
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS|Input")
+    UInputAction* IA_SpecialAbility;
+    
+    void OnSpecialAbility();
+#pragma endregion
 public:
     virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
@@ -260,4 +308,7 @@ protected:
     TObjectPtr<UPlayerStatusWidget> MainHUD = nullptr;
 
     void CacheMainHUD();
+    
+private:
+    TWeakObjectPtr<ABaseItem> FocusedItem;
 };

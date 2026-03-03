@@ -9,18 +9,6 @@ UGA_Roll::UGA_Roll()
 	// 어빌리티가 실행될때 액터당 하나의 인스턴스(객체)만 생성해서 재사용하겠다.
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 
-	// Ability Tags, 어빌리티 자체에 붙여주는 태그
-	AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Roll")));
-	
-	// 구르기할때는 엎드리기, 앉기가 풀리게끔
-	CancelAbilitiesWithTag.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Prone")));
-	CancelAbilitiesWithTag.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Crouch")));
-	
-	// 이태그가 있으면 실행안함 
-	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsRolling")));
-
-	// 소유태그 / 실행중 어떤 태그를 가질지
-	ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsRolling")));
 }
 
 void UGA_Roll::ActivateAbility(
