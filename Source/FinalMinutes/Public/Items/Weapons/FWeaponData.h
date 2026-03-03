@@ -148,7 +148,7 @@ public:
 
     /** 한 번 발사할 때 생성할 투사체 개수 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Shotgun", meta = (ClampMin = "1", UIMin = "1"))
-    int32 PelletCount = 9;
+    int32 PelletCount = 1;
 
     /**
      * 투사체 퍼짐 반각(도 단위). (예: 6도면 중심선 기준 -6~+6도 안에서 랜덤)
