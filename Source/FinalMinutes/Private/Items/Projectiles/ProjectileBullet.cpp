@@ -139,7 +139,8 @@ void AProjectileBullet::OnHit(
 
     // [Step 3] 실제 전달된 데미지 값 확인
     // "Data.Damage" 부분은 무기 담당자가 설정한 실제 태그명으로 교체해야 합니다.
-    if (FGameplayEffectSpec* Spec = DamageEffectSpecHandle.Data.Get())
+    FGameplayEffectSpec* Spec = DamageEffectSpecHandle.Data.Get();
+    if (Spec)
     {
         // 1. 부위 판별용 태그 변수
         FGameplayTag HitRegionTag;
@@ -227,5 +228,5 @@ void AProjectileBullet::Tick(float DeltaTime)
         }
     }
 
-    DrawDebugTrajectory();
+    // DrawDebugTrajectory();
 }

@@ -8,6 +8,7 @@
 #include "Items/Weapons/FWeaponData.h"
 #include "Items/Weapons/WeaponBase.h"
 #include "Items/Weapons/WeaponDataAsset.h"
+#include "Perception/AISense_Hearing.h"
 
 UGA_Attack::UGA_Attack()
 {
