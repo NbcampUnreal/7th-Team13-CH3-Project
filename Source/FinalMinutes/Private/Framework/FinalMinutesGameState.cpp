@@ -7,6 +7,7 @@ AFinalMinutesGameState::AFinalMinutesGameState()
 	KillCount = 0;
 	//tick 돌아가게
 	PrimaryActorTick.bCanEverTick = true;
+	bIsGameOver = false;
 }
 
 void AFinalMinutesGameState::BeginPlay()
@@ -15,11 +16,9 @@ void AFinalMinutesGameState::BeginPlay()
 	
 	KillCount = 0;
 	OnKillCountChanged.Broadcast(KillCount);
-	
 	//테스트용 시간
 	//GameTime = 590.0f;
-	
-}
+	}
 
 void AFinalMinutesGameState::Tick(float DeltaSeconds)
 {
