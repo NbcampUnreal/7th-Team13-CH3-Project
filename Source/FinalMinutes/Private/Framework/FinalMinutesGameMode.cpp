@@ -142,14 +142,20 @@ void AFinalMinutesGameMode::GameOver()
 	GetWorldTimerManager().ClearTimer(TimerHandle);
 	
 	AFinalMinutesGameState* GS = GetGameState<AFinalMinutesGameState>();
-	if (GS)
-	{
-		GS->bIsGameOver = true;
-	}
 	
 	//데이터 저장
-	int32 RealKill = (GetGameState<AFinalMinutesGameState>()) ? GetGameState<AFinalMinutesGameState>()->GetKillCount() : 0;
-	float RealTime = GetWorldTimerManager().GetTimerElapsed(TimerHandle);
+	float RealTime = 0.0f;
+	int32 RealKill = 0;
+	
+	if (GS)
+	{
+		// 게임 오버 상태로 변경 (Tick 멈추기용)
+		GS->bIsGameOver = true;
+       
+		//타이머 핸들 말고, GameState가 직접 잰 시간을 가져오게
+		RealTime = GS->GameTime; 
+		RealKill = GS->GetKillCount();
+	}
 
 	if (auto* SaveSS = GetGameInstance()->GetSubsystem<USaveSubsystem>())
 	{
