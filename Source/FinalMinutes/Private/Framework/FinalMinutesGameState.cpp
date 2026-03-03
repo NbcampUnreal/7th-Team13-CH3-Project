@@ -17,7 +17,7 @@ void AFinalMinutesGameState::BeginPlay()
 	OnKillCountChanged.Broadcast(KillCount);
 	
 	//테스트용 시간
-	GameTime = 178.0f;
+	//GameTime = 590.0f;
 	
 }
 
@@ -73,12 +73,12 @@ void AFinalMinutesGameState::Tick(float DeltaSeconds)
 	}
 }
 
-void AFinalMinutesGameState::AddKill(FGameplayTag MonsterTag)
+void AFinalMinutesGameState::AddKill()
 {
 	KillCount++;
 	OnKillCountChanged.Broadcast(KillCount);
-	//디버깅용 필수과제에 로그 찍히는거 있음 디버깅 완료하면 문구 수정해주기!!!!
-	UE_LOG(LogTemp, Warning, TEXT("킬 카운트 테스트 : %d"), KillCount);
+	//디버깅용 필수과제에 로그 찍히는거 있음 5.UI시스템 - 피해/킬로그
+	UE_LOG(LogTemp, Warning, TEXT("킬 카운트 : %d"), KillCount);
 }
 	
 void AFinalMinutesGameState::SetLoadedData(int32 LoadedKillCount, float LoadedTime)
