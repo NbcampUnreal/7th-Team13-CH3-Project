@@ -164,11 +164,6 @@ UAbilitySystemComponent* UCombatComponent::GetOwnerASC() const
     return OwnerCharacter ? OwnerCharacter->GetAbilitySystemComponent() : nullptr;
 }
 
-void UCombatComponent::PerformTrace()
-{
-    // 사격 판정 로직 구현 공간
-}
-
 void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);

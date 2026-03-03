@@ -4,6 +4,7 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Framework/FinalMinutesGameState.h"
+#include "Monster/AMonsterCharacter.h"
 
 UCharacterAttributeSet::UCharacterAttributeSet()
 {
@@ -17,9 +18,6 @@ UCharacterAttributeSet::UCharacterAttributeSet()
     InitAttackDamage(10.0f);
     InitDefence(0.0f);
     InitMoveSpeed(300.0f);
-    
-    InitHeadDefence(0.0f);
-    InitBodyDefence(70.0f);
 }
 
 // Attribute값이 변하기 전에 실행
@@ -76,26 +74,46 @@ void UCharacterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModC
     {
         // Health에서 바로 깎지 않는 이유는 도트데미지일수도 있어서
         
-        // 들어온 데미지 저장
+        // 들어온 기초 데미지 저장 및 초기화
         const float DamageValue = GetDamage();
         SetDamage(0.f);
         
         // 데미지가 0이하면 무시
         if (DamageValue <= 0.f) return;
         
-        // 피 보정
-        const float NewHealth = FMath::Clamp(GetHealth() - DamageValue, 0.0f, GetMaxHealth());
+        // 최종 데미지 계산용 변수
+        float FinalDamage = DamageValue;
+        
+        // 피격자(몬스터)로부터 배율 정보 가져오기
+        if (AAMonsterCharacter* TargetMonster = Cast<AAMonsterCharacter>(Data.Target.GetAvatarActor()))
+        {
+            // 총알이 담아온 태그에서 정보 추출
+            FGameplayTagContainer SpecAssetTags;
+            Data.EffectSpec.GetAllAssetTags(SpecAssetTags);
+            
+            // 데미지 계산
+            const float Multiplier = TargetMonster->GetDamageMultiplierForRegion(SpecAssetTags);
+            FinalDamage = DamageValue * Multiplier;
+            
+            UE_LOG(LogTemp, Log, TEXT("부위 판정: %f * %f = 최종 %f"), DamageValue, Multiplier, FinalDamage);
+        }
+        
+        // 체력 차감
+        const float NewHealth = FMath::Clamp(GetHealth() - FinalDamage, 0.0f, GetMaxHealth());
         SetHealth(NewHealth);
         
         // 데미지를 받고서 피가 0이상이면 피격효과 
-        HandleHitReaction(DamageValue);
+        HandleHitReaction(FinalDamage);
 
         // 피가 0 이하면 사망로직
-        if (NewHealth <= 0) HandleDeath();
+        if (NewHealth <= 0)
+        {
+            HandleDeath();
+        }
     }
 }
 
-void UCharacterAttributeSet::HandleDeath()
+void UCharacterAttributeSet::HandleDeath() const
 {
     AActor* AvatarActor = GetOwningActor();
     UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
@@ -126,6 +144,7 @@ void UCharacterAttributeSet::HandleDeath()
         //킬카운트 증가
         AFinalMinutesGameState* GS = GetWorld()->GetGameState<AFinalMinutesGameState>();
         if (GS) GS->AddKill();
+        
         // 몬스터 사망 모션 재생(일단은 액터 삭제만 진행)
         if (AvatarActor)
         {
@@ -151,7 +170,7 @@ void UCharacterAttributeSet::HandleDeath()
     }
 }
 
-void UCharacterAttributeSet::HandleHitReaction(const float DamageValue)
+void UCharacterAttributeSet::HandleHitReaction(const float DamageValue) const
 {
     // GameplayCue에 넘길 파라미터
     FGameplayCueParameters Parameters;

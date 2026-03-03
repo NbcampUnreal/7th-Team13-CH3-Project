@@ -18,7 +18,6 @@ public:
 	virtual void OnPossess(APawn* InPawn) override;
 	
 protected:
-	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 	
 protected:
@@ -34,19 +33,18 @@ protected:
 	// 블랙보드 키 이름
 	static const FName TargetKey;
 	static const FName StateKey;
+	static const FName NoiseKey;
 	
 private:
 	UFUNCTION()
 	void OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
-	void MoveToRandomLocation();
+	// void MoveToRandomLocation();
 	
 	UPROPERTY(EditAnywhere, Category = "AI")
-	float MoveRadius = 1000.0f;
+	float MoveRadius = 600.0f;
 	
 	
 	FRotator TargetRotation;
 	UPROPERTY(EditAnywhere, Category = "Rotate")
-	float RotationSpeed = 5.0f;
-	
-	FTimerHandle RandomMoveTimer;
+	float RotationSpeed = 90.0f;
 };
