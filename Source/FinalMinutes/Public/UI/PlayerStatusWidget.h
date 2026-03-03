@@ -27,6 +27,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="UI")
 	void ShowKillPlusOne();
 	
+	UFUNCTION(BlueprintCallable, Category="UI")
+	void ShowGameStartMessage();
+	
 protected:
 	virtual void NativeDestruct() override;
 	
@@ -104,4 +107,11 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category="UI")
 	TSubclassOf<UUserWidget> KillPopupClass;
+	
+	// Start Message
+	UPROPERTY(meta=(BindWidget))
+	UCanvasPanel* Canvas_MessageLayer = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category="UI")
+	TSubclassOf<UUserWidget> GameMessagePopupClass;
 };

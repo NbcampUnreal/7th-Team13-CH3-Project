@@ -235,3 +235,18 @@ void UPlayerStatusWidget::ShowKillPlusOne()
 	CanvasSlot->SetAutoSize(true);
 	CanvasSlot->SetZOrder(999);
 }
+
+void UPlayerStatusWidget::ShowGameStartMessage()
+{
+	if (!Canvas_MessageLayer || !GameMessagePopupClass) return;
+
+	UUserWidget* Popup = CreateWidget<UUserWidget>(GetWorld(), GameMessagePopupClass);
+	if (!Popup) return;
+
+	UCanvasPanelSlot* CanvasSlot = Canvas_MessageLayer->AddChildToCanvas(Popup);
+	if (!CanvasSlot) return;
+
+	CanvasSlot->SetPosition(FVector2D(0.f, 0.f));
+	CanvasSlot->SetAutoSize(true);
+	CanvasSlot->SetZOrder(999);
+}

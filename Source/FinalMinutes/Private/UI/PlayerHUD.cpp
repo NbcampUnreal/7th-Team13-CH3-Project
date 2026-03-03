@@ -100,3 +100,11 @@ void APlayerHUD::ShowKillPlusOne()
 		MainHUDWidget->ShowKillPlusOne();
 	}
 }
+
+void APlayerHUD::ShowGameStartMessage()
+{
+	if (MainHUDWidget)
+	{
+		MainHUDWidget->ShowGameStartMessage();
+	}
+}

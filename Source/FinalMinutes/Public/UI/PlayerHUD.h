@@ -22,6 +22,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="UI")
 	void ShowKillPlusOne();
 	
+	UFUNCTION(BlueprintCallable, Category="UI")
+	void ShowGameStartMessage();
+	
 protected:
 	virtual void BeginPlay() override;
 
