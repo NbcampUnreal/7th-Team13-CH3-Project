@@ -3,10 +3,12 @@
 #include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
+#include "AbilitySystem/Attributes/WeaponAttributeSet.h"
 #include "Character/Components/CombatComponent.h"
 #include "Items/Weapons/FWeaponData.h"
 #include "Items/Weapons/WeaponBase.h"
 #include "Items/Weapons/WeaponDataAsset.h"
+
 
 UGA_Reload::UGA_Reload()
 {
@@ -44,6 +46,15 @@ void UGA_Reload::ActivateAbility(
     if (!CurrentWeapon || !CurrentWeapon->GetCurrentDataAsset())
     {
         EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+        return;
+    }
+    
+    // 풀탄인 경우, 재장전하지 않고 종료
+    const float CurrentAmmo = ASC->GetNumericAttribute(UWeaponAttributeSet::GetCurrentAmmoAttribute());
+    const float MaxAmmo = ASC->GetNumericAttribute(UWeaponAttributeSet::GetMaxAmmoAttribute());
+    if (FMath::IsNearlyEqual(CurrentAmmo, MaxAmmo))
+    {
+        EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
         return;
     }
 
@@ -134,4 +145,9 @@ void UGA_Reload::EndAbility(
     }
 
     Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
+}
+
+UAbilitySystemComponent* UGA_Reload::GetOwnerASC() const
+{
+    return OwnerCharacter ? OwnerCharacter->GetAbilitySystemComponent() : nullptr;
 }
