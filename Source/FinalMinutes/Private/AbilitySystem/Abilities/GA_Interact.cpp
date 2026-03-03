@@ -8,7 +8,7 @@ UGA_Interact::UGA_Interact()
 {
     InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 
-    AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Interact")));
+
     InteractDistance = 600.0f;
 }
 

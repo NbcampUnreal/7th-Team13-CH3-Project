@@ -5,15 +5,6 @@
 UGA_Zoom::UGA_Zoom()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-	
-	// 어빌리티 고유 태그
-	AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Zoom")));
-    
-	// 이미 줌 상태일 경우 중복 실행 방지
-	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsZooming")));
-
-	// 어빌리티가 실행 중일 때 자동으로 소유하게 될 태그 (GE 없이도 상태 판별 가능)
-	ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsZooming")));
 }
 
 void UGA_Zoom::ActivateAbility(
