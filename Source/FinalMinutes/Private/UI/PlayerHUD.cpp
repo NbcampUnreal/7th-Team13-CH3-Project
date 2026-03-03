@@ -85,38 +85,18 @@ UPlayerStatusWidget* APlayerHUD::GetMainHUDWidget()
 	return MainHUDWidget;
 }
 
-// UI창 띄우기
-void APlayerHUD::ShowResultUI(TSubclassOf<UUserWidget> WidgetClass)
+void APlayerHUD::ShowDamageNumber(int32 Damage)
 {
-	APlayerController* PC = GetOwningPlayerController();
-	if (!PC || !WidgetClass) return;
-
-	if (MainHUDWidget) MainHUDWidget->SetVisibility(ESlateVisibility::Collapsed);
-
-	if (!ResultWidget)
+	if (MainHUDWidget)
 	{
-		ResultWidget = CreateWidget<UUserWidget>(PC, WidgetClass);
-		if (ResultWidget) ResultWidget->AddToViewport(200);
+		MainHUDWidget->ShowDamageNumber(Damage);
 	}
-
-	PC->SetShowMouseCursor(true);
-
-	FInputModeGameAndUI Mode;
-	Mode.SetWidgetToFocus(ResultWidget->TakeWidget());
-	Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-	PC->SetInputMode(Mode);
-
-	UGameplayStatics::SetGamePaused(this, true);
 }
 
-// 게임 오버 화면
-void APlayerHUD::ShowGameOverUI()
+void APlayerHUD::ShowKillPlusOne()
 {
-	ShowResultUI(GameOverWidgetClass);
-}
-
-// 게임 클리어 화면
-void APlayerHUD::ShowGameClearUI()
-{
-	ShowResultUI(GameClearWidgetClass);
+	if (MainHUDWidget)
+	{
+		MainHUDWidget->ShowKillPlusOne();
+	}
 }

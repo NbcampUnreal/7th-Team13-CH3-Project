@@ -17,10 +17,10 @@ public:
 	UPlayerStatusWidget* GetMainHUDWidget();
 	
 	UFUNCTION(BlueprintCallable, Category="UI")
-	void ShowGameOverUI();
-
+	void ShowDamageNumber(int32 Damage);
+	
 	UFUNCTION(BlueprintCallable, Category="UI")
-	void ShowGameClearUI();
+	void ShowKillPlusOne();
 	
 protected:
 	virtual void BeginPlay() override;
@@ -32,8 +32,6 @@ private:
 
 	void TryCreateWidgetFromPawn(APawn* NewPawn);
 	void CreateAndInit(UAbilitySystemComponent* ASC);
-	
-	void ShowResultUI(TSubclassOf<UUserWidget> WidgetClass);
 	
 	UPROPERTY(EditDefaultsOnly, Category="UI")
 	TSubclassOf<UPlayerStatusWidget> MainHUDWidgetClass;
