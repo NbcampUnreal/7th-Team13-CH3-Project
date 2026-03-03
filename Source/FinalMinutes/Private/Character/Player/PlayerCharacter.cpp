@@ -12,6 +12,7 @@
 #include "Components/InventoryComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Framework/FinalMinutesGameMode.h"
+#include "Items/BaseItem.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -458,6 +459,7 @@ void APlayerCharacter::Tick(float DeltaTime)
             FollowCamera->SetFieldOfView(TargetFOV);
         }
     }
+    UpdateItemOutline();
 }
 
 void APlayerCharacter::OnZoomStarted(const FInputActionValue& Value)
@@ -525,6 +527,45 @@ void APlayerCharacter::TogglePause()
     }
 }
 
+void APlayerCharacter::UpdateItemOutline()
+{
+    APlayerController* PC = Cast<APlayerController>(GetController());
+    if (!PC) return;
+
+    FVector CamLoc;
+    FRotator CamRot;
+    PC->GetPlayerViewPoint(CamLoc, CamRot);
+
+    const FVector Start = CamLoc;
+    const FVector End   = Start + CamRot.Vector() * InteractDistance;
+
+    FHitResult Hit;
+    FCollisionQueryParams Params(SCENE_QUERY_STAT(InteractTrace), false, this);
+
+    const bool bHit = GetWorld()->LineTraceSingleByChannel(
+        Hit, Start, End, ECC_Visibility, Params
+    );
+
+    ABaseItem* NewItem = bHit ? Cast<ABaseItem>(Hit.GetActor()) : nullptr;
+    ABaseItem* OldItem = FocusedItem.Get();
+
+    if (NewItem == OldItem) return;
+
+    // 이전 아이템: 아웃라인 끄고 + 위젯 숨기기
+    if (OldItem)
+    {
+        OldItem->SetOutline(false);
+        OldItem->SetPromptVisible(false);
+    }
+
+    // 새 아이템: 아웃라인 켜고 + 위젯 보이기
+    if (NewItem)
+    {
+        NewItem->SetOutline(true);
+        NewItem->SetPromptVisible(true);
+    };
+
+    FocusedItem = NewItem;
 void APlayerCharacter::OnSpecialAbility()
 {
     if (!AbilitySystemComponent) return;

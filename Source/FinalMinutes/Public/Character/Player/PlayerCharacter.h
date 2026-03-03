@@ -17,6 +17,7 @@ class USpringArmComponent;
 class UGameplayEffect;
 class UInventoryComponent;
 class UPlayerStatusWidget;
+class ABaseItem;
 
 UCLASS()
 class FINALMINUTES_API APlayerCharacter : public ACharacter, public IAbilitySystemInterface
@@ -26,6 +27,8 @@ class FINALMINUTES_API APlayerCharacter : public ACharacter, public IAbilitySyst
 public:
     APlayerCharacter();
     virtual void Tick(float DeltaTime) override;
+    ABaseItem* GetFocusedItem() const { return FocusedItem.Get(); }
+    
     virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
     virtual void InitializeAbilitySystem();
     // virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
@@ -237,6 +240,11 @@ protected:
 
     UFUNCTION()
     void Interact(const FInputActionValue& value);
+    
+    void UpdateItemOutline();
+
+    UPROPERTY(EditDefaultsOnly, Category="Interact|Outline")
+    float InteractDistance = 700.f;
 #pragma endregion
 
 #pragma region 스태미너
@@ -300,4 +308,7 @@ protected:
     TObjectPtr<UPlayerStatusWidget> MainHUD = nullptr;
 
     void CacheMainHUD();
+    
+private:
+    TWeakObjectPtr<ABaseItem> FocusedItem;
 };
