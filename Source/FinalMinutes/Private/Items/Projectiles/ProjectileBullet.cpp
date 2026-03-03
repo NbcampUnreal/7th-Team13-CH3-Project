@@ -133,9 +133,6 @@ void AProjectileBullet::OnHit(
 
     UAbilitySystemComponent* TargetASC = ASCOwner->GetAbilitySystemComponent();
     if (!TargetASC || !DamageEffectSpecHandle.IsValid()) return;
-    
-    UCharacterPhysicalMaterial* CharacterPM = Cast<UCharacterPhysicalMaterial>(Hit.PhysMaterial.Get());
-    if (!CharacterPM) return;
 
     // [Step 3] 실제 전달된 데미지 값 확인
     // "Data.Damage" 부분은 무기 담당자가 설정한 실제 태그명으로 교체해야 합니다.
