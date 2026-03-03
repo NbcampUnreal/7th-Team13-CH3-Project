@@ -54,7 +54,11 @@ void UGA_Interact::ActivateAbility(
         return;
     }
 
-    const bool bAdded = InventoryComponent->AddItem(HitItem->ItemID);
+    //  드랍 아이템이면 OverridePickupAmount(예: 1, 5, 10)를 쓰고,
+    //  아니면 DT PickupAmount를 쓰게 -1 전달
+    const int32 Amount = (HitItem->OverridePickupAmount > 0) ? HitItem->OverridePickupAmount : -1;
+
+    const bool bAdded = InventoryComponent->AddItem(HitItem->ItemID, Amount);
 
     if (bAdded)
     {

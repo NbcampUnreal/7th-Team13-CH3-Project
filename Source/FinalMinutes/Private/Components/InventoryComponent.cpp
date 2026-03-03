@@ -3,6 +3,8 @@
 #include "Items/BaseItem.h"
 #include "items/ItemData.h"
 #include "Blueprint/UserWidget.h"
+#include "AbilitySystemComponent.h"
+#include "AbilitySystem/Attributes/CharacterAttributeSet.h"
 
 UInventoryComponent::UInventoryComponent()
 {
@@ -32,24 +34,76 @@ void UInventoryComponent::BeginPlay()
 
 bool UInventoryComponent::AddItem(FName ItemID)
 {
-	if (ItemID == NAME_None)
-        return false;
+    return AddItem(ItemID, -1); // 기본 줍기 = DT PickupAmount
+}
 
-    // 0) MaxStack 읽기 (DT 없으면 기본 1)
-    int32 MaxStack = 1;
+bool UInventoryComponent::AddItem(FName ItemID, int32 Amount)
+{
+    if (ItemID == NAME_None) return false;
+
+    // 기본값: 무한 스택 + 1개 줍기
+    int32 MaxStack = 0;
+    int32 PickupAmount = 1;
+
     if (ItemDataTable)
     {
         static const FString Context(TEXT("AddItem"));
         if (FItemData* Row = ItemDataTable->FindRow<FItemData>(ItemID, Context))
         {
-            MaxStack = FMath::Max(1, Row->MaxStack);
+            MaxStack = Row->MaxStack;
+            PickupAmount = FMath::Max(1, Row->PickupAmount);
         }
     }
 
-    int32 Remaining = 1; // 이번 호출에서 넣을 개수(현재는 1개)
+    // ✅ 핵심: Amount가 들어오면 그걸 쓰고, 아니면 DT PickupAmount 사용
+    int32 Remaining = (Amount > 0) ? Amount : PickupAmount;
 
-    // 1) 스택 가능한 아이템(MaxStack > 1)일 때:
-    //    기존 슬롯들 중 "아직 덜 찬 슬롯"을 먼저 채운다
+    const bool bInfiniteStack = (MaxStack <= 0);
+
+    // 1) 무한 스택: 같은 ItemID 슬롯 하나에 전부 누적
+    if (bInfiniteStack)
+    {
+        for (int32 i = 0; i < Items.Num(); ++i)
+        {
+            if (Items[i].ItemID == ItemID && Items[i].Quantity > 0)
+            {
+                Items[i].Quantity += Remaining;
+                Remaining = 0;
+                break;
+            }
+        }
+
+        if (Remaining > 0)
+        {
+            int32 EmptyIndex = INDEX_NONE;
+            for (int32 i = 0; i < Items.Num(); ++i)
+            {
+                if (Items[i].ItemID == NAME_None || Items[i].Quantity <= 0)
+                {
+                    EmptyIndex = i;
+                    break;
+                }
+            }
+
+            if (EmptyIndex == INDEX_NONE)
+            {
+                OnInventoryUpdated.Broadcast();
+                return false;
+            }
+
+            Items[EmptyIndex].ItemID = ItemID;
+            Items[EmptyIndex].Quantity = Remaining;
+            Remaining = 0;
+        }
+
+        OnInventoryUpdated.Broadcast();
+        return true;
+    }
+
+    // 유한 스택(= MaxStack > 0)
+    MaxStack = FMath::Max(1, MaxStack);
+
+    // 기존 덜 찬 스택 채우기
     if (MaxStack > 1)
     {
         for (int32 i = 0; i < Items.Num() && Remaining > 0; ++i)
@@ -61,24 +115,14 @@ bool UInventoryComponent::AddItem(FName ItemID)
 
                 Items[i].Quantity += ToAdd;
                 Remaining -= ToAdd;
-
-                if (GEngine)
-                {
-                    const FString Msg = FString::Printf(
-                        TEXT("스택 채움! [ %d번 ] 슬롯 [ %s ] 수량: %d/%d"),
-                        i, *ItemID.ToString(), Items[i].Quantity, MaxStack
-                    );
-                    GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, Msg);
-                }
             }
         }
     }
 
-    // 2) 남은 수량이 있으면 빈 슬롯에 새로 생성해서 넣는다
+    // 남은 수량은 새 슬롯 생성
     while (Remaining > 0)
     {
         int32 EmptyIndex = INDEX_NONE;
-
         for (int32 i = 0; i < Items.Num(); ++i)
         {
             if (Items[i].ItemID == NAME_None || Items[i].Quantity <= 0)
@@ -88,32 +132,20 @@ bool UInventoryComponent::AddItem(FName ItemID)
             }
         }
 
-        // 빈 슬롯이 없으면 종료
         if (EmptyIndex == INDEX_NONE)
         {
             OnInventoryUpdated.Broadcast();
             return false;
         }
 
-        // 새 스택 생성
         const int32 ToAdd = FMath::Min(MaxStack, Remaining);
-
         Items[EmptyIndex].ItemID = ItemID;
         Items[EmptyIndex].Quantity = ToAdd;
         Remaining -= ToAdd;
-
-        if (GEngine)
-        {
-            const FString Msg = FString::Printf(
-                TEXT("새 슬롯 생성! [ %d번 ] 슬롯에 [ %s ] 수량: %d/%d"),
-                EmptyIndex, *ItemID.ToString(), Items[EmptyIndex].Quantity, MaxStack
-            );
-            GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, Msg);
-        }
     }
 
     OnInventoryUpdated.Broadcast();
-	return true;
+    return true;
 }
 
 void UInventoryComponent::UseItem(int32 SlotIndex)
@@ -129,16 +161,8 @@ void UInventoryComponent::UseItem(int32 SlotIndex)
 	{
 		return; // 없으면 조기리턴
 	}
-
-	if (Slot.ItemID == "Bullet")
-	{
-		APlayerCharacter* Player = Cast<APlayerCharacter>(GetOwner());
-		if (Player && GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, TEXT("총알 사용 안됨!"));
-		}
-	}
-	else if (Slot.ItemID == "Gun")
+    
+    if (Slot.ItemID == "Weapon_rifle" || Slot.ItemID == "Weapon_shotgun")
 	{
 		APlayerCharacter* Player = Cast<APlayerCharacter>(GetOwner());
 		if (Player && GEngine)
@@ -151,78 +175,106 @@ void UInventoryComponent::UseItem(int32 SlotIndex)
 	else if (Slot.ItemID == "Health")
 	{
 		APlayerCharacter* Player = Cast<APlayerCharacter>(GetOwner());
-		if (Player && GEngine)
-		{			
-			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, TEXT("체력 회복!"));
-			
-			// 1개 사용
-			Slot.Quantity -= 1;
+	    if (!Player) return;
 
-			// 0개면 슬롯 비우기
-			if (Slot.Quantity <= 0)
+	    UAbilitySystemComponent* ASC = Player->FindComponentByClass<UAbilitySystemComponent>();
+	    if (!ASC) return;
+	    
+	    const float CurHealth = ASC->GetNumericAttribute(UCharacterAttributeSet::GetHealthAttribute());
+	    const float MaxHealth = ASC->GetNumericAttribute(UCharacterAttributeSet::GetMaxHealthAttribute());
+	    
+		// ✅ 체력이 이미 꽉 찼으면 사용 불가(아이템 소모도 X)
+		if (CurHealth >= MaxHealth - KINDA_SMALL_NUMBER)
+		{
+			if (GEngine)
 			{
-				Slot.Quantity = 0;
-				Slot.ItemID = NAME_None;
+				GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, TEXT("체력이 이미 가득 찼습니다!"));
 			}
+			return; // ✅ 여기서 끝 (수량 감소 X)
+		}
+		
+		const float HealAmount = 10.f;
+		const float NewHealth = FMath::Clamp(CurHealth + HealAmount, 0.f, MaxHealth);
+
+		ASC->SetNumericAttributeBase(UCharacterAttributeSet::GetHealthAttribute(), NewHealth);
+
+		// ✅ 여기부터는 실제로 썼을 때만 소모
+		Slot.Quantity -= 1;
+		if (Slot.Quantity <= 0)
+		{
+			Slot.Quantity = 0;
+			Slot.ItemID = NAME_None;
 		}
 	}
 	// 모든곳에 브로드캐스트합니다.
 	OnInventoryUpdated.Broadcast();
 }
 
-void UInventoryComponent::DropItem(int32 SlotIndex)
+bool UInventoryComponent::DropItem(int32 SlotIndex, int32 DropRequest)
 {
-	// 해당 인덱스가 유효하지 않다면 리턴합니다.
-	if (!Items.IsValidIndex(SlotIndex))
-	{
-		return;
-	}
+    if (!Items.IsValidIndex(SlotIndex))
+        return false;
 
-	FInventorySlot& Slot = Items[SlotIndex];
-	if (Slot.ItemID == NAME_None || Slot.Quantity <= 0) // 버릴 아이템이 없으면 함수종료
-	{
-		return;
-	}
+    FInventorySlot& Slot = Items[SlotIndex];
+    if (Slot.ItemID == NAME_None || Slot.Quantity <= 0)
+        return false;
 
-	AActor* OwnerActor = GetOwner(); // 현재 오너와 아이템 테이블이 있는지 확인
-	if (OwnerActor && ItemDataTable)
-	{
-		// 현재 액터의 앞 방향으로 1m 그리고 50cm쪽에 스폰할 위치를 설정
-		FVector SpawnLocation = OwnerActor->GetActorLocation() + OwnerActor->GetActorForwardVector() * 100.0f +
-			FVector(0, 0, 50.0f);
-		// 현재 액터의 방향은 그대로 가져옵니다.
-		FRotator SpawnRotation = OwnerActor->GetActorRotation();
-		// SpawnParams - 액터 생성시 필요한 옵션 변수
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = OwnerActor; // 누가 소유했는지 알려줍니다.
-		SpawnParams.Instigator = OwnerActor->GetInstigator(); // 누가 이아이템을 제공했는지 알려줍니다.
+    DropRequest = FMath::Max(1, DropRequest);
 
-		// 아이템 테이블에서 떨어뜨릴 아이템을 찾습니다.
-		FItemData* Row = ItemDataTable->FindRow<FItemData>(Slot.ItemID, "");
-		if (Row && Row->ItemActorClass) // 아이템과 아이템의 설계도가 있다면
-		{
-			// 실제로 현재 월드에 아이템을 소환합니다.
-			GetWorld()->SpawnActor<ABaseItem>(Row->ItemActorClass, SpawnLocation, SpawnRotation, SpawnParams);
-		}
-	}
-	
-	// 1개만 버리기
-	Slot.Quantity -= 1;
+    // 실제로 버릴 수 있는 수량(남은 것보다 많이 못 버림)
+    const int32 ActuallyDrop = FMath::Min(DropRequest, Slot.Quantity);
 
-	// 0개면 슬롯 비우기
-	if (Slot.Quantity <= 0)
-	{
-		Slot.Quantity = 0;
-		Slot.ItemID = NAME_None;
-	}
-	
-	// 인벤토리UI를 업데이트 시킵니다.
-	OnInventoryUpdated.Broadcast();
+    AActor* OwnerActor = GetOwner();
+    if (OwnerActor && ItemDataTable)
+    {
+        FVector SpawnLocation =
+            OwnerActor->GetActorLocation()
+            + OwnerActor->GetActorForwardVector() * 120.0f
+            + FVector(0, 0, 80.0f);
 
-	if (GEngine)
-	{
-		// 아이템 버린것을 출력합니다.
-		FString Msg = FString::Printf(TEXT("[ %d번 ] 슬롯의 아이템을 버렸습니다."), SlotIndex);
-		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Orange, Msg);
-	}
+        FRotator SpawnRotation = FRotator::ZeroRotator;
+
+        FActorSpawnParameters SpawnParams;
+        SpawnParams.Owner = OwnerActor;
+        SpawnParams.Instigator = OwnerActor->GetInstigator();
+        SpawnParams.SpawnCollisionHandlingOverride =
+            ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+        FItemData* Row = ItemDataTable->FindRow<FItemData>(Slot.ItemID, TEXT("DropItem"));
+        if (Row && Row->ItemActorClass)
+        {
+            ABaseItem* Dropped = GetWorld()->SpawnActor<ABaseItem>(
+                Row->ItemActorClass, SpawnLocation, SpawnRotation, SpawnParams);
+
+            if (Dropped)
+            {
+                // 안전하게 ItemID 세팅(혹시 BP에서 누락돼도 됨)
+                Dropped->ItemID = Slot.ItemID;
+
+                // 드랍된 아이템은 다시 주울 때 "실제 버린 만큼"만 줍게
+                Dropped->OverridePickupAmount = ActuallyDrop;
+            }
+        }
+    }
+
+    // 인벤 수량 감소
+    Slot.Quantity -= ActuallyDrop;
+    if (Slot.Quantity <= 0)
+    {
+        Slot.Quantity = 0;
+        Slot.ItemID = NAME_None;
+    }
+
+    OnInventoryUpdated.Broadcast();
+
+    if (GEngine)
+    {
+        const FString Msg = FString::Printf(
+            TEXT("[ %d번 ] 슬롯에서 %s 를 %d개 버렸습니다."),
+            SlotIndex, *Slot.ItemID.ToString(), ActuallyDrop
+        );
+        GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Orange, Msg);
+    }
+
+    return true;
 }

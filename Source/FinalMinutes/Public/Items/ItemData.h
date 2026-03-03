@@ -25,7 +25,10 @@ public:
 	TSubclassOf<ABaseItem> ItemActorClass; // 아이템의 설계도, 아이템 드롭에서 사용
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data")
-	int32 MaxStack = 1;
+	int32 MaxStack = 0; // 0 이하 = 무한
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	int32 PickupAmount = 1; // ✅ 아이템마다 1회 줍는 양(기본 1)
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Spawn")
 	float SpawnWeight = 1.f; // 스폰 가중치
