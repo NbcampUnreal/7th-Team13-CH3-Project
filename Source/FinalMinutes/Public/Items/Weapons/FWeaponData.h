@@ -119,7 +119,7 @@ public:
     /** 사격 시 발생하는 기본 소음 범위 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")
     float DefaultSoundSize = 1000.0f;
-    
+
     /** 소음기 장착 시 소음 감소율 (예) 0.3f = 30%로 감소 */
     UPROPERTY(EditAnywhere, Category = "Combat|Mod")
     float SuppressorSoundMultiplier = 1.0f;
@@ -128,9 +128,44 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")
     float DefaultRecoilValue = 1.5f;
 
-    /** 무기별 최대 탄퍼짐 각도 */
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")
-    float MaxSpreadAngle = 5.0f;
+    /**
+     * 유효 사거리(cm)
+     * - 투사체가 이 거리보다 멀리 비행하면 파괴됩니다.
+     * - 데미지 감쇄도 이 거리를 기준으로 선형 적용됩니다(가까울수록 강, 멀수록 약).
+     *   (0 이하이면 제한/감쇄를 적용하지 않음)
+     */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats", meta = (ClampMin = "0.0", UIMin = "0.0"))
+    float EffectiveRange = 5000.0f;
+#pragma endregion
+
+#pragma region 샷건 / 탄퍼짐 설정
+    /**
+     * - false: 기존처럼 1발(단일 투사체)만 발사
+     * - true : PelletCount 만큼 투사체를 스폰하고 퍼짐 적용
+     */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Shotgun")
+    bool bUsePelletSpread = false;
+
+    /** 한 번 발사할 때 생성할 투사체 개수 */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Shotgun", meta = (ClampMin = "1", UIMin = "1"))
+    int32 PelletCount = 1;
+
+    /**
+     * 투사체 퍼짐 반각(도 단위). (예: 6도면 중심선 기준 -6~+6도 안에서 랜덤)
+     * bUsePelletSpread가 true일 때 적용됩니다.
+     */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Shotgun",
+        meta = (ClampMin = "0.0", UIMin = "0.0"))
+    float PelletSpreadHalfAngleDeg = 6.0f;
+
+    /**
+     * 총알당 데미지 배수
+     * - DefaultDamage를 "한 번 방아쇠 총합 데미지"로 사용.
+     */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Shotgun",
+        meta = (ClampMin = "0.0", UIMin = "0.0"))
+    float PelletDamageMultiplier = 1.0f / PelletCount;
+
 #pragma endregion
 
     // 사격 어빌리티 설정

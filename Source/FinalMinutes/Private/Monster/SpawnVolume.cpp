@@ -13,6 +13,8 @@ ASpawnVolume::ASpawnVolume()
 	
 	SpawnBox = CreateDefaultSubobject<UBoxComponent>(TEXT("SpawnBox"));
 	SpawnBox->SetupAttachment(Scene);
+	
+	SpawnRate = 5.0f;
 }
 
 void ASpawnVolume::BeginPlay()
@@ -24,7 +26,7 @@ void ASpawnVolume::BeginPlay()
 	   SpawnTimer, 
 	   this,
 	   &ASpawnVolume::SpawnRandomMonster, 
-	   2.0f,
+	   SpawnRate,
 	   true
 	);
 }

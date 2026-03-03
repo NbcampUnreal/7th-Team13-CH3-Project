@@ -62,9 +62,6 @@ public:
 
 private:
     /** --- [내부 유틸리티] --- */
-
-    /** 실제 사격 판정이나 조준점을 찾기 위한 물리 레이캐스트를 수행합니다. */
-    void PerformTrace();
     
     /** 소유자 캐릭터의 Ability System Component를 안전하게 가져오는 헬퍼 함수입니다. */
     UAbilitySystemComponent* GetOwnerASC() const;

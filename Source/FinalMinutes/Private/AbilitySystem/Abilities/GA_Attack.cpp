@@ -8,6 +8,7 @@
 #include "Items/Weapons/FWeaponData.h"
 #include "Items/Weapons/WeaponBase.h"
 #include "Items/Weapons/WeaponDataAsset.h"
+#include "Perception/AISense_Hearing.h"
 
 UGA_Attack::UGA_Attack()
 {
@@ -130,20 +131,14 @@ void UGA_Attack::GenerateFiringNoise() const
     AWeaponBase* CurrentWeapon = CombatComponent ? CombatComponent->GetActiveWeapon() : nullptr;
     if (!CurrentWeapon || !CurrentWeapon->GetCurrentDataAsset()) return;
     
-    float SoundRange = CurrentWeapon->GetFinalSoundSize();
-    
-    CurrentWeapon->MakeNoise(SoundRange, PlayerCharacter, CurrentWeapon->GetActorLocation());
 
-    #if !UE_BUILD_SHIPPING
-    DrawDebugSphere(
-        GetWorld(),
-        CurrentWeapon->GetActorLocation(),
-        SoundRange,
-        32,
-        FColor::Orange,
-        false,
-        1.0f);
-    #endif
+    UAISense_Hearing::ReportNoiseEvent(
+            GetWorld(),
+            PlayerCharacter->GetActorLocation(),
+            1.0f,
+            PlayerCharacter,
+            3000.0f
+         ); 
 }
 
 void UGA_Attack::SpawnProjectile() const
@@ -164,12 +159,14 @@ void UGA_Attack::SpawnProjectile() const
 
     // 2. 사격 방향 설정
     FVector MuzzleLocation = CurrentWeapon->GetWeaponMesh()->GetSocketLocation(WeaponData.MuzzleSocketName);
-    FRotator ShootRotation = (TargetLocation - MuzzleLocation).Rotation();
+    const FVector BaseShootDir = (TargetLocation - MuzzleLocation).GetSafeNormal();
 
-    // 3. 데미지 정보 생성
-    FGameplayEffectSpecHandle DamageEffectSpecHandle = CreateDamageSpec(PlayerCharacter, CurrentWeapon, WeaponData.DefaultDamage);
-    
-    // 4. 발사 연출 및 스폰
+    // 3) 샷건/단일탄 설정
+    const int32 PelletCount = FMath::Max(1, WeaponData.PelletCount);
+    const bool bUseSpread = WeaponData.bUsePelletSpread && (PelletCount > 1);
+    const float SpreadRad = FMath::DegreesToRadians(FMath::Max(0.0f, WeaponData.PelletSpreadHalfAngleDeg));
+
+    // 4) 발사 연출은 방아쇠 1회 기준 1번만
     CurrentWeapon->ExecuteWeaponEffects(EWeaponActionType::Fire);
 
     FActorSpawnParameters SpawnParams;
@@ -177,10 +174,47 @@ void UGA_Attack::SpawnProjectile() const
     SpawnParams.Instigator = PlayerCharacter;
     SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-    if (AProjectileBullet* Bullet = GetWorld()->SpawnActor<AProjectileBullet>(
-        WeaponData.ProjectileClass, MuzzleLocation, ShootRotation, SpawnParams))
+    // 같은 발사(한 번 방아쇠)에서 나온 총알들끼리 서로 충돌 무시 처리
+    TArray<AProjectileBullet*> SpawnedPellets;
+    SpawnedPellets.Reserve(PelletCount);
+
+    // 5) 총알(또는 단일탄) 스폰
+    for (int32 i = 0; i < PelletCount; ++i)
     {
-        Bullet->InitializeProjectile(DamageEffectSpecHandle, WeaponData.DefaultBulletSpeed);
+        FVector ShootDir = BaseShootDir;
+
+        if (bUseSpread && SpreadRad > 0.0f)
+        {
+            ShootDir = FMath::VRandCone(BaseShootDir, SpreadRad);
+        }
+
+        // 스폰 회전이 곧 ProjectileBullet의 GetActorForwardVector()가 됩니다.
+        const FRotator ShootRotation = ShootDir.Rotation();
+
+        const float PelletDamage = WeaponData.DefaultDamage * WeaponData.PelletDamageMultiplier;
+        const FGameplayEffectSpecHandle DamageEffectSpecHandle =
+            CreateDamageSpec(PlayerCharacter, CurrentWeapon, PelletDamage);
+
+        if (AProjectileBullet* Bullet = GetWorld()->SpawnActor<AProjectileBullet>(
+            WeaponData.ProjectileClass, MuzzleLocation, ShootRotation, SpawnParams))
+        {
+            // 유효 사거리 세팅(InitializeProjectile 시그니처 변경 없음)
+            Bullet->SetEffectiveRange(WeaponData.EffectiveRange);
+
+            // 1) 기존 InitializeProjectile만 사용
+            Bullet->InitializeProjectile(DamageEffectSpecHandle, WeaponData.DefaultBulletSpeed);
+
+            // 2) 이미 스폰된 총알들과 상호 Ignore 등록 (총알끼리 충돌 방지)
+            for (AProjectileBullet* Prev : SpawnedPellets)
+            {
+                if (!Prev) continue;
+
+                Bullet->IgnoreOtherProjectile(Prev);
+                Prev->IgnoreOtherProjectile(Bullet);
+            }
+
+            SpawnedPellets.Add(Bullet);
+        }
     }
 }
 
