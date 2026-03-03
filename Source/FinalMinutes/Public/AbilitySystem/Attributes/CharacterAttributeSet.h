@@ -24,10 +24,10 @@ public:
 	virtual void PostAttributeChange(const FGameplayAttribute& Attribute, float OldValue, float NewValue) override;
 	
 	// 사망 처리용 함수
-	void HandleDeath();
+	void HandleDeath() const;
 	
 	// 피격 효과 처리용 함수
-	void HandleHitReaction(const float DamageValue);
+	void HandleHitReaction(const float DamageValue) const;
 	
 	// 체력
 	UPROPERTY(BlueprintReadOnly, Category = "Character|Health")
@@ -69,14 +69,4 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Character|Stats")
 	FGameplayAttributeData MoveSpeed;
 	ATTRIBUTE_ACCESSORS(UCharacterAttributeSet, MoveSpeed);
-	
-	// 부위별 방어력 (머리)
-	UPROPERTY(BlueprintReadOnly, Category = "Monster|Def")
-	FGameplayAttributeData HeadDefence;
-	ATTRIBUTE_ACCESSORS(UCharacterAttributeSet, HeadDefence)
-	
-	// 부위별 방어력 (몸통)
-	UPROPERTY(BlueprintReadOnly, Category = "Monster|Def")
-	FGameplayAttributeData BodyDefence;
-	ATTRIBUTE_ACCESSORS(UCharacterAttributeSet, BodyDefence)
 };
