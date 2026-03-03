@@ -1,4 +1,7 @@
-﻿#include "Items/Projectiles/ProjectileBullet.h"
+﻿// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "Items/Projectiles/ProjectileBullet.h"
 
 // 엔진 및 컴포넌트 헤더
 #include "Components/SphereComponent.h"
@@ -58,6 +61,8 @@ void AProjectileBullet::BeginPlay()
 {
     Super::BeginPlay();
 
+    // 시작 위치 기록 (거리 기반 사거리 제한/데미지 감쇄용)
+    SpawnLocation = GetActorLocation();
     // 시작 위치를 기록하여 Tick에서 궤적을 그릴 준비를 합니다.
     LastLocation = GetActorLocation();
 }
@@ -86,6 +91,14 @@ void AProjectileBullet::InitializeProjectile(
     CollisionComp->IgnoreActorWhenMoving(MyInstigator, true);
 }
 
+void AProjectileBullet::IgnoreOtherProjectile(AActor* OtherProjectile)
+{
+    if (!OtherProjectile || OtherProjectile == this) return;
+    if (!CollisionComp) return;
+
+    CollisionComp->IgnoreActorWhenMoving(OtherProjectile, true);
+}
+
 /**
  * [Flow 2] 충돌 시 실행되며, 타겟에게 고통을 전달합니다.
  */
@@ -99,7 +112,7 @@ void AProjectileBullet::OnHit(
     // 1. 기본 방어 로직
     // 1. 자기 자신과 발사자 제외 (필수 최소 필터)
     if (!OtherActor || OtherActor == GetInstigator() || OtherActor == this) return;
-
+    
     // 2. IDamageable 인터페이스 호출 (IDamageable 구현자라면 누구든)
     IDamageable* DamageableTarget = Cast<IDamageable>(OtherActor);
     if (DamageableTarget)
@@ -107,32 +120,27 @@ void AProjectileBullet::OnHit(
         // 타겟인 몬스터에게 맞았다고 알려줌.
         DamageableTarget->Execute_OnHitReaction(OtherActor, Hit);
     }
-    
+
     // 3. GAS 데이터 적용 (ASC 인터페이스 구현자라면 누구든)
     // 타겟이 GAS를 사용하는 클래스(IAbilitySystemInterface 상속)인지 확인합니다.
     IAbilitySystemInterface* ASCOwner = Cast<IAbilitySystemInterface>(OtherActor);
-    if (!ASCOwner)
+    if (!ASCOwner && OtherActor->GetOwner())
     {
-        UE_LOG(LogTemp, Error, TEXT("OnHit: %s does NOT have IAbilitySystemInterface!"), *OtherActor->GetName());
-        return;
+        ASCOwner = Cast<IAbilitySystemInterface>(OtherActor->GetOwner());
     }
+    if (!ASCOwner) return;
+    
 
     UAbilitySystemComponent* TargetASC = ASCOwner->GetAbilitySystemComponent();
-    if (!TargetASC)
-    {
-        UE_LOG(LogTemp, Error, TEXT("OnHit: Target ASC is NULL!"));
-        return;
-    }
-
-    if (!DamageEffectSpecHandle.IsValid())
-    {
-        UE_LOG(LogTemp, Error, TEXT("OnHit: DamageEffectSpecHandle is INVALID!"));
-        return;
-    }
+    if (!TargetASC || !DamageEffectSpecHandle.IsValid()) return;
     
+    UCharacterPhysicalMaterial* CharacterPM = Cast<UCharacterPhysicalMaterial>(Hit.PhysMaterial.Get());
+    if (!CharacterPM) return;
+
     // [Step 3] 실제 전달된 데미지 값 확인
     // "Data.Damage" 부분은 무기 담당자가 설정한 실제 태그명으로 교체해야 합니다.
-    if (FGameplayEffectSpec* Spec = DamageEffectSpecHandle.Data.Get())
+    FGameplayEffectSpec* Spec = DamageEffectSpecHandle.Data.Get();
+    if (Spec)
     {
         // 1. 부위 판별용 태그 변수
         FGameplayTag HitRegionTag;
@@ -151,6 +159,26 @@ void AProjectileBullet::OnHit(
         // 3. Spec에 이 태그를 추가해서 전달
         Spec->AddDynamicAssetTag(HitRegionTag);
     }
+
+
+    // 5. 거리 기반 데미지 감쇄(선형)
+    //    - 0m: 100%
+    //    - EffectiveRangeCm: 0%
+    if (EffectiveRangeCm > 0.0f && Spec)
+    {
+        const float Traveled = FVector::Distance(SpawnLocation, Hit.ImpactPoint);
+        const float Alpha = FMath::Clamp(Traveled / EffectiveRangeCm, 0.0f, 1.0f);
+        const float DamageMultiplier = 1.0f - Alpha;
+
+        const FGameplayTag DamageTag = FGameplayTag::RequestGameplayTag(FName("Weapon.Effect.Damage"));
+
+        const float OriginalDamage = Spec->GetSetByCallerMagnitude(DamageTag, false, 0.0f);
+        if (OriginalDamage > 0.0f)
+        {
+            Spec->SetSetByCallerMagnitude(DamageTag, OriginalDamage * DamageMultiplier);
+        }
+    }
+
     // 저장해둔 데미지 효과를 타겟의 ASC에 직접 적용합니다.
     TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
     
@@ -187,6 +215,18 @@ void AProjectileBullet::DrawDebugTrajectory()
 void AProjectileBullet::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
+    // 유효 사거리 제한: 사거리 밖으로 나가면 투사체 제거
+    if (EffectiveRangeCm > 0.0f)
+    {
+        const float TraveledSq = FVector::DistSquared(SpawnLocation, GetActorLocation());
+        const float RangeSq = EffectiveRangeCm * EffectiveRangeCm;
 
-    DrawDebugTrajectory();
+        if (TraveledSq >= RangeSq)
+        {
+            Destroy();
+            return;
+        }
+    }
+
+    // DrawDebugTrajectory();
 }
