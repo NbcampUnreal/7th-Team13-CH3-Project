@@ -131,11 +131,25 @@ void AProjectileBullet::OnHit(
     
     // [Step 3] 실제 전달된 데미지 값 확인
     // "Data.Damage" 부분은 무기 담당자가 설정한 실제 태그명으로 교체해야 합니다.
-    FGameplayTag DamageTag = FGameplayTag::RequestGameplayTag(FName("Weapon.Effect.Damage"));
-    float Magnitude = DamageEffectSpecHandle.Data.Get()->GetSetByCallerMagnitude(DamageTag, false, -1.0f);
-    
-    UE_LOG(LogTemp, Warning, TEXT("OnHit: Target: %s / Damage Magnitude: %f"), *OtherActor->GetName(), Magnitude);
-    
+    if (FGameplayEffectSpec* Spec = DamageEffectSpecHandle.Data.Get())
+    {
+        // 1. 부위 판별용 태그 변수
+        FGameplayTag HitRegionTag;
+        
+        // 2. 물리적 충돌 정보(Hit.BoneName)를 확인하여 태그 결정
+        if (Hit.BoneName.ToString().Contains(TEXT("head")))
+        {
+            HitRegionTag = FGameplayTag::RequestGameplayTag(FName("Damage.HitRegion.Head"));
+        }
+        else
+        {
+            // 머리가 아니면 기본적으로 몸통(Body)으로 간주
+            HitRegionTag = FGameplayTag::RequestGameplayTag(FName("Damage.HitRegion.Body"));
+        }
+        
+        // 3. Spec에 이 태그를 추가해서 전달
+        Spec->AddDynamicAssetTag(HitRegionTag);
+    }
     // 저장해둔 데미지 효과를 타겟의 ASC에 직접 적용합니다.
     TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
     

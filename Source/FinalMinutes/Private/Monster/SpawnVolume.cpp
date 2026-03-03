@@ -13,22 +13,22 @@ ASpawnVolume::ASpawnVolume()
 	
 	SpawnBox = CreateDefaultSubobject<UBoxComponent>(TEXT("SpawnBox"));
 	SpawnBox->SetupAttachment(Scene);
+	
+	SpawnRate = 5.0f;
 }
 
 void ASpawnVolume::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	SpawnRandomMonster();
-	
 	// 확률 스폰을 원하면 SpawnRandomMonster를 호출하게 변경
-	/*GetWorld()->GetTimerManager().SetTimer(
+	GetWorld()->GetTimerManager().SetTimer(
 	   SpawnTimer, 
 	   this,
 	   &ASpawnVolume::SpawnRandomMonster, 
-	   2.0f,
+	   SpawnRate,
 	   true
-	);*/
+	);
 }
 
 void ASpawnVolume::SpawnRandomMonster()

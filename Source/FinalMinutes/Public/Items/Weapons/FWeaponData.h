@@ -98,7 +98,7 @@ public:
 
     /** 기본 공격력 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")
-    float DefaultDamage = 100.0f;
+    float DefaultDamage = 50.0f;
 
     /** 연사 가능 여부 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Stats")

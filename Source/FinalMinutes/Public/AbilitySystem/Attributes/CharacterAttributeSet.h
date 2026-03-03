@@ -24,10 +24,10 @@ public:
 	virtual void PostAttributeChange(const FGameplayAttribute& Attribute, float OldValue, float NewValue) override;
 	
 	// 사망 처리용 함수
-	void HandleDeath();
+	void HandleDeath() const;
 	
 	// 피격 효과 처리용 함수
-	void HandleHitReaction(const float DamageValue);
+	void HandleHitReaction(const float DamageValue) const;
 	
 	// 체력
 	UPROPERTY(BlueprintReadOnly, Category = "Character|Health")

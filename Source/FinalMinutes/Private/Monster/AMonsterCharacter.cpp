@@ -35,6 +35,18 @@ void AAMonsterCharacter::BeginPlay()
 	}
 }
 
+float AAMonsterCharacter::GetDamageMultiplierForRegion(const FGameplayTagContainer& SpecAssetTags) const
+{
+	for (const auto& Pair : HitRegionMultipliers)
+	{
+		if (SpecAssetTags.HasTag(Pair.Key))
+		{
+			return Pair.Value;
+		}
+	}
+	return 1.0f;
+}
+
 UAbilitySystemComponent* AAMonsterCharacter::GetAbilitySystemComponent() const
 {
 	return ASC;

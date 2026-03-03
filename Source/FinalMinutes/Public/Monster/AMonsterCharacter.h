@@ -51,4 +51,12 @@ protected:
 	
 	UPROPERTY()
 	class UAbilitySystemComponent* AbilitySystemComponent;
+	
+	// 태그와 배율 매핑
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|Damage")
+	TMap<FGameplayTag, float> HitRegionMultipliers;
+	
+public:
+	// 들어온 태그 중 부위 태그가 있는지 확인하고 배율 반환
+	float GetDamageMultiplierForRegion(const FGameplayTagContainer& SpecAssetTags) const;
 };
