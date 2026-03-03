@@ -36,6 +36,12 @@ public:
      */
     virtual void InitializeProjectile(const FGameplayEffectSpecHandle& InSpecHandle, float InSpeed);
 
+    /** 같은 샷건 발사에서 생성된 다른 투사체와의 충돌을 무시하도록 등록 */
+    void IgnoreOtherProjectile(AActor* OtherProjectile);
+
+    /** GA에서 스폰 직후 세팅: 유효 사거리(cm). 0 이하이면 제한/감쇄 없음 */
+    void SetEffectiveRange(float InRangeCm) { EffectiveRangeCm = InRangeCm; }
+
 protected:
     /** * 충돌 발생 시 실행되는 콜백 함수 
      * 이 안에서 대상에게 GAS 이펙트를 적용하고 총알을 파괴합니다.
@@ -66,6 +72,14 @@ protected:
 
     /** 무기(GA)로부터 주입받은 데미지 정보 (충돌 시 대상의 ASC에 적용) */
     FGameplayEffectSpecHandle DamageEffectSpecHandle;
+
+    /** 투사체 스폰 위치(비행 거리 계산용) */
+    FVector SpawnLocation = FVector::ZeroVector;
+
+    /** 유효 사거리(cm). 0 이하이면 사거리 제한/감쇄를 적용하지 않음 */
+    UPROPERTY(Transient)
+    float EffectiveRangeCm = 0.0f;
+
 
     /** 이전 프레임 위치 (매우 빠른 탄환의 터널링 현상 방지 및 궤적 계산용) */
     FVector LastLocation;
