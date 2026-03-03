@@ -6,6 +6,7 @@
 
 class UPlayerStatusWidget;
 class UAbilitySystemComponent;
+class UUserWidget;
 
 UCLASS()
 class FINALMINUTES_API APlayerHUD : public AHUD
@@ -14,6 +15,12 @@ class FINALMINUTES_API APlayerHUD : public AHUD
 	
 public:
 	UPlayerStatusWidget* GetMainHUDWidget();
+	
+	UFUNCTION(BlueprintCallable, Category="UI")
+	void ShowGameOverUI();
+
+	UFUNCTION(BlueprintCallable, Category="UI")
+	void ShowGameClearUI();
 	
 protected:
 	virtual void BeginPlay() override;
@@ -26,9 +33,20 @@ private:
 	void TryCreateWidgetFromPawn(APawn* NewPawn);
 	void CreateAndInit(UAbilitySystemComponent* ASC);
 	
+	void ShowResultUI(TSubclassOf<UUserWidget> WidgetClass);
+	
 	UPROPERTY(EditDefaultsOnly, Category="UI")
 	TSubclassOf<UPlayerStatusWidget> MainHUDWidgetClass;
 
 	UPROPERTY()
 	TObjectPtr<UPlayerStatusWidget> MainHUDWidget; 
+	
+	UPROPERTY(EditDefaultsOnly, Category="UI")
+	TSubclassOf<UUserWidget> GameOverWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, Category="UI")
+	TSubclassOf<UUserWidget> GameClearWidgetClass;
+	
+	UPROPERTY()
+	TObjectPtr<UUserWidget> ResultWidget;
 };

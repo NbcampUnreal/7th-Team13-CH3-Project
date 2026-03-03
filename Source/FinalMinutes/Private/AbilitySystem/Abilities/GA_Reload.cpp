@@ -15,12 +15,6 @@ UGA_Reload::UGA_Reload()
     // 어빌리티 인스턴싱 정책: 액터당 하나 생성
     InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 
-    // 어빌리티 및 상태 태그 설정
-    AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Reload")));
-    ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsReloading")));
-
-    // 실행 차단 태그: 공격 중에는 장전 불가
-    ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Player.IsAttacking")));
 }
 
 void UGA_Reload::ActivateAbility(

@@ -10,7 +10,9 @@
 #include "UI/PlayerHUD.h"
 #include "UI/PlayerStatusWidget.h"
 #include "Components/InventoryComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Framework/FinalMinutesGameMode.h"
+#include "Items/BaseItem.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -44,15 +46,6 @@ void APlayerCharacter::BeginPlay()
     FollowCamera = FindComponentByClass<UCameraComponent>();
     // ASC초기화
     InitializeAbilitySystem();
-    
-    ReloadTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsReloading"));
-    // 기존에 AttackTag 있어서 다른 이름으로 사용
-    AttackingTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsAttacking"));
-    ProneTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsProning"));
-    DeathTag = FGameplayTag::RequestGameplayTag(FName("State.Player.Death"));
-    CrouchTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsCrouching"));
-    RollTag  = FGameplayTag::RequestGameplayTag(FName("State.Player.IsRolling"));
-
     DefaultSecondaryWeaponTag = FGameplayTag::RequestGameplayTag(FName("Weapon.Type.Pistol"));
     
     // 실제 게임할 때는 이 줄은 주석 처리
@@ -99,7 +92,7 @@ void APlayerCharacter::GiveDefaultAbilities()
     // DefaultAbilities 배열 순회하며 부여
     for (TSubclassOf<UGameplayAbility>& AbilityClass : DefaultAbilities)
     {
-        if (!AbilityClass) return;
+        if (!AbilityClass) continue;
         // Ability Spec 생성
         FGameplayAbilitySpec AbilitySpec(AbilityClass, 1, INDEX_NONE, this);
 
@@ -112,10 +105,7 @@ void APlayerCharacter::InitializeAbilitySystem()
 {
     if (!AbilitySystemComponent) return;
     AbilitySystemComponent->InitAbilityActorInfo(this, this);
-
-    // Zoom 태그용 델리게이트 바인딩
-    FGameplayTag ZoomTag = FGameplayTag::RequestGameplayTag(FName("State.Player.IsZooming"));
-
+    
     AbilitySystemComponent->RegisterGameplayTagEvent(
         ZoomTag, // 어떤 태그 감시?
         EGameplayTagEventType::AnyCountChange // 새로 생기거나 제거될때 신호를 준다.
@@ -152,7 +142,6 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
     if (IA_Jump)
     {
         EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Started, this, &APlayerCharacter::StartJump);
-        EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Completed, this, &APlayerCharacter::StopJump);
     }
 
     if (IA_Crouch)
@@ -234,22 +223,19 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
         EnhancedInput->BindAction(IA_Pause, ETriggerEvent::Started, this, &APlayerCharacter::TogglePause);
     }
 
+    if (IA_SpecialAbility)
+    {
+        EnhancedInput->BindAction(IA_SpecialAbility, ETriggerEvent::Started, this, &APlayerCharacter::OnSpecialAbility);
+    }
 }
 
 bool APlayerCharacter::CanMove() const
 {
     if (!AbilitySystemComponent) return false;
-    static FGameplayTagContainer MoveBlockTags;
-    
-    if (MoveBlockTags.IsEmpty())
-    {
-        MoveBlockTags.AddTag(DeathTag);
-    }
-    
     if (AbilitySystemComponent->HasAnyMatchingGameplayTags(MoveBlockTags)) return false;
     
-    const bool bIsAttacking = AbilitySystemComponent->HasMatchingGameplayTag(AttackingTag);
-    const bool bIsProning = AbilitySystemComponent->HasMatchingGameplayTag(ProneTag);
+    bool bIsAttacking = AbilitySystemComponent->HasMatchingGameplayTag(AttackTag);
+    bool bIsProning = AbilitySystemComponent->HasMatchingGameplayTag(ProneTag);
     if (bIsAttacking && bIsProning) return false;
     return true;
 }
@@ -283,7 +269,7 @@ void APlayerCharacter::OnCrouch(const FInputActionValue& Value)
     {
         // 태그가 없다면 -> 앉기 실행
         FGameplayTagContainer AbilityTags;
-        AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Crouch")));
+        AbilityTags.AddTag(CrouchAbilityTag);
         AbilitySystemComponent->TryActivateAbilitiesByTag(AbilityTags);
     }
     else
@@ -310,7 +296,7 @@ void APlayerCharacter::OnProne(const FInputActionValue& Value)
     if (!AbilitySystemComponent->HasMatchingGameplayTag(ProneTag))
     {
         FGameplayTagContainer AbilityTags;
-        AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Prone")));
+        AbilityTags.AddTag(ProneAbilityTag);
         AbilitySystemComponent->TryActivateAbilitiesByTag(AbilityTags);
     }
     else
@@ -332,12 +318,19 @@ void APlayerCharacter::OnProne(const FInputActionValue& Value)
 void APlayerCharacter::OnRoll(const FInputActionValue& Value)
 {
     if (!AbilitySystemComponent) return;
+    
+    // 제자리 구르기 방지
+    if (GetCharacterMovement()->GetCurrentAcceleration().IsNearlyZero())
+    {
+        return;
+    }
+    
     // 이미 구르는 중인지 확인
     // 구르는 중이 아닐 때만 구를수 있게
     if (!AbilitySystemComponent->HasMatchingGameplayTag(RollTag))
     {
         FGameplayTagContainer AbilityTags;
-        AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Roll")));
+        AbilityTags.AddTag(RollAbilityTag);
 
         // 상태 관리는 GA_Roll 내부의 PlayMontageAndWait에서
         AbilitySystemComponent->TryActivateAbilitiesByTag(AbilityTags);
@@ -352,7 +345,7 @@ void APlayerCharacter::OnReload(const FInputActionValue& Value)
     if (!AbilitySystemComponent->HasMatchingGameplayTag(ReloadTag))
     {
         FGameplayTagContainer AbilityTags;
-        AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Reload")));
+        AbilityTags.AddTag(ReloadAbilityTag);
         AbilitySystemComponent->TryActivateAbilitiesByTag(AbilityTags);
     }
 }
@@ -360,18 +353,17 @@ void APlayerCharacter::OnReload(const FInputActionValue& Value)
 void APlayerCharacter::OnAttackStarted(const FInputActionValue& Value)
 {
     if (!AbilitySystemComponent) return;
-    FGameplayTagContainer AttackTag;
-    AttackTag.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Attack")));
+    FGameplayTagContainer AbilityTags;
+    AbilityTags.AddTag(AttackAbilityTag);
 
-    AbilitySystemComponent->TryActivateAbilitiesByTag(AttackTag);
+    AbilitySystemComponent->TryActivateAbilitiesByTag(AbilityTags);
 }
 
 void APlayerCharacter::OnAttackEnded(const FInputActionValue& Value)
 {
     if (!AbilitySystemComponent) return;
     FGameplayTagContainer CancelTags;
-    FGameplayTag AttackTag = FGameplayTag::RequestGameplayTag(FName("Ability.Player.Attack"));
-    CancelTags.AddTag(AttackTag);
+    CancelTags.AddTag(AttackAbilityTag);
     
     AbilitySystemComponent->CancelAbilities(&CancelTags);
 }
@@ -386,34 +378,11 @@ void APlayerCharacter::OnWeapon2Input()
     if (CombatComponent) CombatComponent->SwapToSlot(EWeaponSlot::Secondary);
 }
 
-bool APlayerCharacter::CanJump() const
-{
-    if (!AbilitySystemComponent) return false;
-    
-    static FGameplayTagContainer JumpBlockTags;
-    
-    if (JumpBlockTags.IsEmpty())
-    {
-        JumpBlockTags.AddTag(ReloadTag);
-        JumpBlockTags.AddTag(AttackingTag);
-        JumpBlockTags.AddTag(ProneTag);
-        JumpBlockTags.AddTag(CrouchTag);
-        JumpBlockTags.AddTag(RollTag);
-    }
-    
-    return !AbilitySystemComponent->HasAnyMatchingGameplayTags(JumpBlockTags);
-}
-
-
 void APlayerCharacter::StartJump(const FInputActionValue& value)
 {
-    if (!CanJump()) return;
-    Jump();
-}
-
-void APlayerCharacter::StopJump(const FInputActionValue& value)
-{
-    StopJumping();
+    FGameplayTagContainer JumpTags;
+    JumpTags.AddTag(JumpAbilityTag);
+    AbilitySystemComponent->TryActivateAbilitiesByTag(JumpTags);
 }
 
 void APlayerCharacter::Look(const FInputActionValue& value)
@@ -428,7 +397,7 @@ void APlayerCharacter::StartSprint(const FInputActionValue& Value)
 {
     if (!AbilitySystemComponent) return;
     FGameplayTagContainer AbilityTags;
-    AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Sprint")));
+    AbilityTags.AddTag(SprintAbilityTag);
     AbilitySystemComponent->TryActivateAbilitiesByTag(AbilityTags);
 }
 
@@ -436,7 +405,7 @@ void APlayerCharacter::StopSprint(const FInputActionValue& Value)
 {
     if (!AbilitySystemComponent) return;
     FGameplayEventData Payload;
-    FGameplayTag StopTag = FGameplayTag::RequestGameplayTag(FName("Event.Montage.Sprint"));
+    FGameplayTag StopTag = FGameplayTag::RequestGameplayTag(FName(TEXT("Event.Montage.Sprint")));
     AbilitySystemComponent->HandleGameplayEvent(StopTag, &Payload);
 }
 
@@ -459,7 +428,7 @@ void APlayerCharacter::Interact(const FInputActionValue& Value)
 {
     if (!AbilitySystemComponent) return;
     FGameplayTagContainer AbilityTags;
-    AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Interact")));
+    AbilityTags.AddTag(InteractAbilityTag);
 
     AbilitySystemComponent->TryActivateAbilitiesByTag(AbilityTags);
 }
@@ -490,13 +459,14 @@ void APlayerCharacter::Tick(float DeltaTime)
             FollowCamera->SetFieldOfView(TargetFOV);
         }
     }
+    UpdateItemOutline();
 }
 
 void APlayerCharacter::OnZoomStarted(const FInputActionValue& Value)
 {
     if (!AbilitySystemComponent) return;
     FGameplayTagContainer AbilityTags;
-    AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Zoom")));
+    AbilityTags.AddTag(ZoomAbilityTag);
     AbilitySystemComponent->TryActivateAbilitiesByTag(AbilityTags);
 }
 
@@ -504,7 +474,7 @@ void APlayerCharacter::OnZoomEnded(const FInputActionValue& Value)
 {
     if (!AbilitySystemComponent) return;
     FGameplayTagContainer AbilityTags;
-    AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Zoom")));
+    AbilityTags.AddTag(ZoomAbilityTag);
     AbilitySystemComponent->CancelAbilities(&AbilityTags);
 }
 
@@ -554,5 +524,60 @@ void APlayerCharacter::TogglePause()
             
             if (GM) GM->GamePause(true);
         }
+    }
+}
+
+void APlayerCharacter::UpdateItemOutline()
+{
+    APlayerController* PC = Cast<APlayerController>(GetController());
+    if (!PC) return;
+
+    FVector CamLoc;
+    FRotator CamRot;
+    PC->GetPlayerViewPoint(CamLoc, CamRot);
+
+    const FVector Start = CamLoc;
+    const FVector End   = Start + CamRot.Vector() * InteractDistance;
+
+    FHitResult Hit;
+    FCollisionQueryParams Params(SCENE_QUERY_STAT(InteractTrace), false, this);
+
+    const bool bHit = GetWorld()->LineTraceSingleByChannel(
+        Hit, Start, End, ECC_Visibility, Params
+    );
+
+    ABaseItem* NewItem = bHit ? Cast<ABaseItem>(Hit.GetActor()) : nullptr;
+    ABaseItem* OldItem = FocusedItem.Get();
+
+    if (NewItem == OldItem) return;
+
+    // 이전 아이템: 아웃라인 끄고 + 위젯 숨기기
+    if (OldItem)
+    {
+        OldItem->SetOutline(false);
+        OldItem->SetPromptVisible(false);
+    }
+
+    // 새 아이템: 아웃라인 켜고 + 위젯 보이기
+    if (NewItem)
+    {
+        NewItem->SetOutline(true);
+        NewItem->SetPromptVisible(true);
+    };
+
+    FocusedItem = NewItem;
+void APlayerCharacter::OnSpecialAbility()
+{
+    if (!AbilitySystemComponent) return;
+    FGameplayTagContainer AbilityTags;
+    AbilityTags.AddTag(SAAbilityTag);
+    
+    if (AbilitySystemComponent->HasMatchingGameplayTag(SATag))
+    {
+        AbilitySystemComponent->CancelAbilities(&AbilityTags);
+    }
+    else
+    {
+        AbilitySystemComponent->TryActivateAbilitiesByTag(AbilityTags);
     }
 }
