@@ -61,6 +61,9 @@ void AProjectileBullet::BeginPlay()
 {
     Super::BeginPlay();
 
+    // 시작 위치 기록 (거리 기반 사거리 제한/데미지 감쇄용)
+    SpawnLocation = GetActorLocation();
+
     // 시작 위치를 기록하여 Tick에서 궤적을 그릴 준비를 합니다.
     LastLocation = GetActorLocation();
 }
@@ -74,7 +77,7 @@ void AProjectileBullet::InitializeProjectile(
 {
     // 무기로부터 넘어온 데미지 데이터(GAS Spec)를 저장합니다.
     DamageEffectSpecHandle = InSpecHandle;
-    
+
     if (!ProjectileMovement) return;
 
     // 무기 데이터 에셋에서 정의된 속도로 물리 엔진 수치를 설정합니다.
@@ -110,7 +113,7 @@ void AProjectileBullet::OnHit(
     // 1. 기본 방어 로직
     // 1. 자기 자신과 발사자 제외 (필수 최소 필터)
     if (!OtherActor || OtherActor == GetInstigator() || OtherActor == this) return;
-    
+
     // 2. IDamageable 인터페이스 호출 (IDamageable 구현자라면 누구든)
     IDamageable* DamageableTarget = Cast<IDamageable>(OtherActor);
     if (DamageableTarget)
@@ -127,11 +130,11 @@ void AProjectileBullet::OnHit(
         ASCOwner = Cast<IAbilitySystemInterface>(OtherActor->GetOwner());
     }
     if (!ASCOwner) return;
-    
+
 
     UAbilitySystemComponent* TargetASC = ASCOwner->GetAbilitySystemComponent();
     if (!TargetASC || !DamageEffectSpecHandle.IsValid()) return;
-    
+
     UCharacterPhysicalMaterial* CharacterPM = Cast<UCharacterPhysicalMaterial>(Hit.PhysMaterial.Get());
     if (!CharacterPM) return;
 
@@ -142,11 +145,29 @@ void AProjectileBullet::OnHit(
     {
         // 재질에 설정된 태그를 DamageEffectSpec에 추가하여 전달
         DamageEffectSpec->AddDynamicAssetTag(CharacterPM->HitRegionTag);
-        
+
         UE_LOG(LogTemp, Warning, TEXT("Hit Registered: %s"), *CharacterPM->HitRegionTag.ToString());
     }
 
-    // 5. 저장해둔 데미지 효과를 타겟의 ASC에 직접 적용합니다.
+    // 5. 거리 기반 데미지 감쇄(선형)
+    //    - 0m: 100%
+    //    - EffectiveRangeCm: 0%
+    if (EffectiveRangeCm > 0.0f && DamageEffectSpec)
+    {
+        const float Traveled = FVector::Distance(SpawnLocation, Hit.ImpactPoint);
+        const float Alpha = FMath::Clamp(Traveled / EffectiveRangeCm, 0.0f, 1.0f);
+        const float DamageMultiplier = 1.0f - Alpha;
+
+        const FGameplayTag DamageTag = FGameplayTag::RequestGameplayTag(FName("Weapon.Effect.Damage"));
+
+        const float OriginalDamage = DamageEffectSpec->GetSetByCallerMagnitude(DamageTag, false, 0.0f);
+        if (OriginalDamage > 0.0f)
+        {
+            DamageEffectSpec->SetSetByCallerMagnitude(DamageTag, OriginalDamage * DamageMultiplier);
+        }
+    }
+
+    // 6. 저장해둔 데미지 효과를 타겟의 ASC에 직접 적용합니다.
     TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpec);
 
     // 충돌 후 총알 액터를 즉시 월드에서 제거합니다.
@@ -182,6 +203,19 @@ void AProjectileBullet::DrawDebugTrajectory()
 void AProjectileBullet::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
+
+    // 유효 사거리 제한: 사거리 밖으로 나가면 투사체 제거
+    if (EffectiveRangeCm > 0.0f)
+    {
+        const float TraveledSq = FVector::DistSquared(SpawnLocation, GetActorLocation());
+        const float RangeSq = EffectiveRangeCm * EffectiveRangeCm;
+
+        if (TraveledSq >= RangeSq)
+        {
+            Destroy();
+            return;
+        }
+    }
 
     DrawDebugTrajectory();
 }

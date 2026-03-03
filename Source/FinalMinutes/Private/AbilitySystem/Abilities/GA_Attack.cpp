@@ -184,11 +184,11 @@ void UGA_Attack::SpawnProjectile() const
     SpawnParams.Instigator = PlayerCharacter;
     SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-    // 같은 발사(한 번 방아쇠)에서 나온 펠릿들끼리 서로 충돌 무시 처리
+    // 같은 발사(한 번 방아쇠)에서 나온 총알들끼리 서로 충돌 무시 처리
     TArray<AProjectileBullet*> SpawnedPellets;
     SpawnedPellets.Reserve(PelletCount);
 
-    // 5) 펠릿(또는 단일탄) 스폰
+    // 5) 총알(또는 단일탄) 스폰
     for (int32 i = 0; i < PelletCount; ++i)
     {
         FVector ShootDir = BaseShootDir;
@@ -208,10 +208,13 @@ void UGA_Attack::SpawnProjectile() const
         if (AProjectileBullet* Bullet = GetWorld()->SpawnActor<AProjectileBullet>(
             WeaponData.ProjectileClass, MuzzleLocation, ShootRotation, SpawnParams))
         {
+            // 유효 사거리 세팅(InitializeProjectile 시그니처 변경 없음)
+            Bullet->SetEffectiveRange(WeaponData.EffectiveRange);
+
             // 1) 기존 InitializeProjectile만 사용
             Bullet->InitializeProjectile(DamageEffectSpecHandle, WeaponData.DefaultBulletSpeed);
 
-            // 2) 이미 스폰된 펠릿들과 상호 Ignore 등록 (펠릿끼리 충돌 방지)
+            // 2) 이미 스폰된 총알들과 상호 Ignore 등록 (총알끼리 충돌 방지)
             for (AProjectileBullet* Prev : SpawnedPellets)
             {
                 if (!Prev) continue;
