@@ -22,5 +22,5 @@ protected:
     FBlackboardKeySelector PatrolLocationKey;
     
     UPROPERTY(EditAnywhere, Category="Blackboard")
-    float SearchRadius = 500.0f;
+    float SearchRadius = 900.0f;
 };

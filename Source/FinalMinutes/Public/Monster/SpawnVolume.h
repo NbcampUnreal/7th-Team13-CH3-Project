@@ -21,12 +21,18 @@ public:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Spawning")
 	USceneComponent* Scene;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Spawning")
 	UBoxComponent* SpawnBox;
+	
 	UPROPERTY(EditAnywhere, Category = "Spawning")
 	TSubclassOf<AActor> MonsterToSpawn;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning")
 	UDataTable* MonsterDataTable;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning")
+	float SpawnRate;
 	
 	UFUNCTION(BlueprintCallable, Category = "Spawning")
 	void SpawnRandomMonster();
