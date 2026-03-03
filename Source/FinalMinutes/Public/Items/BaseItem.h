@@ -36,12 +36,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data")
 	FName ItemID;
 	
-	
 	UPROPERTY(EditDefaultsOnly, Category="Outline")
 	int32 OutlineStencilValue = 1;
 	
+	// 드랍된 아이템이 다시 주워질 때, DT PickupAmount 대신 이 값을 사용
+	UPROPERTY(EditDefaultsOnly, Category="Item Data")
+	int32 OverridePickupAmount = 0;
+	
 private:
-	// ✅ 위젯이 카메라를 바라보도록 갱신(아이템은 안 돌고 위젯만 돎)
+	// 위젯이 카메라를 바라보도록 갱신(아이템은 안 돌고 위젯만 돎)
 	void UpdatePromptFacing();
 	
 	FTimerHandle PromptFacingTimer;

@@ -50,11 +50,13 @@ public:
 	FOnInventoryUpdated OnInventoryUpdated;
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool AddItem(FName ItemID); // 아이템 줍는 함수, 위젯 블루프린트에서 호출(BlueprintCallable)
+	bool AddItem(FName ItemID); // 아이템 줍는 함수
+	
+	bool AddItem(FName ItemID, int32 Amount);
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void UseItem(int32 SlotIndex);
 	
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	void DropItem(int32 SlotIndex);	
+	UFUNCTION(BlueprintCallable, Category="Inventory")
+	bool DropItem(int32 SlotIndex, int32 DropRequest = 1);
 };

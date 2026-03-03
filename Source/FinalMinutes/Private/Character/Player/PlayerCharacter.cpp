@@ -566,6 +566,7 @@ void APlayerCharacter::UpdateItemOutline()
     };
 
     FocusedItem = NewItem;
+}
 void APlayerCharacter::OnSpecialAbility()
 {
     if (!AbilitySystemComponent) return;
