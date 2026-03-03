@@ -5,10 +5,7 @@
 UGA_Death::UGA_Death()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-	
-	AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Death")));
-	
-	CancelAbilitiesWithTag.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability")));
+
 }
 
 void UGA_Death::ActivateAbility(

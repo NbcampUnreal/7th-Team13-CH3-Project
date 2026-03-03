@@ -21,7 +21,7 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	
 	UFUNCTION(BlueprintCallable, Category="GameState")
-	void AddKill(FGameplayTag MonsterTag);
+	void AddKill();
 	
 	// 킬 수 확인용
 	UFUNCTION(BlueprintCallable, Category = "Data")

@@ -114,13 +114,24 @@ void AFinalMinutesGameMode::GameClear()
 		}
 	}
 	
-	//마우스 조작
-	if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+	//클리어 UI
+	if (GameClearWidgetClass)
 	{
-		PC->SetShowMouseCursor(true);
-		PC->SetInputMode(FInputModeGameAndUI());
+		UUserWidget* ClearWidget = CreateWidget<UUserWidget>(GetWorld(), GameClearWidgetClass);
+		if (ClearWidget)
+		{
+			ClearWidget->AddToViewport();
+            
+			// 마우스 커서 켜주기 (클릭해야 메뉴로 가니까)
+			if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+			{
+				PC->SetShowMouseCursor(true);
+				FInputModeUIOnly UIInput; 
+				UIInput.SetWidgetToFocus(ClearWidget->TakeWidget()); //위젯에 포커스를 줌
+				PC->SetInputMode(UIInput); // UI만 클릭되게
+			}
+		}
 	}
-	//클리어 UI 가져오기
 }
 
 void AFinalMinutesGameMode::GameOver()
@@ -159,13 +170,25 @@ void AFinalMinutesGameMode::GameOver()
 			MonsterActor->Destroy();
 		}
 	}
-	//마우스 조작
-	if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+	
+	//패배 UI
+	if (GameOverWidgetClass)
 	{
-		PC->SetShowMouseCursor(true);
-		PC->SetInputMode(FInputModeGameAndUI());
+		UUserWidget* OverWidget = CreateWidget<UUserWidget>(GetWorld(), GameOverWidgetClass);
+		if (OverWidget)
+		{
+			OverWidget->AddToViewport();
+            
+			// 마우스 커서 켜주기
+			if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+			{
+				PC->SetShowMouseCursor(true);
+				FInputModeUIOnly UIInput; 
+				UIInput.SetWidgetToFocus(OverWidget->TakeWidget());
+				PC->SetInputMode(UIInput);
+			}
+		}
 	}
-	//패배 UI 가져오기
 }
 
 void AFinalMinutesGameMode::GameExit()
@@ -198,8 +221,17 @@ void AFinalMinutesGameMode::AdjustTimerAfterLoad(float LoadedTime)
 		GameClear(); 
 		return;
 	}
+	TimeLimit = RemainingTime;
 	//기존에 돌아가던 타이머 관할 핸들러 취소시키기
 	GetWorldTimerManager().ClearTimer(TimerHandle);
+	if (RemainingTime > 0)
+	{
+		GetWorldTimerManager().SetTimer(TimerHandle, this, &AFinalMinutesGameMode::GameClear, RemainingTime, false);
+	}
+	else
+	{
+		GameClear();
+	}
 	//남은 시간만큼 예약해버리기 
 	GetWorldTimerManager().SetTimer(TimerHandle,this,&AFinalMinutesGameMode::GameClear,RemainingTime,false);
 }

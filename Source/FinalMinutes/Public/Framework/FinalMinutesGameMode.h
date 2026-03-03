@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "Blueprint/UserWidget.h"
 #include "FinalMinutesGameMode.generated.h"
 
 
@@ -40,6 +41,13 @@ public:
 	//게임 로드했을 때 남은 시간 만큼 타이머 돌아가게 하는거
 	UFUNCTION(BlueprintCallable, Category = "Game|Flow")
 	void AdjustTimerAfterLoad(float LoadedTime);
+	
+protected:
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UUserWidget> GameClearWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UUserWidget> GameOverWidgetClass;
 	
 private:
 	
