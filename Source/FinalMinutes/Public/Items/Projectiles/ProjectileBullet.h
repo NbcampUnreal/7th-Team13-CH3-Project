@@ -37,6 +37,9 @@ public:
      * @param InSpeed      : 발사 속도 (무기 데이터 에셋에서 전달)
      */
     virtual void InitializeProjectile(const FGameplayEffectSpecHandle& InSpecHandle, float InSpeed);
+    
+    /** 같은 샷건 발사에서 생성된 다른 투사체(펠릿)와의 충돌을 무시하도록 등록 */
+    void IgnoreOtherProjectile(AActor* OtherProjectile);
 
 protected:
     /** * 충돌 발생 시 실행되는 콜백 함수 

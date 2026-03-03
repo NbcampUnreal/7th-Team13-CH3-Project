@@ -146,8 +146,3 @@ void UGA_Reload::EndAbility(
 
     Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
-
-UAbilitySystemComponent* UGA_Reload::GetOwnerASC() const
-{
-    return OwnerCharacter ? OwnerCharacter->GetAbilitySystemComponent() : nullptr;
-}

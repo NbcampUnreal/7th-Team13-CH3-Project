@@ -89,6 +89,14 @@ void AProjectileBullet::InitializeProjectile(
     CollisionComp->IgnoreActorWhenMoving(MyInstigator, true);
 }
 
+void AProjectileBullet::IgnoreOtherProjectile(AActor* OtherProjectile)
+{
+    if (!OtherProjectile || OtherProjectile == this) return;
+    if (!CollisionComp) return;
+
+    CollisionComp->IgnoreActorWhenMoving(OtherProjectile, true);
+}
+
 /**
  * [Flow 2] 충돌 시 실행되며, 타겟에게 고통을 전달합니다.
  */
