@@ -81,6 +81,8 @@ void AFinalMinutesGameMode::GamePause(bool bIsPause)
 
 void AFinalMinutesGameMode::GameClear()
 {
+	AFinalMinutesGameState* GS = GetGameState<AFinalMinutesGameState>();
+	if (GS && GS->bIsGameOver) return;
 	//타이머 끝
 	GetWorldTimerManager().ClearTimer(TimerHandle);
 	//데이터 저장
@@ -138,6 +140,12 @@ void AFinalMinutesGameMode::GameOver()
 {
 	//타이머 끝
 	GetWorldTimerManager().ClearTimer(TimerHandle);
+	
+	AFinalMinutesGameState* GS = GetGameState<AFinalMinutesGameState>();
+	if (GS)
+	{
+		GS->bIsGameOver = true;
+	}
 	
 	//데이터 저장
 	int32 RealKill = (GetGameState<AFinalMinutesGameState>()) ? GetGameState<AFinalMinutesGameState>()->GetKillCount() : 0;

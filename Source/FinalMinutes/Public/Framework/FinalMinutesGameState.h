@@ -61,8 +61,11 @@ public:
 	
 	UPROPERTY(BlueprintReadWrite, Category = "GameRules")
 	bool bIsGameStarted = false;
+	
+	bool bIsGameOver = false;
 
 private:
 	int32 KillCount = 0;
 	bool bIsGameCleared = false;
+	
 };
