@@ -1,4 +1,7 @@
 #include "Components/InventoryComponent.h"
+
+#include <ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/ir_hierarchical_visitor.h>
+
 #include "Character/Player/PlayerCharacter.h"
 #include "Items/BaseItem.h"
 #include "items/ItemData.h"
@@ -181,18 +184,15 @@ void UInventoryComponent::UseItem(int32 SlotIndex)
     
     // 3. 아이템 종류별 로직 로그
     FGameplayTag CurrentItemTag = FGameplayTag::RequestGameplayTag(FName(Slot.ItemID), false);
-    if (!CurrentItemTag.IsValid())
+    if (CurrentItemTag.IsValid())
     {
-        UE_LOG(LogTemp, Warning, TEXT("무기/회복 아이템이 아닙니다."));
-        return;
-    }
+        FGameplayTag WeaponParentTag = FGameplayTag::RequestGameplayTag(FName("Weapon"));
     
-    FGameplayTag WeaponParentTag = FGameplayTag::RequestGameplayTag(FName("Weapon"));
-    
-    if (CurrentItemTag.MatchesTag(WeaponParentTag))
-    {
-        UE_LOG(LogTemp, Log, TEXT("무기 아이템 감지: %s"), *CurrentItemTag.ToString());
-        CombatComponent->EquipWeapon(CurrentItemTag);
+        if (CurrentItemTag.MatchesTag(WeaponParentTag))
+        {
+            UE_LOG(LogTemp, Log, TEXT("무기 아이템 감지: %s"), *CurrentItemTag.ToString());
+            CombatComponent->EquipWeapon(CurrentItemTag);
+        }
     }
 	else if (Slot.ItemID == "Health")
 	{
