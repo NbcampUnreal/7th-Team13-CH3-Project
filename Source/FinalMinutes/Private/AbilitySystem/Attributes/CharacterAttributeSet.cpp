@@ -167,7 +167,7 @@ void UCharacterAttributeSet::HandleDeath() const
     
     if (!ASC) return;
     
-    const FGameplayTag DeadState = FGameplayTag::RequestGameplayTag(FName("State.Monster.DeadState.Monster.Dead"));
+    const FGameplayTag DeadState = FGameplayTag::RequestGameplayTag(FName("State.Monster.Dead"));
     if (ASC->HasMatchingGameplayTag(DeadState))
     {
         return;
