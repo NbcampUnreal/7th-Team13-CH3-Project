@@ -96,14 +96,6 @@ void AFinalMinutesGameMode::GameClear()
 	TArray<AActor*> SpawnVolumes;
 	
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ASpawnVolume::StaticClass(), SpawnVolumes);
-
-	for (AActor* Actor : SpawnVolumes)
-	{
-		if (ASpawnVolume* Spawner = Cast<ASpawnVolume>(Actor))
-		{
-			GetWorldTimerManager().ClearTimer(Spawner->SpawnTimer);
-		}
-	}
 	
 	//몬스터 없애버리기
 	TArray<AActor*> AllMonsters;
@@ -165,14 +157,6 @@ void AFinalMinutesGameMode::GameOver()
 	TArray<AActor*> SpawnVolumes;
 	
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ASpawnVolume::StaticClass(), SpawnVolumes);
-
-	for (AActor* Actor : SpawnVolumes)
-	{
-		if (ASpawnVolume* Spawner = Cast<ASpawnVolume>(Actor))
-		{
-			GetWorldTimerManager().ClearTimer(Spawner->SpawnTimer);
-		}
-	}
 	
 	//몬스터 없애버리기
 	TArray<AActor*> AllMonsters;

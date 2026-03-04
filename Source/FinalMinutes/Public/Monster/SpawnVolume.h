@@ -19,30 +19,40 @@ public:
 	
 	void BeginPlay() override;
 	
+	UFUNCTION(BlueprintCallable, Category = "Wave")
+	void UpdateWave(float CurrentTime);
+	
+	// 에디터에서 엔딩 때, 몬스터가 이동할 최종 목적지를 설정
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ending", meta = (MakeEditWidget = true))
+	FVector TargetEndingLocation;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Spawning")
 	USceneComponent* Scene;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Spawning")
 	UBoxComponent* SpawnBox;
 	
-	UPROPERTY(EditAnywhere, Category = "Spawning")
-	TSubclassOf<AActor> MonsterToSpawn;
-	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning")
 	UDataTable* MonsterDataTable;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning")
-	float SpawnRate;
+	float SpawnInterval;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning")
+	float StopSpawnTime;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning")
+	int32 MaxSpawnCount;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning")
 	float SpawnInit;
 	
-	UFUNCTION(BlueprintCallable, Category = "Spawning")
+	float LastSpawnCheckTime = -1.0f;
+	
 	void SpawnRandomMonster();
-	
 	FMonsterSpawnRow* GetRandomMonster() const;
+	
+private:
+	void SpawnMonsters(int32 Count);
 	void SpawnMonster(TSubclassOf<AActor> MonsterClass);
-	
-	FTimerHandle SpawnTimer;
-	
 };
