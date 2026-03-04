@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataTable.h"
 #include "GameplayTagContainer.h"
-#include "FWeaponData.generated.h"
+#include "WeaponData.generated.h"
 
 class UNiagaraSystem;
 

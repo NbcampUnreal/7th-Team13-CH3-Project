@@ -41,7 +41,23 @@ bool UInventoryComponent::AddItem(FName ItemID)
 bool UInventoryComponent::AddItem(FName ItemID, int32 Amount)
 {
     if (ItemID == NAME_None) return false;
+    
+    // ✅ 무기(Weapon.*)는 중복 줍기 자체를 막는다 (라이플/샷건 1개씩만 허용 목적)
+    const FGameplayTag ItemTag = FGameplayTag::RequestGameplayTag(ItemID, false);
+    const FGameplayTag WeaponParentTag = FGameplayTag::RequestGameplayTag(FName("Weapon"), false);
 
+    if (ItemTag.IsValid() && WeaponParentTag.IsValid() && ItemTag.MatchesTag(WeaponParentTag))
+    {
+        for (const FInventorySlot& Slot : Items)
+        {
+            if (Slot.ItemID == ItemID && Slot.Quantity > 0)
+            {
+                UE_LOG(LogTemp, Log, TEXT("이미 보유한 무기라서 줍지 않습니다: %s"), *ItemID.ToString());
+                OnInventoryUpdated.Broadcast();
+                return false;
+            }
+        }
+    }
     // 기본값: 무한 스택 + 1개 줍기
     int32 MaxStack = 0;
     int32 PickupAmount = 1;
@@ -148,63 +164,87 @@ bool UInventoryComponent::AddItem(FName ItemID, int32 Amount)
 	UE_LOG(LogTemp, Warning, TEXT("[INV] AddItem %s qty=%d role=%d"),
 	*ItemID.ToString(), GetItemQuantity(ItemID), (int32)GetOwner()->GetLocalRole());
 	
-    OnInventoryUpdated.Broadcast();
-    return true;
+	OnInventoryUpdated.Broadcast();
+	return true;
 }
 
 void UInventoryComponent::UseItem(int32 SlotIndex)
 {
-	if (!Items.IsValidIndex(SlotIndex)) // 특정 슬롯에 아이템이 있는지 확인합니다.
+    // 1. 함수 진입 및 인덱스 확인 로그
+    UE_LOG(LogTemp, Log, TEXT("=== UseItem 호출됨 (SlotIndex: %d) ==="), SlotIndex);
+    if (!Items.IsValidIndex(SlotIndex)) // 특정 슬롯에 아이템이 있는지 확인합니다.
 	{
 		// 없으면 조기리턴
+        UE_LOG(LogTemp, Warning, TEXT("유효하지 않은 슬롯 인덱스입니다: %d"), SlotIndex);
 		return;
 	}
 
-	FInventorySlot& Slot = Items[SlotIndex];
+    FInventorySlot& Slot = Items[SlotIndex];
+
+    // 2. 슬롯 내부 데이터 로그
+    UE_LOG(LogTemp, Log, TEXT("슬롯 데이터 확인 - ItemID: %s, Quantity: %d"), *Slot.ItemID.ToString(), Slot.Quantity);
+    
 	if (Slot.ItemID == NAME_None || Slot.Quantity <= 0) // 아이템의 ID가 있는지 없는지 체크합니다.
 	{
+	    UE_LOG(LogTemp, Warning, TEXT("슬롯이 비어있거나 수량이 0입니다."));
 		return; // 없으면 조기리턴
 	}
     
-    if (Slot.ItemID == "Weapon_rifle" || Slot.ItemID == "Weapon_shotgun")
-	{
-		APlayerCharacter* Player = Cast<APlayerCharacter>(GetOwner());
-		if (Player && GEngine)
-		{
-			// 총 장착한 후의 로직
-			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Blue, TEXT("총 장착"));
-		}
-	}
+    APlayerCharacter* Player = Cast<APlayerCharacter>(GetOwner());
+    UCombatComponent* CombatComponent = Player->GetCombatComponent();
+    
+    if (!Player)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Owner를 PlayerCharacter로 캐스트할 수 없습니다!"));
+        return;
+    }
+    
+    // 3. 아이템 종류별 로직 로그
+    FGameplayTag CurrentItemTag = FGameplayTag::RequestGameplayTag(FName(Slot.ItemID), false);
+    if (CurrentItemTag.IsValid())
+    {
+        FGameplayTag WeaponParentTag = FGameplayTag::RequestGameplayTag(FName("Weapon"));
+    
+        if (CurrentItemTag.MatchesTag(WeaponParentTag))
+        {
+            UE_LOG(LogTemp, Log, TEXT("무기 아이템 감지: %s"), *CurrentItemTag.ToString());
+            CombatComponent->EquipWeapon(CurrentItemTag);
+        }
+    }
 	
 	else if (Slot.ItemID == "Health")
-	{
-		APlayerCharacter* Player = Cast<APlayerCharacter>(GetOwner());
-	    if (!Player) return;
-
+    {
 	    UAbilitySystemComponent* ASC = Player->FindComponentByClass<UAbilitySystemComponent>();
-	    if (!ASC) return;
+	    if (!ASC)
+	    {
+	        UE_LOG(LogTemp, Error, TEXT("AbilitySystemComponent를 찾을 수 없습니다!"));
+	        return;
+	    }
 	    
 	    const float CurHealth = ASC->GetNumericAttribute(UCharacterAttributeSet::GetHealthAttribute());
 	    const float MaxHealth = ASC->GetNumericAttribute(UCharacterAttributeSet::GetMaxHealthAttribute());
 	    
-		// 체력이 이미 꽉 찼으면 사용 불가(아이템 소모도 X)
+	    UE_LOG(LogTemp, Log, TEXT("체력 아이템 사용 시도 - 현재 체력: %.2f / 최대 체력: %.2f"), CurHealth, MaxHealth);
+	    
+		// ✅ 체력이 이미 꽉 찼으면 사용 불가(아이템 소모도 X)
 		if (CurHealth >= MaxHealth - KINDA_SMALL_NUMBER)
 		{
-			if (GEngine)
-			{
-				GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, TEXT("체력이 이미 가득 찼습니다!"));
-			}
-			return;
+			UE_LOG(LogTemp, Warning, TEXT("체력이 이미 가득 차서 아이템을 사용하지 않습니다."));
+			return; // ✅ 여기서 끝 (수량 감소 X)
 		}
 		
 		const float HealAmount = 10.f;
 		const float NewHealth = FMath::Clamp(CurHealth + HealAmount, 0.f, MaxHealth);
+	    UE_LOG(LogTemp, Log, TEXT("체력 회복 적용: %.2f -> %.2f (회복량: %.2f)"), CurHealth, NewHealth, HealAmount);
 
 		ASC->SetNumericAttributeBase(UCharacterAttributeSet::GetHealthAttribute(), NewHealth);
-		
+
+		// ✅ 여기부터는 실제로 썼을 때만 소모
 		Slot.Quantity -= 1;
+	    UE_LOG(LogTemp, Log, TEXT("아이템 소모됨. 남은 수량: %d"), Slot.Quantity);
 		if (Slot.Quantity <= 0)
 		{
+		    UE_LOG(LogTemp, Display, TEXT("아이템을 모두 소모하여 슬롯을 비웁니다."));
 			Slot.Quantity = 0;
 			Slot.ItemID = NAME_None;
 		}
@@ -225,9 +265,8 @@ bool UInventoryComponent::DropItem(int32 SlotIndex, int32 DropRequest)
     DropRequest = FMath::Max(1, DropRequest);
 
     // 실제로 버릴 수 있는 수량(남은 것보다 많이 못 버림)
-    int32 ActuallyDrop = FMath::Min(DropRequest, Slot.Quantity);
+    const int32 ActuallyDrop = FMath::Min(DropRequest, Slot.Quantity);
 
-    // 아이템 스폰
     AActor* OwnerActor = GetOwner();
     if (OwnerActor && ItemDataTable)
     {
@@ -252,8 +291,10 @@ bool UInventoryComponent::DropItem(int32 SlotIndex, int32 DropRequest)
 
             if (Dropped)
             {
+                // 안전하게 ItemID 세팅(혹시 BP에서 누락돼도 됨)
                 Dropped->ItemID = Slot.ItemID;
-            	// 드랍된 아이템은 다시 주울 때 "실제 버린 만큼"만 줍게
+
+                // 드랍된 아이템은 다시 주울 때 "실제 버린 만큼"만 줍게
                 Dropped->OverridePickupAmount = ActuallyDrop;
             }
         }
@@ -269,14 +310,11 @@ bool UInventoryComponent::DropItem(int32 SlotIndex, int32 DropRequest)
 
     OnInventoryUpdated.Broadcast();
 
-    if (GEngine)
-    {
-        const FString Msg = FString::Printf(
-            TEXT("[ %d번 ] 슬롯에서 %s 를 %d개 버렸습니다."),
-            SlotIndex, *Slot.ItemID.ToString(), ActuallyDrop
-        );
-        GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Orange, Msg);
-    }
+    const FString Msg = FString::Printf(
+        TEXT("[ %d번 ] 슬롯에서 %s 를 %d개 버렸습니다."),
+        SlotIndex, *Slot.ItemID.ToString(), ActuallyDrop
+    );
+    UE_LOG(LogTemp, Display, TEXT("%s"), *Msg);
 
     return true;
 }

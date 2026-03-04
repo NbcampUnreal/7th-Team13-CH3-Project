@@ -229,6 +229,11 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
     }
 }
 
+void APlayerCharacter::SetDefaultPrimaryWeaponTag(FName ItemID)
+{
+    DefaultPrimaryWeaponTag = FGameplayTag::RequestGameplayTag(ItemID);
+}
+
 bool APlayerCharacter::CanMove() const
 {
     if (!AbilitySystemComponent) return false;

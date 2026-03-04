@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "FWeaponData.h"
+#include "WeaponData.h"
 #include "Engine/DataAsset.h"
 #include "WeaponDataAsset.generated.h"
 

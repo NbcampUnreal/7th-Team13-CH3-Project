@@ -300,6 +300,8 @@ protected:
 #pragma endregion
 public:
     virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+    
+    void SetDefaultPrimaryWeaponTag(FName ItemID);
 
 protected:
     virtual void PossessedBy(AController* NewController) override;
