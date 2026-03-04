@@ -34,7 +34,6 @@ protected:
     /** 몽타주 재생이 종료(완료/중단/취소)되었을 때 호출됩니다. */
     UFUNCTION()
     void OnMontageEnded();
-
 protected:
     // --- Assets & Effects ---
 
@@ -52,7 +51,7 @@ protected:
 
     /** 탄환 보충 로직이 담긴 게임플레이 이펙트 */
     UPROPERTY(EditDefaultsOnly, Category = "Effects | GameplayEffect")
-    TSubclassOf<class UGameplayEffect> ReloadEffectClass;
+    TSubclassOf<UGameplayEffect> ReloadEffectClass;
 
 private:
     /** 적용 중인 재장전 이펙트의 핸들 (종료 시 제거용) */

@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "GameplayTagContainer.h"  // 추가
-#include "Items/Weapons/FWeaponData.h" // 슬롯 Enum 포함
+#include "Items/Weapons/WeaponData.h" // 슬롯 Enum 포함
 #include "CombatComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnActiveWeaponTagChanged, FGameplayTag, WeaponTag);
@@ -112,6 +112,10 @@ protected:
     /** 총기가 원점으로 복귀하는 속도*/
     UPROPERTY(EditAnywhere, Category = "Recoil")
     float RecoveryInterpSpeed = 10.0f;
+    
+    // 무기들을 저장할 맵 (태그별로 액터 관리)
+	UPROPERTY()
+	TMap<FGameplayTag, AWeaponBase*> SpawnedWeapons;
     
 public:
     /** 반동 계산 */

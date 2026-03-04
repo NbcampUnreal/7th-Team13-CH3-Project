@@ -23,6 +23,8 @@ public:
 	virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
 	virtual void PostAttributeChange(const FGameplayAttribute& Attribute, float OldValue, float NewValue) override;
 	
+	void ShowDamageOnShooterHUD(const FGameplayEffectModCallbackData& Data, float FinalDamage) const;
+	
 	// 사망 처리용 함수
 	void HandleDeath() const;
 	
@@ -69,4 +71,6 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Character|Stats")
 	FGameplayAttributeData MoveSpeed;
 	ATTRIBUTE_ACCESSORS(UCharacterAttributeSet, MoveSpeed);
+	
+	
 };

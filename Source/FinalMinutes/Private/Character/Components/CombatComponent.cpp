@@ -46,70 +46,116 @@ AWeaponBase* UCombatComponent::GetWeaponBySlot(const EWeaponSlot Slot) const
  */
 void UCombatComponent::EquipWeapon(FGameplayTag Tag)
 {
-    if (!OwnerCharacter) OwnerCharacter = Cast<APlayerCharacter>(GetOwner());
-    if (!OwnerCharacter || !Tag.IsValid()) return;
+	if (!OwnerCharacter) OwnerCharacter = Cast<APlayerCharacter>(GetOwner());
+	if (!OwnerCharacter || !Tag.IsValid()) return;
 
-    UWeaponRegistrySubsystem* Registry = GetWorld()->GetGameInstance()->GetSubsystem<UWeaponRegistrySubsystem>();
-    UWeaponDataAsset* WeaponDataAsset = Registry ? Registry->GetWeaponDataByTag(Tag) : nullptr;
-    if (!WeaponDataAsset) return;
+	UWeaponRegistrySubsystem* Registry = GetWorld()->GetGameInstance()->GetSubsystem<UWeaponRegistrySubsystem>();
+	UWeaponDataAsset* WeaponDataAsset = Registry ? Registry->GetWeaponDataByTag(Tag) : nullptr;
+	if (!WeaponDataAsset) return;
 
-    EWeaponSlot TargetSlot = WeaponDataAsset->WeaponData.DefaultSlot;
-    UWeaponAttributeSet* WeaponAS = const_cast<UWeaponAttributeSet*>(GetOwnerASC()->GetSet<UWeaponAttributeSet>());
+	EWeaponSlot TargetSlot = WeaponDataAsset->WeaponData.DefaultSlot;
 
-    // --- 1. 기존 무기 제거 (있을 때만 수행) ---
-    AWeaponBase* ExistingWeapon = GetWeaponBySlot(TargetSlot);
-    if (ExistingWeapon) // if (!ExistingWeapon) return; 을 삭제했습니다.
-    {
-        if (ActiveWeapon == ExistingWeapon && WeaponAS)
-        {
-            ExistingWeapon->CurrentAmmoCount = FMath::RoundToInt(WeaponAS->GetCurrentAmmo());
-        }
-        ExistingWeapon->DetachFromCharacter();
-        ExistingWeapon->Destroy();
-    }
+	UAbilitySystemComponent* ASC = GetOwnerASC();
+	UWeaponAttributeSet* WeaponAS = const_cast<UWeaponAttributeSet*>(ASC->GetSet<UWeaponAttributeSet>());
 
-    // --- 2. 신규 무기 생성 ---
-    FActorSpawnParameters SpawnParams;
-    SpawnParams.Owner = OwnerCharacter;
-    SpawnParams.Instigator = OwnerCharacter; // 총알 발사 시 주인을 알기 위해 추가
+	// --- 1) 이번에 장착하려는 무기가 "이미 존재"하는지 확인 (태그 기준) ---
+	AWeaponBase* WeaponToEquip = nullptr;
+	const bool bAlreadySpawned = SpawnedWeapons.Contains(Tag);
 
-    // AWeaponBase 클래스를 스폰 (메시는 나중에 InitializeWeapon에서 로드됨)
-    AWeaponBase* NewWeapon = GetWorld()->SpawnActor<AWeaponBase>(AWeaponBase::StaticClass(), FTransform::Identity, SpawnParams);
-    if (!NewWeapon) return;
+	if (bAlreadySpawned)
+	{
+		WeaponToEquip = SpawnedWeapons[Tag];
+		if (!WeaponToEquip)
+		{
+			SpawnedWeapons.Remove(Tag);
+		}
+	}
 
-    if (TargetSlot == EWeaponSlot::Primary) PrimaryWeapon = NewWeapon;
-    else SecondaryWeapon = NewWeapon;
+	// --- 2) 처음 주운 무기라면 새로 생성 + 초기화 + 등록 ---
+	if (!WeaponToEquip)
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = OwnerCharacter;
+		SpawnParams.Instigator = OwnerCharacter; // 총알 발사 시 주인을 알기 위해 추가
 
-    // --- 3. 상태 결정 (Active/Inactive) ---
-    // 첫 무기이거나, 현재 들고 있는 슬롯과 같은 슬롯에 장착할 때 Active가 됨
-    bool bShouldBecomeActive = (ActiveWeapon == nullptr || CurrentSlot == TargetSlot);
+		WeaponToEquip = GetWorld()->SpawnActor<AWeaponBase>(AWeaponBase::StaticClass(), FTransform::Identity,
+		                                                    SpawnParams);
+		if (!WeaponToEquip) return;
 
-    if (bShouldBecomeActive)
-    {
-        // 기존 활성 무기가 있었다면 저장하고 숨김
-        if (ActiveWeapon && WeaponAS) 
-        {
-            ActiveWeapon->CurrentAmmoCount = FMath::RoundToInt(WeaponAS->GetCurrentAmmo());
-            ActiveWeapon->DetachFromCharacter();
-            ActiveWeapon->SetActorHiddenInGame(true);
-            ActiveWeapon->bIsActiveWeapon = false;
-        }
+		SpawnedWeapons.Add(Tag, WeaponToEquip);
 
-        ActiveWeapon = NewWeapon;
-        CurrentSlot = TargetSlot;
-        NewWeapon->bIsActiveWeapon = true;
-        
-        OnActiveWeaponTagChanged.Broadcast(Tag);
-    }
-    else
-    {
-        NewWeapon->bIsActiveWeapon = false;
-        NewWeapon->SetActorHiddenInGame(true);
-    }
+		// 처음 생성된 무기는 데이터/메시/부착 준비 및 스탯 초기화 1회 수행
+		WeaponToEquip->InitializeWeapon(Tag, OwnerCharacter);
+		WeaponToEquip->InitializeAttributes();
 
-    // --- 4. 무기 초기화 및 부착 ---
-    NewWeapon->InitializeWeapon(Tag, OwnerCharacter);
-    NewWeapon->InitializeAttributes();
+		// 최초 상태는 "보관"으로 시작(필요 시 아래에서 Active로 전환됨)
+		WeaponToEquip->bIsActiveWeapon = false;
+		WeaponToEquip->SetActorHiddenInGame(true);
+	}
+
+	// --- 3) 타겟 슬롯(Primary/Secondary)에 현재 연결된 무기 처리 ---
+	// 기존 로직처럼 "파괴"하지 않고,
+	// 슬롯에 있던 무기는 탄약 저장 + Detach + Hidden(Visibility=false)로 보관합니다.
+	AWeaponBase* ExistingWeaponInSlot = GetWeaponBySlot(TargetSlot);
+	if (ExistingWeaponInSlot && ExistingWeaponInSlot != WeaponToEquip)
+	{
+		if (ExistingWeaponInSlot == ActiveWeapon && WeaponAS)
+		{
+			ExistingWeaponInSlot->CurrentAmmoCount = FMath::RoundToInt(WeaponAS->GetCurrentAmmo());
+		}
+
+		ExistingWeaponInSlot->DetachFromCharacter();
+		ExistingWeaponInSlot->SetActorHiddenInGame(true);
+		ExistingWeaponInSlot->bIsActiveWeapon = false;
+	}
+
+	// 슬롯 포인터를 "이번 무기"로 갱신
+	if (TargetSlot == EWeaponSlot::Primary) PrimaryWeapon = WeaponToEquip;
+	else if (TargetSlot == EWeaponSlot::Secondary) SecondaryWeapon = WeaponToEquip;
+
+	// --- 4) 상태 결정 (Active/Inactive) ---
+	// 첫 무기이거나, 현재 들고 있는 슬롯과 같은 슬롯에 장착할 때 Active가 됨
+	const bool bShouldBecomeActive = (ActiveWeapon == nullptr || CurrentSlot == TargetSlot);
+
+	if (bShouldBecomeActive)
+	{
+		// 기존 활성 무기가 있었다면: 탄약을 액터에 저장 + 숨김(Visibility=false)으로 보관
+		if (ActiveWeapon && ActiveWeapon != WeaponToEquip)
+		{
+			if (WeaponAS)
+			{
+				ActiveWeapon->CurrentAmmoCount = FMath::RoundToInt(WeaponAS->GetCurrentAmmo());
+			}
+
+			ActiveWeapon->DetachFromCharacter();
+			ActiveWeapon->SetActorHiddenInGame(true);
+			ActiveWeapon->bIsActiveWeapon = false;
+		}
+
+		ActiveWeapon = WeaponToEquip;
+		CurrentSlot = TargetSlot;
+
+		ActiveWeapon->bIsActiveWeapon = true;
+		ActiveWeapon->SetActorHiddenInGame(false);
+		ActiveWeapon->AttachToCharacter();
+
+		// 저장해둔 탄약을 GAS로 로드 (이미 존재하던 무기 재장착 시 특히 중요)
+		if (WeaponAS && ActiveWeapon->GetCurrentDataAsset())
+		{
+			const FWeaponData& Data = ActiveWeapon->GetCurrentDataAsset()->WeaponData;
+			WeaponAS->SetMaxAmmo(Data.DefaultMaxAmmo);
+			WeaponAS->SetCurrentAmmo(static_cast<float>(ActiveWeapon->CurrentAmmoCount));
+		}
+
+		OnActiveWeaponTagChanged.Broadcast(Tag);
+	}
+	else
+	{
+		// 비활성 보관: 화면에 보이지 않게(Visibility=false) 저장
+		WeaponToEquip->bIsActiveWeapon = false;
+		WeaponToEquip->DetachFromCharacter();
+		WeaponToEquip->SetActorHiddenInGame(true);
+	}
 }
 
 /** * [핵심 로직 2] 무기 교체 (Swap)

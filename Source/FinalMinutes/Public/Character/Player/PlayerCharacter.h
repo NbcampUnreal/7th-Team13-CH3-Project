@@ -120,6 +120,13 @@ public:
     // 우리가 만든 인벤토리 컴포넌트를 담을 변수!
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UInventoryComponent* InventoryComponent;
+    
+    // 인벤토리 열려 있는지 확인
+    UFUNCTION(BlueprintCallable, Category="UI")
+    bool IsInventoryOpen() const { return bIsInventoryOpen; }
+
+    UPROPERTY(BlueprintReadWrite, Category="UI")
+    bool bIsInventoryOpen = false;
 protected:
 #pragma region 이동
     UPROPERTY(EditDefaultsOnly, Category = "GAS|Input")
@@ -257,6 +264,7 @@ protected:
     UInputAction* IA_Inventory;
 
     void ToggleInventoryInput();
+    
 #pragma endregion	
 
 #pragma region 반동
@@ -300,6 +308,8 @@ protected:
 #pragma endregion
 public:
     virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+    
+    void SetDefaultPrimaryWeaponTag(FName ItemID);
 
 protected:
     virtual void PossessedBy(AController* NewController) override;
