@@ -105,6 +105,7 @@ void USaveSubsystem::LoadGameData(FString SlotName)
 	{
 		GS->SetLoadedData(LoadObject->TotalKillCount, LoadObject->BestSurviveTime);
 		GS->bIsGameStarted = true;
+		GS->GameTime = LoadObject->BestSurviveTime;
 	}
 	
 	//게임모드 - 남은시간 다시 계산하기
