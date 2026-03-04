@@ -1,6 +1,7 @@
 #include "AbilitySystem/Abilities/GA_Zoom.h"
 #include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
+#include "Character/Player/PlayerCharacter.h"
 
 UGA_Zoom::UGA_Zoom()
 {
@@ -13,6 +14,14 @@ void UGA_Zoom::ActivateAbility(
     const FGameplayAbilityActivationInfo ActivationInfo,
     const FGameplayEventData* TriggerEventData)
 {
+	if (APlayerCharacter* Char = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo()))
+	{
+		if (Char->IsInventoryOpen())
+		{
+			EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+			return;
+		}
+	}
     // 스킬 사용 조건 체크 (코스트, 쿨타임 등)
     if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
     {
