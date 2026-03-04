@@ -7,6 +7,7 @@ AFinalMinutesGameState::AFinalMinutesGameState()
 	KillCount = 0;
 	//tick 돌아가게
 	PrimaryActorTick.bCanEverTick = true;
+	bIsGameOver = false;
 }
 
 void AFinalMinutesGameState::BeginPlay()
@@ -15,18 +16,16 @@ void AFinalMinutesGameState::BeginPlay()
 	
 	KillCount = 0;
 	OnKillCountChanged.Broadcast(KillCount);
-	
 	//테스트용 시간
 	//GameTime = 590.0f;
-	
-}
+	}
 
 void AFinalMinutesGameState::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	
 	//게임이 시작되지 않았거나 이미 게임이 끝났다면 밑에 로직 무시.
-	if (!bIsGameStarted || bIsGameCleared) return;
+	if (!bIsGameStarted || bIsGameCleared || bIsGameOver) return;
 	
 	//매 프레임마다 실제 흐른 시간을 더해줌
 	GameTime += DeltaSeconds;

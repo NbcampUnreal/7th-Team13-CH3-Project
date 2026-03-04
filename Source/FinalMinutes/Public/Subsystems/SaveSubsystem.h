@@ -22,6 +22,11 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveData")
 	FString CurrentSlotName;
 	
-	UPROPERTY(BlueprintReadWrite, Category = "SaveSystem")
-	bool bIsLoadingGame = false;
+	static bool bIsLoadingGame;
+	
+	UFUNCTION(BlueprintCallable, Category = "SaveSystem")
+	bool GetIsLoadingGame() { return bIsLoadingGame; }
+
+	UFUNCTION(BlueprintCallable, Category = "SaveSystem")
+	void SetIsLoadingGame(bool bNewValue) { bIsLoadingGame = bNewValue; }
 };

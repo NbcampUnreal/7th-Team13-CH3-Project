@@ -10,6 +10,7 @@ class UAbilitySystemComponent;
 class UCombatComponent;
 class UProgressBar;
 class UTextBlock;
+class UCanvasPanel;
 
 UCLASS()
 class FINALMINUTES_API UPlayerStatusWidget : public UUserWidget
@@ -19,6 +20,15 @@ class FINALMINUTES_API UPlayerStatusWidget : public UUserWidget
 public:	
 	UFUNCTION(BlueprintCallable)
 	void InitWithASC(UAbilitySystemComponent* InASC);
+	
+	UFUNCTION(BlueprintCallable, Category="UI")
+	void ShowDamageNumber(int32 Damage);
+	
+	UFUNCTION(BlueprintCallable, Category="UI")
+	void ShowKillPlusOne();
+	
+	UFUNCTION(BlueprintCallable, Category="UI")
+	void ShowGameStartMessage();
 	
 protected:
 	virtual void NativeDestruct() override;
@@ -82,5 +92,26 @@ protected:
 	
 	// 무기 타입 태그가 바뀌었을 때 UI 갱신용
 	UFUNCTION(BlueprintImplementableEvent)
-	void OnActiveWeaponTagChanged(FGameplayTag WeaponTag); 
+	void OnActiveWeaponTagChanged(FGameplayTag WeaponTag);
+	
+	// DamagePopup
+	UPROPERTY(meta=(BindWidget))
+	UCanvasPanel* Canvas_DamageLayer = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category="UI")
+	TSubclassOf<UUserWidget> DamagePopupClass;
+	
+	// Kill popup
+	UPROPERTY(meta=(BindWidget))
+	UCanvasPanel* Canvas_KillLayer = nullptr;  // WBP_PlayerStatus에 추가할 캔버스
+
+	UPROPERTY(EditDefaultsOnly, Category="UI")
+	TSubclassOf<UUserWidget> KillPopupClass;
+	
+	// Start Message
+	UPROPERTY(meta=(BindWidget))
+	UCanvasPanel* Canvas_MessageLayer = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category="UI")
+	TSubclassOf<UUserWidget> GameMessagePopupClass;
 };
