@@ -54,4 +54,10 @@ public:
 	
 	UPROPERTY(VisibleAnywhere, Category = "SaveData")
 	TArray<FInventorySlot> SavedInventory;
+	
+	UPROPERTY(BlueprintReadWrite)
+	int32 CurrentAmmo; 
+	
+	UPROPERTY(BlueprintReadWrite)
+	TMap<FGameplayTag, int32> WeaponAmmoMap;
 };

@@ -10,7 +10,10 @@ UAN_FootStep::UAN_FootStep()
     TraceDistance = 100.f;
 }
 
-void UAN_FootStep::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
+void UAN_FootStep::Notify(
+    USkeletalMeshComponent* MeshComp, 
+    UAnimSequenceBase* Animation, 
+    const FAnimNotifyEventReference& EventReference)
 {
     Super::Notify(MeshComp, Animation, EventReference);
     
@@ -36,7 +39,8 @@ void UAN_FootStep::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* A
 
     if (bHit && HitResult.PhysMaterial.IsValid())
     {
-        UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Owner);
+        UAbilitySystemComponent* ASC = 
+            UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Owner);
         if (!ASC) return;
         
         FGameplayCueParameters Params;

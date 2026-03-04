@@ -1,6 +1,9 @@
 #include "AbilitySystem/Attributes/CharacterAttributeSet.h"
+
+#include "AIController.h"
 #include "GameplayEffectExtension.h"
 #include "Framework/FinalMinutesGameMode.h"
+#include "BehaviorTree/BlackboardComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Framework/FinalMinutesGameState.h"
@@ -177,6 +180,8 @@ void UCharacterAttributeSet::HandleDeath() const
         AFinalMinutesGameState* GS = GetWorld()->GetGameState<AFinalMinutesGameState>();
         if (GS) GS->AddKill();
         
+        APawn* MonsterPawn = Cast<APawn>(AvatarActor);
+        if (MonsterPawn)
         // 처치 +1 UI 띄우기
         if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
         {
@@ -189,7 +194,20 @@ void UCharacterAttributeSet::HandleDeath() const
         // 몬스터 사망 모션 재생(일단은 액터 삭제만 진행)
         if (AvatarActor)
         {
-            AvatarActor->Destroy();
+            if (AAIController* AIC = Cast<AAIController>(MonsterPawn->GetController()))
+            {
+                if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
+                {
+                    // 블랙보드 키 이름은 에디터와 동일하게 "bisDead"로 설정
+                    BB->SetValueAsBool(TEXT("bIsDead"), true);
+                    
+                    // 물리 관성을 즉시 제거하여 제자리에 얼립니다.
+                    if (UPawnMovementComponent* MoveComp = MonsterPawn->GetMovementComponent())
+                    {
+                        MoveComp->StopMovementImmediately();
+                    }
+                }
+            }
         }
         return;
     }

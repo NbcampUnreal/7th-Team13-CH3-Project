@@ -1,5 +1,6 @@
 #include "FinalMinutes/Public/Subsystems/SaveSubsystem.h"
 #include "AbilitySystem/Attributes/CharacterAttributeSet.h"
+#include "AbilitySystem/Attributes/WeaponAttributeSet.h"
 #include "Kismet/GameplayStatics.h"
 #include "Core/FinalMinutesSaveGame.h"
 #include "FinalMinutes/Public/Framework/FinalMinutesGameState.h"
@@ -10,6 +11,8 @@
 #include "Framework/FinalMinutesGameMode.h"
 #include "Components/InventoryComponent.h"
 #include "GameFramework/PlayerController.h"
+
+
 bool USaveSubsystem::bIsLoadingGame = false;
 void USaveSubsystem::SaveGameData(int32 CurrentKillCount, float SurviveTime, FString SlotName)
 {
@@ -59,31 +62,60 @@ void USaveSubsystem::SaveGameData(int32 CurrentKillCount, float SurviveTime, FSt
 	UCombatComponent* CombatComp = Player->GetCombatComponent();
 	//무기 컴포넌트 가 없다면 아마 여까지 하고 저장
 	
-	if (!CombatComp)
+	if (CombatComp)
 	{
-		UGameplayStatics::SaveGameToSlot(SaveObject, SlotName, 0);
-		return;
+		// 1. 마지막에 든 무기 태그 저장
+		if (CombatComp->GetActiveWeapon() && CombatComp->GetActiveWeapon()->GetCurrentDataAsset())
+		{
+			SaveObject->LastEquipWeapon = CombatComp->GetActiveWeapon()->GetCurrentDataAsset()->WeaponData.WeaponTag;
+		}
+
+		// 2. [핵심] 주무기/보조무기 슬롯을 돌면서 탄약 장부(Map)에 기록
+		for (int32 i = 0; i <= 1; i++) // 0: Primary, 1: Secondary
+		{
+			EWeaponSlot Slot = (i == 0) ? EWeaponSlot::Primary : EWeaponSlot::Secondary;
+			AWeaponBase* WeaponToCheck = CombatComp->GetWeaponBySlot(Slot);
+
+			if (WeaponToCheck && WeaponToCheck->GetCurrentDataAsset())
+			{
+				FGameplayTag WeaponTag = WeaponToCheck->GetCurrentDataAsset()->WeaponData.WeaponTag;
+				int32 AmmoToSave = 0;
+
+				// (A) 들고 있는 무기면: ASC(GAS)에서 최신 값 가져오기
+				if (WeaponToCheck == CombatComp->GetActiveWeapon())
+				{
+					if (ASC)
+					{
+						if (const UWeaponAttributeSet* WAS = ASC->GetSet<UWeaponAttributeSet>())
+						{
+							AmmoToSave = (int32)WAS->GetCurrentAmmo();
+						}
+					}
+				}
+				// (B) 등에 메고 있는 무기면: 무기 액터 변수에서 가져오기
+				else
+				{
+					AmmoToSave = WeaponToCheck->CurrentAmmoCount;
+				}
+
+				// 장부에 저장
+				SaveObject->WeaponAmmoMap.Add(WeaponTag, AmmoToSave);
+			}
+		}
 	}
-	
-	if (CombatComp->GetActiveWeapon() && CombatComp->GetActiveWeapon()->GetCurrentDataAsset())
-	{
-		//마지막에 장착했던 무기를 저장
-		SaveObject->LastEquipWeapon = CombatComp->GetActiveWeapon()->GetCurrentDataAsset()->WeaponData.WeaponTag;
-	}
-	
+    
 	//무기 여러개 저장하는 로직 만들기
 	if (UInventoryComponent* InvComp = Player->FindComponentByClass<UInventoryComponent>())
 	{
 		SaveObject->SavedInventory = InvComp->Items;
 	}
-		
+       
 	//로컬에 저장
 	UGameplayStatics::SaveGameToSlot(SaveObject, SlotName, 0);
-	}
+}
 
 void USaveSubsystem::LoadGameData(FString SlotName)
 {
-	
 	if (SlotName.IsEmpty()) SlotName = CurrentSlotName;
 	if (SlotName.IsEmpty()) SlotName = TEXT("SaveSlot_01");
 	
@@ -154,19 +186,74 @@ void USaveSubsystem::LoadGameData(FString SlotName)
 		// 델리게이트 신호 보내기
 		InvComp->OnInventoryUpdated.Broadcast();
 	}
-	//무기 장착
-	if (LoadObject->LastEquipWeapon.IsValid()) 
-	{
-		Player->GetCombatComponent()->EquipWeapon(LoadObject->LastEquipWeapon);
-	}
 	
-	FTimerHandle Handle;
-	GetWorld()->GetTimerManager().SetTimer(Handle, [this]()
-	{
-		if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
-		{
-			PC->SetShowMouseCursor(false);
-			PC->SetInputMode(FInputModeGameOnly());
-		}
-	}, 0.1f, false);
+	//무기 장착
+	if (LoadObject->LastEquipWeapon.IsValid())
+    {
+       // 1. 일단 무기 장착 (비동기 로딩 시작됨)
+       Player->GetCombatComponent()->EquipWeapon(LoadObject->LastEquipWeapon);
+       
+       // 2. 저장된 탄약 장부(Map) 복사
+       TMap<FGameplayTag, int32> SavedAmmoMap = LoadObject->WeaponAmmoMap;
+       TWeakObjectPtr<APlayerCharacter> WeakPlayer = Player;
+       
+       FTimerHandle AmmoDelayHandle;
+       
+       // 3. 0.2초 뒤 (무기 초기화 끝난 후) 실행
+       GetWorld()->GetTimerManager().SetTimer(AmmoDelayHandle, [WeakPlayer, SavedAmmoMap]()
+       {
+          if (APlayerCharacter* PC = WeakPlayer.Get())
+          {
+             UCombatComponent* CombatComp = PC->GetCombatComponent();
+             if (!CombatComp) return;
+
+             // 모든 슬롯(주무기/보조무기) 확인
+             for (int32 i = 0; i <= 1; i++)
+             {
+                 EWeaponSlot Slot = (i == 0) ? EWeaponSlot::Primary : EWeaponSlot::Secondary;
+                 AWeaponBase* WeaponToLoad = CombatComp->GetWeaponBySlot(Slot);
+
+                 if (WeaponToLoad && WeaponToLoad->GetCurrentDataAsset())
+                 {
+                     FGameplayTag Tag = WeaponToLoad->GetCurrentDataAsset()->WeaponData.WeaponTag;
+
+                     // 장부에 있는 무기라면 탄약 복구
+                     if (SavedAmmoMap.Contains(Tag))
+                     {
+                         int32 LoadedAmmo = SavedAmmoMap[Tag];
+
+                         // (A) 무기 자체 변수에 값 넣기 (나중에 스왑해도 기억하도록)
+                         WeaponToLoad->CurrentAmmoCount = LoadedAmmo;
+
+                         // (B) 지금 들고 있는 무기라면 GAS에도 즉시 반영
+                         if (WeaponToLoad == CombatComp->GetActiveWeapon())
+                         {
+                             UAbilitySystemComponent* WeaponASC = PC->GetAbilitySystemComponent();
+                             if (WeaponASC)
+                             {
+                                if (const UWeaponAttributeSet* WAS = WeaponASC->GetSet<UWeaponAttributeSet>())
+                                {
+                                   UWeaponAttributeSet* MutableWAS = const_cast<UWeaponAttributeSet*>(WAS);
+                                   MutableWAS->SetCurrentAmmo((float)LoadedAmmo);
+                                   WeaponASC->ForceReplication();
+                                }
+                             }
+                         }
+                     }
+                 }
+             }
+          }
+       }, 0.2f, false);
+          
+       // 마우스 커서 끄기용 타이머 (기존 유지)
+       FTimerHandle Handle;
+       GetWorld()->GetTimerManager().SetTimer(Handle, [this]()
+       {
+          if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+          {
+             PC->SetShowMouseCursor(false);
+             PC->SetInputMode(FInputModeGameOnly());
+          }
+       }, 0.1f, false);
+    }
 }
