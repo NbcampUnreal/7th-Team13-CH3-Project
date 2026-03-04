@@ -10,7 +10,7 @@
 #include "Framework/FinalMinutesGameMode.h"
 #include "Components/InventoryComponent.h"
 #include "GameFramework/PlayerController.h"
-
+bool USaveSubsystem::bIsLoadingGame = false;
 void USaveSubsystem::SaveGameData(int32 CurrentKillCount, float SurviveTime, FString SlotName)
 {
 	if (SlotName.IsEmpty())
