@@ -113,6 +113,10 @@ protected:
     UPROPERTY(EditAnywhere, Category = "Recoil")
     float RecoveryInterpSpeed = 10.0f;
     
+    // 무기들을 저장할 맵 (태그별로 액터 관리)
+	UPROPERTY()
+	TMap<FGameplayTag, AWeaponBase*> SpawnedWeapons;
+    
 public:
     /** 반동 계산 */
     void ApplyRecoil();
