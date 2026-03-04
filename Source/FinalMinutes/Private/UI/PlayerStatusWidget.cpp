@@ -7,6 +7,10 @@
 #include "Character/Player/PlayerCharacter.h"
 #include "Character/Components/CombatComponent.h"
 
+#include "Blueprint/WidgetLayoutLibrary.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
+
 void UPlayerStatusWidget::InitWithASC(UAbilitySystemComponent* InASC)
 {
 	// 기존 바인딩 해제 후 다시 연결 (중복 호출 방지)
@@ -190,4 +194,59 @@ void UPlayerStatusWidget::UpdateMaxAmmo(float Max)
 		const int32 M = FMath::RoundToInt(Max);
 		TXT_MaxAmmo->SetText(FText::AsNumber(M));
 	}
+}
+
+void UPlayerStatusWidget::ShowDamageNumber(int32 Damage)
+{
+	if (!Canvas_DamageLayer || !DamagePopupClass) return;
+	if (Damage <= 0) return;
+
+	UUserWidget* Popup = CreateWidget<UUserWidget>(GetWorld(), DamagePopupClass);
+	if (!Popup) return;
+
+	UCanvasPanelSlot* CanvasSlot = Canvas_DamageLayer->AddChildToCanvas(Popup);
+	if (!CanvasSlot) return;
+	
+	CanvasSlot->SetPosition(FVector2D(0.f, 0.f));
+	CanvasSlot->SetAutoSize(true);
+	CanvasSlot->SetZOrder(999);
+
+	// BP 함수 InitDamage(int) 호출
+	static const FName InitFuncName(TEXT("InitDamage"));
+	if (UFunction* Func = Popup->FindFunction(InitFuncName))
+	{
+		struct FInitDamageParams { int32 Damage; };
+		FInitDamageParams Params{ Damage };
+		Popup->ProcessEvent(Func, &Params);
+	}
+}
+
+void UPlayerStatusWidget::ShowKillPlusOne()
+{
+	if (!Canvas_KillLayer || !KillPopupClass) return;
+
+	UUserWidget* Popup = CreateWidget<UUserWidget>(GetWorld(), KillPopupClass);
+	if (!Popup) return;
+
+	UCanvasPanelSlot* CanvasSlot = Canvas_KillLayer->AddChildToCanvas(Popup);
+	if (!CanvasSlot) return;
+
+	CanvasSlot->SetPosition(FVector2D(0.f, 0.f));
+	CanvasSlot->SetAutoSize(true);
+	CanvasSlot->SetZOrder(999);
+}
+
+void UPlayerStatusWidget::ShowGameStartMessage()
+{
+	if (!Canvas_MessageLayer || !GameMessagePopupClass) return;
+
+	UUserWidget* Popup = CreateWidget<UUserWidget>(GetWorld(), GameMessagePopupClass);
+	if (!Popup) return;
+
+	UCanvasPanelSlot* CanvasSlot = Canvas_MessageLayer->AddChildToCanvas(Popup);
+	if (!CanvasSlot) return;
+
+	CanvasSlot->SetPosition(FVector2D(0.f, 0.f));
+	CanvasSlot->SetAutoSize(true);
+	CanvasSlot->SetZOrder(999);
 }
