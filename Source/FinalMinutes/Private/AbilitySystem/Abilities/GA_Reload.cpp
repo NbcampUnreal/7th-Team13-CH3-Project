@@ -5,7 +5,7 @@
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "AbilitySystem/Attributes/WeaponAttributeSet.h"
 #include "Character/Components/CombatComponent.h"
-#include "Items/Weapons/FWeaponData.h"
+#include "Items/Weapons/WeaponData.h"
 #include "Items/Weapons/WeaponBase.h"
 #include "Items/Weapons/WeaponDataAsset.h"
 

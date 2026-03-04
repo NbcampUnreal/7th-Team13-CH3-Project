@@ -5,7 +5,7 @@
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "Character/Components/CombatComponent.h"
 #include "Items/Projectiles/ProjectileBullet.h"
-#include "Items/Weapons/FWeaponData.h"
+#include "Items/Weapons/WeaponData.h"
 #include "Items/Weapons/WeaponBase.h"
 #include "Items/Weapons/WeaponDataAsset.h"
 #include "Perception/AISense_Hearing.h"

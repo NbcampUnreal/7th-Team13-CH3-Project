@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "GameplayTagContainer.h"  // 추가
-#include "Items/Weapons/FWeaponData.h" // 슬롯 Enum 포함
+#include "Items/Weapons/WeaponData.h" // 슬롯 Enum 포함
 #include "CombatComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnActiveWeaponTagChanged, FGameplayTag, WeaponTag);
