@@ -46,6 +46,21 @@ AWeaponBase* UCombatComponent::GetWeaponBySlot(const EWeaponSlot Slot) const
  */
 void UCombatComponent::EquipWeapon(FGameplayTag Tag)
 {
+	//허태린 수정
+	if (ActiveWeapon)
+	{
+		if (OwnerCharacter)
+		{
+			UAbilitySystemComponent* ASC = OwnerCharacter->GetAbilitySystemComponent();
+			if (ASC)
+			{
+				if (const UWeaponAttributeSet* WAS = ASC->GetSet<UWeaponAttributeSet>())
+				{
+					ActiveWeapon->CurrentAmmoCount = (int32)WAS->GetCurrentAmmo();
+				}
+			}
+		}
+	}
 	if (!OwnerCharacter) OwnerCharacter = Cast<APlayerCharacter>(GetOwner());
 	if (!OwnerCharacter || !Tag.IsValid()) return;
 

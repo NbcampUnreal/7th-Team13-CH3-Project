@@ -29,6 +29,9 @@ void AWeaponBase::InitializeWeapon(FGameplayTag InWeaponTag, AActor* InOwner)
 
     CurrentDataAsset = Registry->GetWeaponDataByTag(InWeaponTag);
     if (!CurrentDataAsset) return;
+    
+    //허태린 추가
+    CurrentAmmoCount = CurrentDataAsset->WeaponData.DefaultMaxAmmo;
 
     StartAsyncMeshLoad(InWeaponTag);
 }
@@ -153,7 +156,7 @@ void AWeaponBase::InitializeAttributes()
     if (!CurrentDataAsset) return;
 
     // 1. 탄약 수치 초기화 (공통)
-    CurrentAmmoCount = CurrentDataAsset->WeaponData.DefaultMaxAmmo;
+    //CurrentAmmoCount = CurrentDataAsset->WeaponData.DefaultMaxAmmo;
 
     // 2. 활성화 상태가 아니거나 주인이 없으면 중단
     if (!bIsActiveWeapon) return;
@@ -166,7 +169,9 @@ void AWeaponBase::InitializeAttributes()
     if (!WeaponAS) return;
 
     WeaponAS->SetMaxAmmo(CurrentDataAsset->WeaponData.DefaultMaxAmmo);
-    WeaponAS->SetCurrentAmmo(CurrentDataAsset->WeaponData.DefaultMaxAmmo);
+    
+    //WeaponAS->SetCurrentAmmo(CurrentDataAsset->WeaponData.DefaultMaxAmmo);
+    WeaponAS->SetCurrentAmmo((float)CurrentAmmoCount);
 }
 
 UAbilitySystemComponent* AWeaponBase::GetOwnerASC() const

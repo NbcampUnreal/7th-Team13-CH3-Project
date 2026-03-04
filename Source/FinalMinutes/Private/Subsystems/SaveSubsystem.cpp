@@ -64,13 +64,25 @@ void USaveSubsystem::SaveGameData(int32 CurrentKillCount, float SurviveTime, FSt
 	
 	if (CombatComp)
 	{
-		// 1. 마지막에 든 무기 태그 저장
+		//마지막에 든 무기 태그 저장
 		if (CombatComp->GetActiveWeapon() && CombatComp->GetActiveWeapon()->GetCurrentDataAsset())
 		{
 			SaveObject->LastEquipWeapon = CombatComp->GetActiveWeapon()->GetCurrentDataAsset()->WeaponData.WeaponTag;
 		}
-
-		// 2. [핵심] 주무기/보조무기 슬롯을 돌면서 탄약 장부(Map)에 기록
+		
+		AWeaponBase* PrimaryWeap = CombatComp->GetWeaponBySlot(EWeaponSlot::Primary);
+		if (PrimaryWeap && PrimaryWeap->GetCurrentDataAsset())
+		{
+			SaveObject->PrimaryWeaponTag = PrimaryWeap->GetCurrentDataAsset()->WeaponData.WeaponTag;
+		}
+		
+		AWeaponBase* SecondaryWeap = CombatComp->GetWeaponBySlot(EWeaponSlot::Secondary);
+		if (SecondaryWeap && SecondaryWeap->GetCurrentDataAsset())
+		{
+			SaveObject->SecondaryWeaponTag = SecondaryWeap->GetCurrentDataAsset()->WeaponData.WeaponTag;
+		}
+		
+		
 		for (int32 i = 0; i <= 1; i++) // 0: Primary, 1: Secondary
 		{
 			EWeaponSlot Slot = (i == 0) ? EWeaponSlot::Primary : EWeaponSlot::Secondary;
@@ -192,58 +204,77 @@ void USaveSubsystem::LoadGameData(FString SlotName)
     {
        // 1. 일단 무기 장착 (비동기 로딩 시작됨)
        Player->GetCombatComponent()->EquipWeapon(LoadObject->LastEquipWeapon);
-       
-       // 2. 저장된 탄약 장부(Map) 복사
-       TMap<FGameplayTag, int32> SavedAmmoMap = LoadObject->WeaponAmmoMap;
-       TWeakObjectPtr<APlayerCharacter> WeakPlayer = Player;
-       
-       FTimerHandle AmmoDelayHandle;
-       
+		UCombatComponent* CombatComp = Player->GetCombatComponent();
+		if (CombatComp)
+		{
+			// (1) 주무기 슬롯 복구
+			if (LoadObject->PrimaryWeaponTag.IsValid())
+			{
+				CombatComp->EquipWeapon(LoadObject->PrimaryWeaponTag);
+			}
+
+			// (2) 보조무기 슬롯 복구
+			if (LoadObject->SecondaryWeaponTag.IsValid())
+			{
+				CombatComp->EquipWeapon(LoadObject->SecondaryWeaponTag);
+			}
+
+			// (3) 마지막에 손에 들고 있던 걸로 '스왑'
+			if (LoadObject->LastEquipWeapon.IsValid())
+			{
+				CombatComp->EquipWeapon(LoadObject->LastEquipWeapon);
+			}
+		}
+		
+		TMap<FGameplayTag, int32> SavedAmmoMap = LoadObject->WeaponAmmoMap;
+		TWeakObjectPtr<APlayerCharacter> WeakPlayer = Player;
+    
+		FTimerHandle AmmoDelayHandle;
        // 3. 0.2초 뒤 (무기 초기화 끝난 후) 실행
        GetWorld()->GetTimerManager().SetTimer(AmmoDelayHandle, [WeakPlayer, SavedAmmoMap]()
-       {
-          if (APlayerCharacter* PC = WeakPlayer.Get())
-          {
-             UCombatComponent* CombatComp = PC->GetCombatComponent();
-             if (!CombatComp) return;
+    {
+        if (APlayerCharacter* PC = WeakPlayer.Get())
+        {
+             UCombatComponent* MyCombat = PC->GetCombatComponent();
+             if (!MyCombat) return;
 
-             // 모든 슬롯(주무기/보조무기) 확인
+             // 모든 슬롯을 돌면서 탄약 복구
              for (int32 i = 0; i <= 1; i++)
              {
                  EWeaponSlot Slot = (i == 0) ? EWeaponSlot::Primary : EWeaponSlot::Secondary;
-                 AWeaponBase* WeaponToLoad = CombatComp->GetWeaponBySlot(Slot);
+                 AWeaponBase* WeaponToLoad = MyCombat->GetWeaponBySlot(Slot);
 
                  if (WeaponToLoad && WeaponToLoad->GetCurrentDataAsset())
                  {
                      FGameplayTag Tag = WeaponToLoad->GetCurrentDataAsset()->WeaponData.WeaponTag;
 
-                     // 장부에 있는 무기라면 탄약 복구
+                     // 장부에 탄약 정보가 있다면
                      if (SavedAmmoMap.Contains(Tag))
                      {
                          int32 LoadedAmmo = SavedAmmoMap[Tag];
 
-                         // (A) 무기 자체 변수에 값 넣기 (나중에 스왑해도 기억하도록)
+                         // (A) 무기 자체 변수 복구
                          WeaponToLoad->CurrentAmmoCount = LoadedAmmo;
 
-                         // (B) 지금 들고 있는 무기라면 GAS에도 즉시 반영
-                         if (WeaponToLoad == CombatComp->GetActiveWeapon())
+                         // (B) 현재 들고 있는 무기라면 GAS도 복구
+                         if (WeaponToLoad == MyCombat->GetActiveWeapon())
                          {
-                             UAbilitySystemComponent* WeaponASC = PC->GetAbilitySystemComponent();
-                             if (WeaponASC)
+                             UAbilitySystemComponent* ASC = PC->GetAbilitySystemComponent();
+                             if (ASC)
                              {
-                                if (const UWeaponAttributeSet* WAS = WeaponASC->GetSet<UWeaponAttributeSet>())
+                                if (const UWeaponAttributeSet* WAS = ASC->GetSet<UWeaponAttributeSet>())
                                 {
                                    UWeaponAttributeSet* MutableWAS = const_cast<UWeaponAttributeSet*>(WAS);
                                    MutableWAS->SetCurrentAmmo((float)LoadedAmmo);
-                                   WeaponASC->ForceReplication();
+                                   ASC->ForceReplication();
                                 }
                              }
                          }
                      }
                  }
              }
-          }
-       }, 0.2f, false);
+        }
+    }, 0.2f, false);
           
        // 마우스 커서 끄기용 타이머 (기존 유지)
        FTimerHandle Handle;
