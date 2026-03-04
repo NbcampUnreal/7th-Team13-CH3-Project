@@ -366,4 +366,3 @@ bool UInventoryComponent::ConsumeItem(FName InItemID, int32 Amount)
 	OnInventoryUpdated.Broadcast();
 	return true;
 }
-}
