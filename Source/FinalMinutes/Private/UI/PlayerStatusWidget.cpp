@@ -7,13 +7,17 @@
 #include "Character/Player/PlayerCharacter.h"
 #include "Character/Components/CombatComponent.h"
 
-#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+
+#include "Components/InventoryComponent.h"
+#include "Items/Weapons/WeaponBase.h"
+#include "Items/Weapons/WeaponDataAsset.h"
 
 void UPlayerStatusWidget::InitWithASC(UAbilitySystemComponent* InASC)
 {
 	// 기존 바인딩 해제 후 다시 연결 (중복 호출 방지)
+	UnbindInventoryCallbacks();
 	UnbindCombatCallbacks();
 	UnbindCallbacks();
 
@@ -29,7 +33,6 @@ void UPlayerStatusWidget::InitWithASC(UAbilitySystemComponent* InASC)
 	if (WAS)
 	{
 		UpdateAmmo(WAS->GetCurrentAmmo());
-		UpdateMaxAmmo(WAS->GetMaxAmmo());
 	}
 
 	// Max는 고정이므로 1회만 저장
@@ -42,6 +45,9 @@ void UPlayerStatusWidget::InitWithASC(UAbilitySystemComponent* InASC)
 
 	BindCallbacks(); // 델리게이트 바인딩
 	BindCombatCallbacks(); // 무기 변경 이벤트 바인딩
+	
+	BindInventoryCallbacks();
+	UpdateReserveAmmo();
 }
 // CombatComponent 델리게이트 바인딩
 void UPlayerStatusWidget::BindCombatCallbacks()
@@ -86,6 +92,12 @@ void UPlayerStatusWidget::UnbindCombatCallbacks()
 void UPlayerStatusWidget::HandleActiveWeaponTagChanged(FGameplayTag WeaponTag)
 {
 	OnActiveWeaponTagChanged(WeaponTag); // BP에서 아이콘 바꾸는 이벤트
+	// 혹시 아직 인벤 바인딩 안됐으면 지금이라도 시도
+	if (!BoundInventoryComp)
+	{
+		BindInventoryCallbacks();
+	}
+	UpdateReserveAmmo();  
 }
 
 // 델리게이트에 함수 등록(AddUObject)
@@ -105,15 +117,12 @@ void UPlayerStatusWidget::BindCallbacks()
 	AmmoChangedHandle =
 		ASC->GetGameplayAttributeValueChangeDelegate(UWeaponAttributeSet::GetCurrentAmmoAttribute())
 		.AddUObject(this, &UPlayerStatusWidget::OnAmmoChanged);
-	
-	MaxAmmoChangedHandle =
-		ASC->GetGameplayAttributeValueChangeDelegate(UWeaponAttributeSet::GetMaxAmmoAttribute())
-		.AddUObject(this, &UPlayerStatusWidget::OnMaxAmmoChanged);
 }
 
 // 위젯이 사라질 때 델리게이트 연결 해제
 void UPlayerStatusWidget::NativeDestruct()
 {
+	UnbindInventoryCallbacks();
 	UnbindCombatCallbacks();
 	UnbindCallbacks();
 	Super::NativeDestruct();
@@ -132,9 +141,6 @@ void UPlayerStatusWidget::UnbindCallbacks()
 	
 	ASC->GetGameplayAttributeValueChangeDelegate(UWeaponAttributeSet::GetCurrentAmmoAttribute())
 		.Remove(AmmoChangedHandle);
-	
-	ASC->GetGameplayAttributeValueChangeDelegate(UWeaponAttributeSet::GetMaxAmmoAttribute())
-		.Remove(MaxAmmoChangedHandle);
 }
 
 //Health가 바뀌는 순간 자동 호출
@@ -152,11 +158,6 @@ void UPlayerStatusWidget::OnStaminaChanged(const FOnAttributeChangeData& Data)
 void UPlayerStatusWidget::OnAmmoChanged(const FOnAttributeChangeData& Data)
 {
 	UpdateAmmo(Data.NewValue);
-}
-
-void UPlayerStatusWidget::OnMaxAmmoChanged(const FOnAttributeChangeData& Data)
-{
-     UpdateMaxAmmo(Data.NewValue);
 }
 
 // 퍼센트 계산
@@ -184,15 +185,6 @@ void UPlayerStatusWidget::UpdateAmmo(float Current)
 	{
 		const int32 Cur = FMath::RoundToInt(Current);
 		TXT_Ammo->SetText(FText::AsNumber(Cur));
-	}
-}
-
-void UPlayerStatusWidget::UpdateMaxAmmo(float Max)
-{
-	if (TXT_MaxAmmo)
-	{
-		const int32 M = FMath::RoundToInt(Max);
-		TXT_MaxAmmo->SetText(FText::AsNumber(M));
 	}
 }
 
@@ -249,4 +241,74 @@ void UPlayerStatusWidget::ShowGameStartMessage()
 	CanvasSlot->SetPosition(FVector2D(0.f, 0.f));
 	CanvasSlot->SetAutoSize(true);
 	CanvasSlot->SetZOrder(999);
+}
+
+void UPlayerStatusWidget::BindInventoryCallbacks()
+{
+	if (!ASC) return;
+
+	AActor* Avatar = ASC->GetAvatarActor();
+	APlayerCharacter* PlayerChar = Cast<APlayerCharacter>(Avatar);
+	if (!PlayerChar) return;
+
+	UInventoryComponent* Inv = PlayerChar->FindComponentByClass<UInventoryComponent>();
+	if (!Inv) return;
+
+	if (BoundInventoryComp == Inv) return;
+
+	if (BoundInventoryComp)
+	{
+		BoundInventoryComp->OnInventoryUpdated.RemoveAll(this);
+		BoundInventoryComp = nullptr;
+	}
+
+	BoundInventoryComp = Inv;
+	BoundInventoryComp->OnInventoryUpdated.AddDynamic(this, &UPlayerStatusWidget::HandleInventoryUpdated);
+}
+
+void UPlayerStatusWidget::UnbindInventoryCallbacks()
+{
+	if (BoundInventoryComp)
+	{
+		BoundInventoryComp->OnInventoryUpdated.RemoveAll(this);
+		BoundInventoryComp = nullptr;
+	}
+}
+
+void UPlayerStatusWidget::HandleInventoryUpdated()
+{
+	UpdateReserveAmmo();
+}
+
+FName UPlayerStatusWidget::ResolveAmmoItemIDFromActiveWeapon() const
+{
+	if (!ASC) return NAME_None;
+
+	AActor* Avatar = ASC->GetAvatarActor();
+	APlayerCharacter* PlayerChar = Cast<APlayerCharacter>(Avatar);
+	if (!PlayerChar) return NAME_None;
+
+	UCombatComponent* CC = PlayerChar->FindComponentByClass<UCombatComponent>();
+	AWeaponBase* Weapon = CC ? CC->GetActiveWeapon() : nullptr;
+	if (!Weapon) return NAME_None;
+
+	const UWeaponDataAsset* DA = Weapon->GetCurrentDataAsset();
+	if (!DA) return NAME_None;
+
+	return DA->WeaponData.AmmoItemID;
+}
+
+void UPlayerStatusWidget::UpdateReserveAmmo()
+{
+	if (!TXT_MaxAmmo) return;
+
+	// 현재 무기 기준 탄약 ID 갱신
+	CurrentAmmoItemID = ResolveAmmoItemIDFromActiveWeapon();
+
+	const int32 Reserve =
+		(BoundInventoryComp && !CurrentAmmoItemID.IsNone())
+		? BoundInventoryComp->GetItemQuantity(CurrentAmmoItemID)
+		: 0;
+
+	TXT_MaxAmmo->SetText(FText::AsNumber(Reserve));
 }
