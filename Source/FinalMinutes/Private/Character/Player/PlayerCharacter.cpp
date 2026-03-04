@@ -484,6 +484,23 @@ void APlayerCharacter::OnZoomEnded(const FInputActionValue& Value)
 
 void APlayerCharacter::ToggleInventoryInput()
 {
+    // 1) 인벤 상태 토글
+    const bool bWasOpen = bIsInventoryOpen;
+    bIsInventoryOpen = !bIsInventoryOpen;
+    const bool bJustOpened = (!bWasOpen && bIsInventoryOpen);
+
+    // 2) 인벤을 "여는 순간" 현재 줌이 켜져있으면 끄기
+    if (bIsInventoryOpen)
+    {
+        if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+        {
+            FGameplayTagContainer ZoomTags;
+            ZoomTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Player.Zoom")));
+
+            // 줌 태그 달린 어빌리티들 강제 종료
+            ASC->CancelAbilities(&ZoomTags);
+        }
+    }
     if (MainHUD)
     {
         // MainHUDWidget블루프린트 안에 ToggleInventoryWindow이름을 가진 함수가 있는지 검색합니다.
@@ -494,6 +511,35 @@ void APlayerCharacter::ToggleInventoryInput()
         {
             // 그 함수를 호출합니다.
             MainHUD->ProcessEvent(Function, nullptr);
+        }
+    }
+    // 4) 인벤 열림/닫힘에 따라 "화면(룩)만" 막기 + 커서/입력 모드 변경
+    if (APlayerController* PC = Cast<APlayerController>(GetController()))
+    {
+        if (bIsInventoryOpen)
+        {
+            PC->bShowMouseCursor = true;
+
+            // ✅ 화면(카메라) 회전만 막기
+            PC->SetIgnoreLookInput(true);
+
+            // ✅ 이동은 허용 (MoveInput은 막지 않음)
+            // PC->SetIgnoreMoveInput(false); // 굳이 안 써도 되지만 명시하고 싶으면
+
+            FInputModeGameAndUI Mode;
+            Mode.SetHideCursorDuringCapture(false);
+            Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+            PC->SetInputMode(Mode);
+        }
+        else
+        {
+            PC->bShowMouseCursor = false;
+
+            // ✅ 다시 화면 회전 허용
+            PC->SetIgnoreLookInput(false);
+
+            FInputModeGameOnly Mode;
+            PC->SetInputMode(Mode);
         }
     }
 }

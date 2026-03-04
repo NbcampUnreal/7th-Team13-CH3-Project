@@ -56,7 +56,7 @@ bool UInventoryComponent::AddItem(FName ItemID, int32 Amount)
         }
     }
 
-    // ✅ 핵심: Amount가 들어오면 그걸 쓰고, 아니면 DT PickupAmount 사용
+    // Amount가 들어오면 그걸 쓰고, 아니면 DT PickupAmount 사용
     int32 Remaining = (Amount > 0) ? Amount : PickupAmount;
 
     const bool bInfiniteStack = (MaxStack <= 0);
