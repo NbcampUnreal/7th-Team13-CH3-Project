@@ -396,6 +396,10 @@ void APlayerCharacter::Look(const FInputActionValue& value)
 void APlayerCharacter::StartSprint(const FInputActionValue& Value)
 {
     if (!AbilitySystemComponent) return;
+    if (GetCharacterMovement()->GetCurrentAcceleration().IsNearlyZero())
+    {
+        return;
+    }
     FGameplayTagContainer AbilityTags;
     AbilityTags.AddTag(SprintAbilityTag);
     AbilitySystemComponent->TryActivateAbilitiesByTag(AbilityTags);

@@ -59,4 +59,12 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category="Inventory")
 	bool DropItem(int32 SlotIndex, int32 DropRequest = 1);
+	
+	// 현재 보유 총알 수량 조회
+	UFUNCTION(BlueprintCallable, Category="Inventory")
+	int32 GetItemQuantity(FName ItemID) const;
+
+	// 수량 감소
+	UFUNCTION(BlueprintCallable, Category="Inventory")
+	bool ConsumeItem(FName ItemID, int32 Amount = 1);
 };
