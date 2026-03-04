@@ -34,6 +34,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning")
 	float SpawnRate;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning")
+	float SpawnInit;
+	
 	UFUNCTION(BlueprintCallable, Category = "Spawning")
 	void SpawnRandomMonster();
 	
