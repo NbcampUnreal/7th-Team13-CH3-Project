@@ -1,7 +1,4 @@
 #include "Components/InventoryComponent.h"
-
-#include <ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/ir_hierarchical_visitor.h>
-
 #include "Character/Player/PlayerCharacter.h"
 #include "Items/BaseItem.h"
 #include "items/ItemData.h"
@@ -12,27 +9,28 @@
 
 UInventoryComponent::UInventoryComponent()
 {
-    PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = false;
 }
 
 void UInventoryComponent::BeginPlay()
 {
-    Super::BeginPlay();
+	Super::BeginPlay();
 
-    Items.SetNum(InventorySize); // 인벤토리 크기를 InventorySize인 10만큼 생성합니다
+	Items.SetNum(InventorySize); // 인벤토리 크기를 InventorySize인 10만큼 생성합니다
 
-    if (InventoryWidgetClass) // 우리가 UE Editor에서 InventoryWidgetClass를 선택해서 넣어주면 통과 합니다
-    {
-        // 이 인벤토리를 가지고 있는 플레이어 컨트롤러를 가져옵니다.
-        APlayerController* PlayerController = Cast<APlayerController>(GetOwner()->GetInstigatorController());
+	if (InventoryWidgetClass) // 우리가 UE Editor에서 InventoryWidgetClass를 선택해서 넣어주면 통과 합니다
+	{
+		// 이 인벤토리를 가지고 있는 플레이어 컨트롤러를 가져옵니다.
+		APlayerController* PlayerController = Cast<APlayerController>(GetOwner()->GetInstigatorController());
 
-        if (PlayerController) // 플레이어 컨트롤러가 정상적으로 가져와졌다면
-        {
-            // CreateWidget함수를 사용해서 UUserWidget을 만들어 줍니다. 첫 번째 매개변수로 이 위젯의 소유자 PlayerController를 넣어줍니다.
-            // 가져온 PlayerController에 UI에를 뛰운다! 라고 생각하면 됩니다!
-            InventoryWidget = CreateWidget<UUserWidget>(PlayerController, InventoryWidgetClass);
-        }
-    }
+		if (PlayerController) // 플레이어 컨트롤러가 정상적으로 가져와졌다면
+		{
+			// CreateWidget함수를 사용해서 UUserWidget을 만들어 줍니다. 첫 번째 매개변수로 이 위젯의 소유자 PlayerController를 넣어줍니다.
+			// 가져온 PlayerController에 UI에를 뛰운다! 라고 생각하면 됩니다!
+			InventoryWidget = CreateWidget<UUserWidget>(PlayerController, InventoryWidgetClass);
+		}
+	}
+	
 }
 
 bool UInventoryComponent::AddItem(FName ItemID)
@@ -60,7 +58,6 @@ bool UInventoryComponent::AddItem(FName ItemID, int32 Amount)
             }
         }
     }
-
     // 기본값: 무한 스택 + 1개 줍기
     int32 MaxStack = 0;
     int32 PickupAmount = 1;
@@ -164,8 +161,11 @@ bool UInventoryComponent::AddItem(FName ItemID, int32 Amount)
         Remaining -= ToAdd;
     }
 
-    OnInventoryUpdated.Broadcast();
-    return true;
+	UE_LOG(LogTemp, Warning, TEXT("[INV] AddItem %s qty=%d role=%d"),
+	*ItemID.ToString(), GetItemQuantity(ItemID), (int32)GetOwner()->GetLocalRole());
+	
+	OnInventoryUpdated.Broadcast();
+	return true;
 }
 
 void UInventoryComponent::UseItem(int32 SlotIndex)
@@ -211,8 +211,9 @@ void UInventoryComponent::UseItem(int32 SlotIndex)
             CombatComponent->EquipWeapon(CurrentItemTag);
         }
     }
+	
 	else if (Slot.ItemID == "Health")
-	{
+    {
 	    UAbilitySystemComponent* ASC = Player->FindComponentByClass<UAbilitySystemComponent>();
 	    if (!ASC)
 	    {
@@ -248,8 +249,6 @@ void UInventoryComponent::UseItem(int32 SlotIndex)
 			Slot.ItemID = NAME_None;
 		}
 	}
-    
-    UE_LOG(LogTemp, Display, TEXT("인벤토리 브로드캐스팅을 합니다."));
 	// 모든곳에 브로드캐스트합니다.
 	OnInventoryUpdated.Broadcast();
 }
@@ -311,15 +310,60 @@ bool UInventoryComponent::DropItem(int32 SlotIndex, int32 DropRequest)
 
     OnInventoryUpdated.Broadcast();
 
-    if (GEngine)
-    {
-        const FString Msg = FString::Printf(
-            TEXT("[ %d번 ] 슬롯에서 %s 를 %d개 버렸습니다."),
-            SlotIndex, *Slot.ItemID.ToString(), ActuallyDrop
-        );
-        
-        UE_LOG(LogTemp, Display, TEXT("%s"), *Msg);
-    }
+    const FString Msg = FString::Printf(
+        TEXT("[ %d번 ] 슬롯에서 %s 를 %d개 버렸습니다."),
+        SlotIndex, *Slot.ItemID.ToString(), ActuallyDrop
+    );
+    UE_LOG(LogTemp, Display, TEXT("%s"), *Msg);
 
     return true;
+}
+
+int32 UInventoryComponent::GetItemQuantity(FName InItemID) const
+{
+	if (InItemID.IsNone()) return 0;
+
+	int32 Total = 0;
+	for (const FInventorySlot& Slot : Items)
+	{
+		if (Slot.ItemID == InItemID)
+		{
+			Total += Slot.Quantity;
+		}
+	}
+	return Total;
+}
+
+bool UInventoryComponent::ConsumeItem(FName InItemID, int32 Amount)
+{
+	if (InItemID.IsNone() || Amount <= 0) return false;
+
+	// 먼저 충분한지 체크(여러 슬롯에 나뉘어 있을 수도 있으니까 Total로)
+	const int32 Have = GetItemQuantity(InItemID);
+	if (Have < Amount) return false;
+
+	int32 Remaining = Amount;
+
+	// 슬롯을 돌면서 차감
+	for (int32 i = 0; i < Items.Num() && Remaining > 0; ++i)
+	{
+		FInventorySlot& Slot = Items[i];
+		if (Slot.ItemID != InItemID) continue;
+		if (Slot.Quantity <= 0) continue;
+
+		const int32 Used = FMath::Min(Slot.Quantity, Remaining);
+		Slot.Quantity -= Used;
+		Remaining -= Used;
+
+		// 슬롯 정리(0이면 비움)
+		if (Slot.Quantity <= 0)
+		{
+			Slot.Quantity = 0;
+			Slot.ItemID = NAME_None;
+		}
+	}
+
+	OnInventoryUpdated.Broadcast();
+	return true;
+}
 }

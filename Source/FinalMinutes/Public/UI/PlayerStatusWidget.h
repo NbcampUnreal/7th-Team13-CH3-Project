@@ -11,6 +11,7 @@ class UCombatComponent;
 class UProgressBar;
 class UTextBlock;
 class UCanvasPanel;
+class UInventoryComponent;
 
 UCLASS()
 class FINALMINUTES_API UPlayerStatusWidget : public UUserWidget
@@ -49,13 +50,11 @@ private:
     void UpdateHealth(float Current);
     void UpdateStamina(float Current);
 	void UpdateAmmo(float Current);
-	void UpdateMaxAmmo(float Max);
 	
 	// Attribute 델리게이트 핸들러
     void OnHealthChanged(const FOnAttributeChangeData& Data);
     void OnStaminaChanged(const FOnAttributeChangeData& Data);
 	void OnAmmoChanged(const FOnAttributeChangeData& Data);
-	void OnMaxAmmoChanged(const FOnAttributeChangeData& Data);
 	
     UPROPERTY()
     TObjectPtr<UAbilitySystemComponent> ASC;
@@ -68,7 +67,6 @@ private:
     FDelegateHandle HealthChangedHandle;
     FDelegateHandle StaminaChangedHandle;
 	FDelegateHandle AmmoChangedHandle;
-	FDelegateHandle MaxAmmoChangedHandle;
 
     float MaxHealth = 100.f;
     float MaxStamina = 100.f;
@@ -86,9 +84,23 @@ protected:
 	
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<class UTextBlock> TXT_Ammo;
-
+	
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<class UTextBlock> TXT_MaxAmmo;
+	
+	UPROPERTY()
+	TObjectPtr<UInventoryComponent> BoundInventoryComp;
+
+	FName CurrentAmmoItemID = NAME_None;
+
+	void BindInventoryCallbacks();
+	void UnbindInventoryCallbacks();
+
+	UFUNCTION()
+	void HandleInventoryUpdated();
+
+	void UpdateReserveAmmo(); // TXT_MaxAmmo 갱신용
+	FName ResolveAmmoItemIDFromActiveWeapon() const;
 	
 	// 무기 타입 태그가 바뀌었을 때 UI 갱신용
 	UFUNCTION(BlueprintImplementableEvent)

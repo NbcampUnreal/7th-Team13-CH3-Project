@@ -9,6 +9,7 @@
 #include "Items/Weapons/WeaponBase.h"
 #include "Items/Weapons/WeaponDataAsset.h"
 #include "Perception/AISense_Hearing.h"
+#include "Components/InventoryComponent.h"
 
 UGA_Attack::UGA_Attack()
 {
@@ -70,10 +71,50 @@ void UGA_Attack::HandleFiringLoop()
     // 2. 발사 실행
     if (HasAuthority(&CurrentActivationInfo))
     {
+        APlayerCharacter* Player = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
+        if (!Player) { EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false); return; }
+
+        // 무기/WeaponData 가져오기
+        UCombatComponent* CombatComponent = Player->GetCombatComponent();
+        AWeaponBase* CurrentWeapon = CombatComponent ? CombatComponent->GetActiveWeapon() : nullptr;
+        if (!CurrentWeapon || !CurrentWeapon->GetCurrentDataAsset())
+        {
+            EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+            return;
+        }
+
+        const FWeaponData& WD = CurrentWeapon->GetCurrentDataAsset()->WeaponData;
+        const FName AmmoID = WD.AmmoItemID;
+
+        // 인벤 가져오기
+        UInventoryComponent* Inv = Player->FindComponentByClass<UInventoryComponent>();
+        if (!Inv)
+        {
+            EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+            return;
+        }
+
+        // 탄약 체크 (AmmoID가 설정된 무기만)
+        if (!AmmoID.IsNone() && Inv->GetItemQuantity(AmmoID) <= 0)
+        {
+            EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+            return;
+        }
+
         ApplyRecoil();
         PlayRecoilMontage();
         SpawnProjectile();
         GenerateFiringNoise();
+        if (AmmoID.IsNone())
+        {
+            UE_LOG(LogTemp, Warning, TEXT("[Fire] AmmoItemID is None (check WeaponDataAsset)"));
+        }
+
+        // 발사 성공으로 보고 -1
+        if (!AmmoID.IsNone())
+        {
+            Inv->ConsumeItem(AmmoID, 1);
+        }
     }
 
     // 3. 연사/단발 결정 로직 간소화

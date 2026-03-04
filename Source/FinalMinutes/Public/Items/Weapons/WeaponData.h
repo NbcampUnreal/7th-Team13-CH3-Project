@@ -171,4 +171,8 @@ public:
     // 사격 어빌리티 설정
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Data")
     TSubclassOf<class UGameplayAbility> FireAbilityClass;
+    
+    // 총알 ID
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Weapon|Ammo")
+    FName AmmoItemID = NAME_None;
 };
