@@ -2,7 +2,6 @@
 #include "Character/Player/PlayerCharacter.h"
 #include "Components/InventoryComponent.h"
 #include "Items/BaseItem.h"
-#include "Engine/Engine.h"
 
 UGA_Interact::UGA_Interact()
 {
@@ -66,10 +65,7 @@ void UGA_Interact::ActivateAbility(
     }
     else
     {
-        if (GEngine)
-        {
-            GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("인벤토리가 가득 찼습니다!"));
-        }
+        UE_LOG(LogTemp, Warning, TEXT("인벤토리가 가득 찼습니다!"));
     }
 
     EndAbility(Handle, ActorInfo, ActivationInfo, true, false);

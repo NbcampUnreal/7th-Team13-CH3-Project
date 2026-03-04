@@ -43,6 +43,23 @@ bool UInventoryComponent::AddItem(FName ItemID)
 bool UInventoryComponent::AddItem(FName ItemID, int32 Amount)
 {
     if (ItemID == NAME_None) return false;
+    
+    // ✅ 무기(Weapon.*)는 중복 줍기 자체를 막는다 (라이플/샷건 1개씩만 허용 목적)
+    const FGameplayTag ItemTag = FGameplayTag::RequestGameplayTag(ItemID, false);
+    const FGameplayTag WeaponParentTag = FGameplayTag::RequestGameplayTag(FName("Weapon"), false);
+
+    if (ItemTag.IsValid() && WeaponParentTag.IsValid() && ItemTag.MatchesTag(WeaponParentTag))
+    {
+        for (const FInventorySlot& Slot : Items)
+        {
+            if (Slot.ItemID == ItemID && Slot.Quantity > 0)
+            {
+                UE_LOG(LogTemp, Log, TEXT("이미 보유한 무기라서 줍지 않습니다: %s"), *ItemID.ToString());
+                OnInventoryUpdated.Broadcast();
+                return false;
+            }
+        }
+    }
 
     // 기본값: 무한 스택 + 1개 줍기
     int32 MaxStack = 0;
@@ -300,7 +317,8 @@ bool UInventoryComponent::DropItem(int32 SlotIndex, int32 DropRequest)
             TEXT("[ %d번 ] 슬롯에서 %s 를 %d개 버렸습니다."),
             SlotIndex, *Slot.ItemID.ToString(), ActuallyDrop
         );
-        GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Orange, Msg);
+        
+        UE_LOG(LogTemp, Display, TEXT("%s"), *Msg);
     }
 
     return true;
