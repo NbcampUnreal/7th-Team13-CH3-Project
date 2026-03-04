@@ -114,6 +114,18 @@ void UCharacterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModC
         // 데미지가 0이하면 무시
         if (DamageValue <= 0.f) return;
         
+        // 자기 자신에게 데미지를 입히는지 체크 (Self-Damage 방지)
+        const FGameplayEffectContextHandle& Context = Data.EffectSpec.GetEffectContext();
+        AActor* SourceActor = Context.GetInstigator(); // 공격자
+        AActor* TargetActor = Data.Target.GetAvatarActor(); // 피격자(나)
+
+        // 공격자와 피격자가 같으면 데미지 로직을 수행하지 않고 종료
+        if (SourceActor == TargetActor)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("자기 자신에게 준 데미지를 무시합니다."));
+            return;
+        }
+        
         // 최종 데미지 계산용 변수
         float FinalDamage = DamageValue;
         
@@ -154,6 +166,13 @@ void UCharacterAttributeSet::HandleDeath() const
     UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
     
     if (!ASC) return;
+    
+    const FGameplayTag DeadState = FGameplayTag::RequestGameplayTag(FName("State.Monster.Dead"));
+    if (ASC->HasMatchingGameplayTag(DeadState))
+    {
+        return;
+    }
+    ASC->AddLooseGameplayTag(DeadState);
     
     FGameplayEventData Payload;
     Payload.EventTag = FGameplayTag::RequestGameplayTag(FName("Event.Montage.Death"));
