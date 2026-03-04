@@ -46,7 +46,6 @@ AWeaponBase* UCombatComponent::GetWeaponBySlot(const EWeaponSlot Slot) const
  */
 void UCombatComponent::EquipWeapon(FGameplayTag Tag)
 {
-    UE_LOG(LogTemp, Error, TEXT("👤 [EquipWeapon] 실행 중인 곳 주소: %p, Tag: %s"), this, *Tag.ToString());
     // --- (0) 현재 들고 있는 무기 탄약을 액터에 백업 ---
     if (ActiveWeapon && OwnerCharacter)
     {
@@ -91,11 +90,6 @@ void UCombatComponent::EquipWeapon(FGameplayTag Tag)
 
     const bool bIsNewSpawn = (WeaponToEquip == nullptr);
     
-    UE_LOG(LogTemp, Warning, TEXT("🚩 [Equip-Start] Tag=%s Spawned=%d PendingHas=%d"), 
-        *Tag.ToString(), 
-        SpawnedWeapons.Contains(Tag), 
-        PendingLoadedAmmoMap.Contains(Tag));
-
     // --- 2) 처음 보는 무기면 스폰 + InitializeWeapon(딱 1회) + 초기탄약 결정 ---
     if (bIsNewSpawn)
     {
@@ -120,15 +114,11 @@ void UCombatComponent::EquipWeapon(FGameplayTag Tag)
         {
             WeaponToEquip->CurrentAmmoCount = *SavedAmmo;
             WeaponToEquip->InitializeAttributes();
-            //PendingLoadedAmmoMap.Remove(Tag);
-            
-            UE_LOG(LogTemp, Log, TEXT("🗳️ [Pending-Load] %s 복구: %d발"), *Tag.ToString(), *SavedAmmo);
         }
         
         else
         {
             WeaponToEquip->CurrentAmmoCount = WeaponDataAsset->WeaponData.DefaultMaxAmmo;
-            UE_LOG(LogTemp, Error, TEXT("⚠️ [No-Pending] 장부에 데이터가 없어 기본값 %d발 적용"), WeaponToEquip->CurrentAmmoCount);
         }
 
         // 최초 상태는 보관
@@ -181,9 +171,6 @@ void UCombatComponent::EquipWeapon(FGameplayTag Tag)
         {
             const FWeaponData& Data = ActiveWeapon->GetCurrentDataAsset()->WeaponData;
             WeaponAS->SetMaxAmmo(Data.DefaultMaxAmmo);
-            UE_LOG(LogTemp, Warning, TEXT("🎯 [Equip-Final] Tag=%s ActorAmmo=%d GAS-Update!"), 
-                *Tag.ToString(), 
-                ActiveWeapon->CurrentAmmoCount);
             WeaponAS->SetCurrentAmmo(static_cast<float>(ActiveWeapon->CurrentAmmoCount));
         }
 

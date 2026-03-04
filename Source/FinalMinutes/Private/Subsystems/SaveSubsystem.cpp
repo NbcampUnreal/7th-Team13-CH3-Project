@@ -108,8 +108,6 @@ void USaveSubsystem::SaveGameData(int32 CurrentKillCount, float SurviveTime, FSt
 
 				// 모든 무기의 탄약 정보를 장부에 기록!
 				SaveObject->WeaponAmmoMap.Add(WeaponTag, AmmoToSave);
-            
-				UE_LOG(LogTemp, Log, TEXT("💾 [세이브] %s : %d발 저장 완료"), *WeaponTag.ToString(), AmmoToSave);
 			}
 		}
 	}
@@ -189,12 +187,7 @@ void USaveSubsystem::LoadGameData(FString SlotName)
     {
         // 반드시 EquipWeapon 호출 전에 PendingLoadedAmmoMap 주입
         CombatComp->SetPendingLoadedAmmoMap(LoadObject->WeaponAmmoMap);
-    	UE_LOG(LogTemp, Error, TEXT("👤 [SaveSubsystem] 장부 준 곳 주소: %p, 개수: %d"), CombatComp, LoadObject->WeaponAmmoMap.Num());
-    	UE_LOG(LogTemp,
-    		Warning,
-    		TEXT("📦 [SaveSubsystem] 장부 전달 완료! 개수: %d"),
-    		LoadObject->WeaponAmmoMap.Num());
-
+    	
         // 슬롯 복구
         if (LoadObject->PrimaryWeaponTag.IsValid())
         {
