@@ -5,6 +5,7 @@
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "AbilitySystem/Attributes/WeaponAttributeSet.h"
 #include "Character/Components/CombatComponent.h"
+#include "Components/InventoryComponent.h"
 #include "Items/Weapons/WeaponData.h"
 #include "Items/Weapons/WeaponBase.h"
 #include "Items/Weapons/WeaponDataAsset.h"
@@ -51,8 +52,19 @@ void UGA_Reload::ActivateAbility(
         EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
         return;
     }
+    
+    // 4. 인벤토리 탄약 확인 (탄약이 없으면 재장전 불가)
+    UInventoryComponent* Inventory = PlayerCharacter->FindComponentByClass<UInventoryComponent>();
+    FName AmmoItemID = CurrentWeapon->GetCurrentDataAsset()->WeaponData.AmmoItemID;
 
-    // 3. 재장전 애니메이션 및 이벤트 대기 설정
+    if (!Inventory || Inventory->GetItemQuantity(AmmoItemID) <= 0)
+    {
+        // 탄약이 없으므로 어빌리티를 즉시 종료 (애니메이션 실행 안 함)
+        EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
+        return;
+    }
+
+    // 5. 재장전 애니메이션 및 이벤트 대기 설정
     SetupReloadTasks(ASC, PlayerCharacter);
 
     // 재장전 관련 시각/청각 효과 실행
@@ -102,16 +114,51 @@ void UGA_Reload::SetupReloadTasks(UAbilitySystemComponent* ASC, APlayerCharacter
 void UGA_Reload::OnReloadGameplayEvent(FGameplayEventData EventData)
 {
     UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
-    if (!ASC) return;
+    APlayerCharacter* Player = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
+    if (!ASC || !Player) return;
 
-    // 장전 효과(GE) 적용 (탄창 수치 변경)
-    FGameplayEffectContextHandle EffectContext = ASC->MakeEffectContext();
-    EffectContext.AddSourceObject(GetAvatarActorFromActorInfo());
+    UInventoryComponent* Inventory = Player->FindComponentByClass<UInventoryComponent>();
+    UCombatComponent* Combat = Player->GetCombatComponent();
+    AWeaponBase* CurrentWeapon = Combat ? Combat->GetActiveWeapon() : nullptr;
 
-    FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(ReloadEffectClass, 1.0f, EffectContext);
-    if (SpecHandle.IsValid())
+    // 1. 유효성 검사 (인벤토리와 무기 데이터가 있어야 함)
+    if (!Inventory || !CurrentWeapon || !CurrentWeapon->GetCurrentDataAsset()) return;
+
+    // 2. 현재 상태 파악
+    const float CurrentAmmo = ASC->GetNumericAttribute(UWeaponAttributeSet::GetCurrentAmmoAttribute());
+    const float MaxAmmo = ASC->GetNumericAttribute(UWeaponAttributeSet::GetMaxAmmoAttribute());
+    
+    // 무기 데이터 에셋에서 탄약 아이템 ID를 가져옴 (예: "Bullet_pistol")
+    FName AmmoItemID = CurrentWeapon->GetCurrentDataAsset()->WeaponData.AmmoItemID; 
+    
+    // 인벤토리에서 현재 가지고 있는 수량 확인
+    const int32 CarriedQuantity = Inventory->GetItemQuantity(AmmoItemID);
+
+    // 3. 계산: (탄창에 부족한 양) vs (인벤토리에 실제 있는 양)
+    int32 AmountNeeded = FMath::RoundToInt(MaxAmmo - CurrentAmmo);
+    int32 ActualReloadAmount = FMath::Min(AmountNeeded, CarriedQuantity);
+
+    if (ActualReloadAmount <= 0) return;
+
+    // 4. [인벤토리 처리] 실제 아이템 수량 감소 (남은 총알 수 줄어듦)
+    if (Inventory->ConsumeItem(AmmoItemID, ActualReloadAmount))
     {
-        ActiveReloadEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+        // 5. [GAS 처리] 인벤토리에서 성공적으로 뺀 만큼만 탄창(CurrentAmmo)을 채움
+        FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
+        Context.AddSourceObject(Player);
+
+        FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(ReloadEffectClass, 1.0f, Context);
+        if (SpecHandle.IsValid())
+        {
+            // GE_Reload의 Modifier Magnitude를 SetByCaller로 전달
+            // 태그명은 GE_Reload 파일 내 Magnitude에 설정한 태그와 동일해야 함
+            SpecHandle.Data.Get()->SetSetByCallerMagnitude(
+                FGameplayTag::RequestGameplayTag(FName("Weapon.Data.ReloadAmount")), 
+                (float)ActualReloadAmount
+            );
+            
+            ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+        }
     }
 }
 
