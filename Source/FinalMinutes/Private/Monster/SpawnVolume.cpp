@@ -15,21 +15,26 @@ ASpawnVolume::ASpawnVolume()
 	SpawnBox->SetupAttachment(Scene);
 	
 	SpawnRate = 5.0f;
+	SpawnInit = 1.0f;
 }
 
 void ASpawnVolume::BeginPlay()
 {
 	Super::BeginPlay();
-	SpawnRandomMonster();
 	
-	/*// 확률 스폰을 원하면 SpawnRandomMonster를 호출하게 변경
+	for (int i = 0; i < SpawnInit; i++)
+	{
+		SpawnRandomMonster();
+	}
+	
+	// 확률 스폰을 원하면 SpawnRandomMonster를 호출하게 변경
 	GetWorld()->GetTimerManager().SetTimer(
 	   SpawnTimer, 
 	   this,
 	   &ASpawnVolume::SpawnRandomMonster, 
 	   SpawnRate,
 	   true
-	);*/
+	);
 }
 
 void ASpawnVolume::SpawnRandomMonster()
