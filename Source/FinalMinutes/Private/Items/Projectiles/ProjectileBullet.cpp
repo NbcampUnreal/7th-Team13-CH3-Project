@@ -17,6 +17,9 @@
 // 디버그 헬퍼
 #include "DrawDebugHelpers.h"
 
+#include "AIController.h"
+#include "BehaviorTree/BlackboardComponent.h"
+
 AProjectileBullet::AProjectileBullet()
 {
     // TPS 게임의 총알은 매 프레임 궤적 추적이 필요하므로 Tick을 활성화합니다.
@@ -133,6 +136,18 @@ void AProjectileBullet::OnHit(
 
     UAbilitySystemComponent* TargetASC = ASCOwner->GetAbilitySystemComponent();
     if (!TargetASC || !DamageEffectSpecHandle.IsValid()) return;
+    
+    if (APawn* TargetPawn = Cast<APawn>(OtherActor))
+    {
+        if (AAIController* AIC = Cast<AAIController>(TargetPawn->GetController()))
+        {
+            if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
+            {
+                // BT 데코레이터가 감시하는 키 이름과 정확히 일치해야 합니다.
+                BB->SetValueAsBool(TEXT("bIsHit"), true);
+            }
+        }
+    }
 
     // [Step 3] 실제 전달된 데미지 값 확인
     // "Data.Damage" 부분은 무기 담당자가 설정한 실제 태그명으로 교체해야 합니다.
