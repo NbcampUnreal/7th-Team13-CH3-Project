@@ -5,6 +5,7 @@
 #include "Blueprint/UserWidget.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystem/Attributes/CharacterAttributeSet.h"
+#include "Character/Components/CombatComponent.h"
 
 UInventoryComponent::UInventoryComponent()
 {
@@ -144,6 +145,9 @@ bool UInventoryComponent::AddItem(FName ItemID, int32 Amount)
         Remaining -= ToAdd;
     }
 
+	UE_LOG(LogTemp, Warning, TEXT("[INV] AddItem %s qty=%d role=%d"),
+	*ItemID.ToString(), GetItemQuantity(ItemID), (int32)GetOwner()->GetLocalRole());
+	
     OnInventoryUpdated.Broadcast();
     return true;
 }
@@ -183,22 +187,21 @@ void UInventoryComponent::UseItem(int32 SlotIndex)
 	    const float CurHealth = ASC->GetNumericAttribute(UCharacterAttributeSet::GetHealthAttribute());
 	    const float MaxHealth = ASC->GetNumericAttribute(UCharacterAttributeSet::GetMaxHealthAttribute());
 	    
-		// ✅ 체력이 이미 꽉 찼으면 사용 불가(아이템 소모도 X)
+		// 체력이 이미 꽉 찼으면 사용 불가(아이템 소모도 X)
 		if (CurHealth >= MaxHealth - KINDA_SMALL_NUMBER)
 		{
 			if (GEngine)
 			{
 				GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, TEXT("체력이 이미 가득 찼습니다!"));
 			}
-			return; // ✅ 여기서 끝 (수량 감소 X)
+			return;
 		}
 		
 		const float HealAmount = 10.f;
 		const float NewHealth = FMath::Clamp(CurHealth + HealAmount, 0.f, MaxHealth);
 
 		ASC->SetNumericAttributeBase(UCharacterAttributeSet::GetHealthAttribute(), NewHealth);
-
-		// ✅ 여기부터는 실제로 썼을 때만 소모
+		
 		Slot.Quantity -= 1;
 		if (Slot.Quantity <= 0)
 		{
@@ -222,8 +225,9 @@ bool UInventoryComponent::DropItem(int32 SlotIndex, int32 DropRequest)
     DropRequest = FMath::Max(1, DropRequest);
 
     // 실제로 버릴 수 있는 수량(남은 것보다 많이 못 버림)
-    const int32 ActuallyDrop = FMath::Min(DropRequest, Slot.Quantity);
+    int32 ActuallyDrop = FMath::Min(DropRequest, Slot.Quantity);
 
+    // 아이템 스폰
     AActor* OwnerActor = GetOwner();
     if (OwnerActor && ItemDataTable)
     {
@@ -248,10 +252,8 @@ bool UInventoryComponent::DropItem(int32 SlotIndex, int32 DropRequest)
 
             if (Dropped)
             {
-                // 안전하게 ItemID 세팅(혹시 BP에서 누락돼도 됨)
                 Dropped->ItemID = Slot.ItemID;
-
-                // 드랍된 아이템은 다시 주울 때 "실제 버린 만큼"만 줍게
+            	// 드랍된 아이템은 다시 주울 때 "실제 버린 만큼"만 줍게
                 Dropped->OverridePickupAmount = ActuallyDrop;
             }
         }
@@ -277,4 +279,52 @@ bool UInventoryComponent::DropItem(int32 SlotIndex, int32 DropRequest)
     }
 
     return true;
+}
+
+int32 UInventoryComponent::GetItemQuantity(FName InItemID) const
+{
+	if (InItemID.IsNone()) return 0;
+
+	int32 Total = 0;
+	for (const FInventorySlot& Slot : Items)
+	{
+		if (Slot.ItemID == InItemID)
+		{
+			Total += Slot.Quantity;
+		}
+	}
+	return Total;
+}
+
+bool UInventoryComponent::ConsumeItem(FName InItemID, int32 Amount)
+{
+	if (InItemID.IsNone() || Amount <= 0) return false;
+
+	// 먼저 충분한지 체크(여러 슬롯에 나뉘어 있을 수도 있으니까 Total로)
+	const int32 Have = GetItemQuantity(InItemID);
+	if (Have < Amount) return false;
+
+	int32 Remaining = Amount;
+
+	// 슬롯을 돌면서 차감
+	for (int32 i = 0; i < Items.Num() && Remaining > 0; ++i)
+	{
+		FInventorySlot& Slot = Items[i];
+		if (Slot.ItemID != InItemID) continue;
+		if (Slot.Quantity <= 0) continue;
+
+		const int32 Used = FMath::Min(Slot.Quantity, Remaining);
+		Slot.Quantity -= Used;
+		Remaining -= Used;
+
+		// 슬롯 정리(0이면 비움)
+		if (Slot.Quantity <= 0)
+		{
+			Slot.Quantity = 0;
+			Slot.ItemID = NAME_None;
+		}
+	}
+
+	OnInventoryUpdated.Broadcast();
+	return true;
 }

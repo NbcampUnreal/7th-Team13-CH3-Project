@@ -8,6 +8,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Framework/FinalMinutesGameState.h"
 #include "Monster/AMonsterCharacter.h"
+#include "UI/PlayerHUD.h"
+#include "GameFramework/PlayerController.h"
 
 UCharacterAttributeSet::UCharacterAttributeSet()
 {
@@ -55,6 +57,34 @@ void UCharacterAttributeSet::PostAttributeChange(const FGameplayAttribute& Attri
     }
 }
 
+// ✅ 공격자(플레이어) HUD에 데미지 숫자 띄우기
+void UCharacterAttributeSet::ShowDamageOnShooterHUD(const FGameplayEffectModCallbackData& Data, float FinalDamage) const
+{
+    // 1) 공격자(Instigator) 찾기
+    const FGameplayEffectContextHandle& Ctx = Data.EffectSpec.GetEffectContext();
+
+    AActor* InstigatorActor = Ctx.GetOriginalInstigator();
+    if (!InstigatorActor) InstigatorActor = Ctx.GetInstigator();
+    if (!InstigatorActor) return;
+
+    // 2) Pawn / PC 찾기
+    APawn* InstigatorPawn = Cast<APawn>(InstigatorActor);
+    if (!InstigatorPawn) InstigatorPawn = InstigatorActor->GetInstigator();
+    if (!InstigatorPawn) return;
+
+    APlayerController* PC = Cast<APlayerController>(InstigatorPawn->GetController());
+    if (!PC) return;
+
+    // 3) HUD로 전달
+    if (APlayerHUD* HUD = Cast<APlayerHUD>(PC->GetHUD()))
+    {
+        const int32 DamageInt = FMath::RoundToInt(FinalDamage);
+        if (DamageInt > 0)
+        {
+            HUD->ShowDamageNumber(DamageInt);
+        }
+    }
+}
 
 // GameplayEffect 실행 뒤에 실행
 void UCharacterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
@@ -99,6 +129,8 @@ void UCharacterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModC
             FinalDamage = DamageValue * Multiplier;
             
             UE_LOG(LogTemp, Log, TEXT("부위 판정: %f * %f = 최종 %f"), DamageValue, Multiplier, FinalDamage);
+            
+            ShowDamageOnShooterHUD(Data, FinalDamage);
         }
         
         // 체력 차감
@@ -150,6 +182,17 @@ void UCharacterAttributeSet::HandleDeath() const
         
         APawn* MonsterPawn = Cast<APawn>(AvatarActor);
         if (MonsterPawn)
+        // 처치 +1 UI 띄우기
+        if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+        {
+            if (APlayerHUD* HUD = Cast<APlayerHUD>(PC->GetHUD()))
+            {
+                HUD->ShowKillPlusOne();
+            }
+        }
+        
+        // 몬스터 사망 모션 재생(일단은 액터 삭제만 진행)
+        if (AvatarActor)
         {
             if (AAIController* AIC = Cast<AAIController>(MonsterPawn->GetController()))
             {
