@@ -59,7 +59,9 @@ public:
     // UI/HUD가 구독할 이벤트
     UPROPERTY(BlueprintAssignable, Category="Combat|UI")
     FOnActiveWeaponTagChanged OnActiveWeaponTagChanged;
-
+    
+    void SetPendingLoadedAmmoMap(const TMap<FGameplayTag, int32>& InMap) { PendingLoadedAmmoMap = InMap; }
+    const TMap<FGameplayTag, AWeaponBase*>& GetSpawnedWeapons() const { return SpawnedWeapons; }
 private:
     /** --- [내부 유틸리티] --- */
     
@@ -88,6 +90,9 @@ private:
     /** [상태] 현재 캐릭터가 선택 중인 슬롯 상태를 저장합니다. (None, Primary, Secondary) */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat | Inventory", meta = (AllowPrivateAccess = "true"))
     EWeaponSlot CurrentSlot = EWeaponSlot::None;
+    
+    UPROPERTY()
+    TMap<FGameplayTag, int32> PendingLoadedAmmoMap;
 protected: 
     /** 반동관련 */
     
