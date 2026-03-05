@@ -60,4 +60,10 @@ public:
 	
 	UPROPERTY(BlueprintReadWrite)
 	TMap<FGameplayTag, int32> WeaponAmmoMap;
+	
+	UPROPERTY(BlueprintReadWrite)
+	FGameplayTag PrimaryWeaponTag;
+
+	UPROPERTY(BlueprintReadWrite)
+	FGameplayTag SecondaryWeaponTag;
 };

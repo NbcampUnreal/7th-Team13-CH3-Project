@@ -64,41 +64,49 @@ void USaveSubsystem::SaveGameData(int32 CurrentKillCount, float SurviveTime, FSt
 	
 	if (CombatComp)
 	{
-		// 1. 마지막에 든 무기 태그 저장
+		//마지막에 든 무기 태그 저장
 		if (CombatComp->GetActiveWeapon() && CombatComp->GetActiveWeapon()->GetCurrentDataAsset())
 		{
 			SaveObject->LastEquipWeapon = CombatComp->GetActiveWeapon()->GetCurrentDataAsset()->WeaponData.WeaponTag;
 		}
-
-		// 2. [핵심] 주무기/보조무기 슬롯을 돌면서 탄약 장부(Map)에 기록
-		for (int32 i = 0; i <= 1; i++) // 0: Primary, 1: Secondary
+		
+		AWeaponBase* PrimaryWeap = CombatComp->GetWeaponBySlot(EWeaponSlot::Primary);
+		if (PrimaryWeap && PrimaryWeap->GetCurrentDataAsset())
 		{
-			EWeaponSlot Slot = (i == 0) ? EWeaponSlot::Primary : EWeaponSlot::Secondary;
-			AWeaponBase* WeaponToCheck = CombatComp->GetWeaponBySlot(Slot);
+			SaveObject->PrimaryWeaponTag = PrimaryWeap->GetCurrentDataAsset()->WeaponData.WeaponTag;
+		}
+		
+		AWeaponBase* SecondaryWeap = CombatComp->GetWeaponBySlot(EWeaponSlot::Secondary);
+		if (SecondaryWeap && SecondaryWeap->GetCurrentDataAsset())
+		{
+			SaveObject->SecondaryWeaponTag = SecondaryWeap->GetCurrentDataAsset()->WeaponData.WeaponTag;
+		}
+		
+		
+		for (auto& Elem : CombatComp->GetSpawnedWeapons()) // SpawnedWeapons 맵 전체 순회
+		{
+			FGameplayTag WeaponTag = Elem.Key;
+			AWeaponBase* WeaponInstance = Elem.Value;
 
-			if (WeaponToCheck && WeaponToCheck->GetCurrentDataAsset())
+			if (WeaponInstance)
 			{
-				FGameplayTag WeaponTag = WeaponToCheck->GetCurrentDataAsset()->WeaponData.WeaponTag;
 				int32 AmmoToSave = 0;
 
-				// (A) 들고 있는 무기면: ASC(GAS)에서 최신 값 가져오기
-				if (WeaponToCheck == CombatComp->GetActiveWeapon())
+				// (A) 지금 손에 들고 있는 무기라면 GAS(실시간 수치)에서 가져옴
+				if (WeaponInstance == CombatComp->GetActiveWeapon())
 				{
-					if (ASC)
+					if (const UWeaponAttributeSet* WAS = ASC->GetSet<UWeaponAttributeSet>())
 					{
-						if (const UWeaponAttributeSet* WAS = ASC->GetSet<UWeaponAttributeSet>())
-						{
-							AmmoToSave = (int32)WAS->GetCurrentAmmo();
-						}
+						AmmoToSave = FMath::RoundToInt(WAS->GetCurrentAmmo());
 					}
 				}
-				// (B) 등에 메고 있는 무기면: 무기 액터 변수에서 가져오기
+				// (B) 등에 메고 있거나 보관 중인 무기라면 액터 변수에서 가져옴
 				else
 				{
-					AmmoToSave = WeaponToCheck->CurrentAmmoCount;
+					AmmoToSave = WeaponInstance->CurrentAmmoCount;
 				}
 
-				// 장부에 저장
+				// 모든 무기의 탄약 정보를 장부에 기록!
 				SaveObject->WeaponAmmoMap.Add(WeaponTag, AmmoToSave);
 			}
 		}
@@ -116,144 +124,96 @@ void USaveSubsystem::SaveGameData(int32 CurrentKillCount, float SurviveTime, FSt
 
 void USaveSubsystem::LoadGameData(FString SlotName)
 {
-	if (SlotName.IsEmpty()) SlotName = CurrentSlotName;
-	if (SlotName.IsEmpty()) SlotName = TEXT("SaveSlot_01");
-	
-	//파일이 없으면 여기서 바로 종료 (Early Return)
-	if (!UGameplayStatics::DoesSaveGameExist(SlotName, 0))
-	{
-		//파일 디버깅
-		UE_LOG(LogTemp, Error, TEXT("!!! [로드 실패] 파일이 존재하지 않음: %s"), *SlotName);
-		return;
-	}
-	
-	//로드 실패 시 바로 종료
-	UFinalMinutesSaveGame* LoadObject = Cast<UFinalMinutesSaveGame>(UGameplayStatics::LoadGameFromSlot(SlotName, 0));
-	if (!LoadObject) return; 
-	
-	// UI 갱신 
-	AFinalMinutesGameState* GS = GetWorld()->GetGameState<AFinalMinutesGameState>();
-	if (GS)
-	{
-		GS->SetLoadedData(LoadObject->TotalKillCount, LoadObject->BestSurviveTime);
-		GS->bIsGameStarted = true;
-		GS->GameTime = LoadObject->BestSurviveTime;
-	}
-	
-	//게임모드 - 남은시간 다시 계산하기
-	if (AFinalMinutesGameMode* GM = Cast<AFinalMinutesGameMode>(UGameplayStatics::GetGameMode(this)))
-	{
-		// 세이브 파일에 적힌 시간 넘기기
-		GM->AdjustTimerAfterLoad(LoadObject->BestSurviveTime);
-	}
-	
-	//플레이어나 컴포넌트를 못 찾으면 종료 
-	APlayerCharacter* Player = Cast<APlayerCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
-	if (!Player) return;
-	
-	//위치 방향 
-	//캐릭터가 스폰되지 않았거나 초기화면 0,0,0이니까 그게 아니면
-	if (!LoadObject->PlayerLocation.IsNearlyZero())
-	{
-		//캐릭터를 저장된 위치/보고있던 방향으로 맞추겠다
-		Player->SetActorLocation(LoadObject->PlayerLocation,false, nullptr, ETeleportType::TeleportPhysics);
-		Player->SetActorRotation(LoadObject->PlayerRotation, ETeleportType::TeleportPhysics);
-		
-		if (AController* PC = Player->GetController())
-		{
-			PC->SetControlRotation(LoadObject->PlayerRotation);
-		}
-	}
-	
-	//체력,스테미나
-	UAbilitySystemComponent* ASC = Player->GetAbilitySystemComponent();
-	if (ASC)
-	{
-		if (UCharacterAttributeSet* CAS = const_cast<UCharacterAttributeSet*>(ASC->GetSet<UCharacterAttributeSet>()))
-		{
-			CAS->SetHealth(LoadObject->CurrentHealth);
-			CAS->SetStamina(LoadObject->CurrentStamina);
-			//UI에 바로 반영되도록 강제로 업데이트 해줌
-			ASC->ForceReplication();
-		}
-	}
-	
-	//무기 여러개 로드하는 로직 만들기 (인벤토리 기능 만들어 지면)
-	if (UInventoryComponent* InvComp = Player->FindComponentByClass<UInventoryComponent>())
-	{
-		// 아이템 배열을...인벤토리에 덮어써버리기
-		InvComp->Items = LoadObject->SavedInventory;
-		// 델리게이트 신호 보내기
-		InvComp->OnInventoryUpdated.Broadcast();
-	}
-	
-	//무기 장착
-	if (LoadObject->LastEquipWeapon.IsValid())
+    if (SlotName.IsEmpty()) SlotName = CurrentSlotName;
+    if (SlotName.IsEmpty()) SlotName = TEXT("SaveSlot_01");
+
+    if (!UGameplayStatics::DoesSaveGameExist(SlotName, 0))
     {
-       // 1. 일단 무기 장착 (비동기 로딩 시작됨)
-       Player->GetCombatComponent()->EquipWeapon(LoadObject->LastEquipWeapon);
-       
-       // 2. 저장된 탄약 장부(Map) 복사
-       TMap<FGameplayTag, int32> SavedAmmoMap = LoadObject->WeaponAmmoMap;
-       TWeakObjectPtr<APlayerCharacter> WeakPlayer = Player;
-       
-       FTimerHandle AmmoDelayHandle;
-       
-       // 3. 0.2초 뒤 (무기 초기화 끝난 후) 실행
-       GetWorld()->GetTimerManager().SetTimer(AmmoDelayHandle, [WeakPlayer, SavedAmmoMap]()
-       {
-          if (APlayerCharacter* PC = WeakPlayer.Get())
-          {
-             UCombatComponent* CombatComp = PC->GetCombatComponent();
-             if (!CombatComp) return;
-
-             // 모든 슬롯(주무기/보조무기) 확인
-             for (int32 i = 0; i <= 1; i++)
-             {
-                 EWeaponSlot Slot = (i == 0) ? EWeaponSlot::Primary : EWeaponSlot::Secondary;
-                 AWeaponBase* WeaponToLoad = CombatComp->GetWeaponBySlot(Slot);
-
-                 if (WeaponToLoad && WeaponToLoad->GetCurrentDataAsset())
-                 {
-                     FGameplayTag Tag = WeaponToLoad->GetCurrentDataAsset()->WeaponData.WeaponTag;
-
-                     // 장부에 있는 무기라면 탄약 복구
-                     if (SavedAmmoMap.Contains(Tag))
-                     {
-                         int32 LoadedAmmo = SavedAmmoMap[Tag];
-
-                         // (A) 무기 자체 변수에 값 넣기 (나중에 스왑해도 기억하도록)
-                         WeaponToLoad->CurrentAmmoCount = LoadedAmmo;
-
-                         // (B) 지금 들고 있는 무기라면 GAS에도 즉시 반영
-                         if (WeaponToLoad == CombatComp->GetActiveWeapon())
-                         {
-                             UAbilitySystemComponent* WeaponASC = PC->GetAbilitySystemComponent();
-                             if (WeaponASC)
-                             {
-                                if (const UWeaponAttributeSet* WAS = WeaponASC->GetSet<UWeaponAttributeSet>())
-                                {
-                                   UWeaponAttributeSet* MutableWAS = const_cast<UWeaponAttributeSet*>(WAS);
-                                   MutableWAS->SetCurrentAmmo((float)LoadedAmmo);
-                                   WeaponASC->ForceReplication();
-                                }
-                             }
-                         }
-                     }
-                 }
-             }
-          }
-       }, 0.2f, false);
-          
-       // 마우스 커서 끄기용 타이머 (기존 유지)
-       FTimerHandle Handle;
-       GetWorld()->GetTimerManager().SetTimer(Handle, [this]()
-       {
-          if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
-          {
-             PC->SetShowMouseCursor(false);
-             PC->SetInputMode(FInputModeGameOnly());
-          }
-       }, 0.1f, false);
+        UE_LOG(LogTemp, Error, TEXT("!!! [로드 실패] 파일이 존재하지 않음: %s"), *SlotName);
+        return;
     }
+
+    UFinalMinutesSaveGame* LoadObject =
+        Cast<UFinalMinutesSaveGame>(UGameplayStatics::LoadGameFromSlot(SlotName, 0));
+    if (!LoadObject) return;
+
+    AFinalMinutesGameState* GS = GetWorld()->GetGameState<AFinalMinutesGameState>();
+    if (GS)
+    {
+        GS->SetLoadedData(LoadObject->TotalKillCount, LoadObject->BestSurviveTime);
+        GS->bIsGameStarted = true;
+        GS->GameTime = LoadObject->BestSurviveTime;
+    }
+
+    if (AFinalMinutesGameMode* GM = Cast<AFinalMinutesGameMode>(UGameplayStatics::GetGameMode(this)))
+    {
+        GM->AdjustTimerAfterLoad(LoadObject->BestSurviveTime);
+    }
+
+    APlayerCharacter* Player = Cast<APlayerCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+    if (!Player) return;
+
+    if (!LoadObject->PlayerLocation.IsNearlyZero())
+    {
+        Player->SetActorLocation(LoadObject->PlayerLocation, false, nullptr, ETeleportType::TeleportPhysics);
+        Player->SetActorRotation(LoadObject->PlayerRotation, ETeleportType::TeleportPhysics);
+
+        if (AController* PC = Player->GetController())
+        {
+            PC->SetControlRotation(LoadObject->PlayerRotation);
+        }
+    }
+
+    UAbilitySystemComponent* ASC = Player->GetAbilitySystemComponent();
+    if (ASC)
+    {
+        if (UCharacterAttributeSet* CAS = const_cast<UCharacterAttributeSet*>(ASC->GetSet<UCharacterAttributeSet>()))
+        {
+            CAS->SetHealth(LoadObject->CurrentHealth);
+            CAS->SetStamina(LoadObject->CurrentStamina);
+            ASC->ForceReplication();
+        }
+    }
+
+    if (UInventoryComponent* InvComp = Player->FindComponentByClass<UInventoryComponent>())
+    {
+        InvComp->Items = LoadObject->SavedInventory;
+        InvComp->OnInventoryUpdated.Broadcast();
+    }
+
+    // 무기 로드 순서 수정
+    UCombatComponent* CombatComp = Player->GetCombatComponent();
+    if (CombatComp)
+    {
+        // 반드시 EquipWeapon 호출 전에 PendingLoadedAmmoMap 주입
+        CombatComp->SetPendingLoadedAmmoMap(LoadObject->WeaponAmmoMap);
+    	
+        // 슬롯 복구
+        if (LoadObject->PrimaryWeaponTag.IsValid())
+        {
+            CombatComp->EquipWeapon(LoadObject->PrimaryWeaponTag);
+        }
+
+        if (LoadObject->SecondaryWeaponTag.IsValid())
+        {
+            CombatComp->EquipWeapon(LoadObject->SecondaryWeaponTag);
+        }
+
+        // 마지막으로 들고 있던 무기
+        if (LoadObject->LastEquipWeapon.IsValid())
+        {
+            CombatComp->EquipWeapon(LoadObject->LastEquipWeapon);
+        }
+    }
+
+    // 마우스 커서 끄기용 타이머
+    FTimerHandle Handle;
+    GetWorld()->GetTimerManager().SetTimer(Handle, [this]()
+    {
+        if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+        {
+            PC->SetShowMouseCursor(false);
+            PC->SetInputMode(FInputModeGameOnly());
+        }
+    }, 0.1f, false);
 }
