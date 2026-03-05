@@ -7,7 +7,12 @@
 		{
 			"Name": "FinalMinutes",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"GameplayAbilities",
+				"Engine",
+				"UMG"
+			]
 		}
 	],
 	"Plugins": [
