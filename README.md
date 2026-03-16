@@ -1,4 +1,4 @@
-0# Final Minutes
+# Final Minutes
 
 > 10분 안에 살아남아라 — UE5 기반 서바이벌 좀비 슈터
 
@@ -71,10 +71,52 @@ Source/FinalMinutes/
 **Cause:** [TODO: 작성 필요]
 **Solution:** [TODO: 작성 필요]
 
-### [홍종규] [TODO: 작성 필요]
-**Problem:** [TODO: 작성 필요]
-**Cause:** [TODO: 작성 필요]
-**Solution:** [TODO: 작성 필요]
+### [홍종규] 🛠 사망 판정
+
+- [블로그](https://velog.io/@kyu_/Day-60-Death-%EB%A7%8C%EB%93%A4%EA%B8%B0)
+
+**Problem 1.** 
+- Payload 방식으로 변경 후 `GA_Death`가 실행되지 않는 문제
+
+**Cause**
+
+- `TryActivateAbilitiesByTag` 방식과 달리, `SendGameplayEventToActor`로 Payload를 함께 전달할 때는 Ability Triggers 설정이 필수인데 안해주었다.
+
+**Solution**
+
+- BP_GA_Death의 Ability Triggers
+  - Trigger Tag: Event.Montage.Death
+  - Trigger Source : Gameplay Event로 변경해서 해결
+
+![AbilityTrigger](https://raw.githubusercontent.com/JongKyuHong/image/main/AbilityTrigger.png)
+
+**Problem 2.** 
+- GE_Death 적용 후 `State.Player.Death`태그를 실제로 보유하지 않는 문제
+
+**Cause**
+
+- GA_Death에서 DeathEffectClass에 BP_GE_Death를 지정만 하고, ApplyGameplayEffectSpecToOwner로 실제 적용(Apply) 하는 코드가 없었음
+
+**Solution**
+
+
+- `GA_Death`의 ActivateAbility에서 GE를 생성하고 자신에게 직접 적용하도록 추가
+
+![GA_DeathCode](https://raw.githubusercontent.com/JongKyuHong/image/main/GA_DeathCode.png)
+
+**Problem 3.** 
+- 사망 후에도 앉기/엎드리기 가능한 문제
+
+**Cause**
+
+- `GA_Crouch`, `GA_Prone`의 실행 차단 조건에 `State.Player.Death` 태그가 없었음
+
+**Solution**
+
+- GA_Prone, GA_Crouch의 `ActivationBlockedTags`에 Death 태그 추가
+
+![GA_BlockTag](https://raw.githubusercontent.com/JongKyuHong/image/main/GA_BlockTag.png)
+
 
 ---
 
