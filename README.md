@@ -57,9 +57,25 @@ Source/FinalMinutes/
 **Solution:** NavMesh 검증 + 바닥면 Line Trace + 겹침 방지 로직 추가로 유효한 위치에만 스폰되도록 개선
 
 ### [허태린] [TODO: 작성 필요]
-**Problem:** [TODO: 작성 필요]
-**Cause:** [TODO: 작성 필요]
-**Solution:** [TODO: 작성 필요]
+**Problem 1**
+세이브 데이터 로드 시  무기 탄약이 초기화 되는 문제
+
+**Cause**
+실시간으로 Gameplay Ability System(GAS)의 UWeaponAttributeSet에서 탄약 수치를 관리하므로, 액터 변수(CurrentAmmoCount)만 저장하면 최신 수치가 누락됨.
+
+**Solution**
+<img width="666" height="612" alt="Image" src="https://github.com/user-attachments/assets/5c602d5b-f51f-41e2-a795-ab6206bcb483" />
+CombatComp->GetSpawnedWeapons() 맵을 전체 순회하여 플레이어가 한 번이라도 소지했던 모든 무기 인스턴스를 누락 없이 확인
+
+**Problem 2**
+게임이 시작되어도 BGM이 나오지 않거나, 시간이 지나도 다음 페이즈의 음악으로 전환되지 않는 현상
+
+**Cause**
+SoundSubsystem에서 재생할 BGM_Phase1, BGM_Phase2, BGM_Phase3 등 3단계의 BGM 에셋이 코드나 블루프린트 내부에서 제대로 할당되지 않아 Null 참조 상태였기 때문
+
+**Solution**
+블루프린트 내부 로직만으로 사운드를 로드하는 대신, BP_GameState의 디테일 창(Details Panel)에서 BGM_Phase1, 2, 3 에셋(.WAV)을 직접 할당하여 엔진에서 참조할 수 있도록 함.
+
 
 ### [최준혁] [TODO: 작성 필요]
 **Problem:** [TODO: 작성 필요]
