@@ -82,10 +82,18 @@ SoundSubsystem에서 재생할 BGM_Phase1, BGM_Phase2, BGM_Phase3 등 3단계의
 **Cause:** [TODO: 작성 필요]
 **Solution:** [TODO: 작성 필요]
 
-### [박둘내] [TODO: 작성 필요]
-**Problem:** [TODO: 작성 필요]
-**Cause:** [TODO: 작성 필요]
-**Solution:** [TODO: 작성 필요]
+### [박둘내] 아이템
+**Problem1** BoxCollision 내 무작위 좌표로 아이템 스폰 시, 벽 내부나 공중에 생성되는 엣지 케이스 발생  
+
+**Cause:** Z축 검증 없이 랜덤 좌표만 사용하여 NavMesh 밖 위치에 스폰  
+
+**Solution:** NavMesh 검증 + 바닥면 Line Trace + 겹침 방지 로직 추가로 유효한 위치에만 스폰되도록 개선  
+
+**Problem2** 아이템이 아닌 지형지물에 Line Trace가 닿았을 때, 게임이 크래시 나는 문제 발생  
+
+**Cause:** Line Trace에 맞은 액터를 모두 아이템으로 가정하고 ItemID에 접근했지만, 지형지물 액터에는 해당 값이 없어 예외 상황 발생  
+
+**Solution:** Line Trace에 맞은 액터가 실제 아이템인지 먼저 검사하고, ItemID가 유효한 경우에만 상호작용 로직이 실행되도록 조건문을 추가  
 
 ### [홍종규] 🛠 사망 판정
 
